@@ -24,12 +24,12 @@
   color: #000000;
   text-align: left;
   font-family: "Asap-Regular", sans-serif;
-  font-size: 26px;
+  font-size: 26px !important;
   font-weight: 400;
   position: absolute;
   left: 33px;
   top: 228px;
-  width: 146.21px;
+  width: 300px;
 }
 .rectangle-3 {
   background: #888b61;
@@ -41,6 +41,7 @@
   top: 151px;
 }
 .tasks {
+    pointer-events: none;
   color: #ffffff;
   text-align: left;
   font-family: "Asap-Regular", sans-serif;
@@ -49,19 +50,19 @@
   position: absolute;
   left: 33px;
   top: 165px;
-  width: 349.98px;
+  width: 300px;
   height: 27px;
 }
 .inventory {
   color: #000000;
   text-align: left;
   font-family: "Asap-Regular", sans-serif;
-  font-size: 26px;
+  font-size: 26px !important;
   font-weight: 400;
   position: absolute;
   left: 33px;
   top: 294px;
-  width: 123.18px;
+  width: 300px;
 }
 .top-banner {
   position: absolute;
@@ -76,7 +77,7 @@
   top: 0px;
   box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.05);
 }
-.planted-logo-1 {
+.PlantedLogo1 {
   width: 92px;
   height: 128px;
   position: absolute;
@@ -86,6 +87,7 @@
   aspect-ratio: 92/128;
 }
 .planted {
+  pointer-events: none;
   color: #000000;
   text-align: left;
   font-family: "Cardo-Regular", sans-serif;
@@ -96,6 +98,7 @@
   top: 25px;
 }
 .staff-portal {
+  pointer-events: none;
   color: #888b61;
   text-align: left;
   font-family: "AksaraBaliGalang-Regular", sans-serif;
@@ -148,13 +151,13 @@
   left: 402px;
   top: 563px;
 }
-.gemini-generated-image-ic-70-vwic-70-vwic-70-1 {
+.location-pin2 {
   width: 25.08px;
   height: 33.56px;
   position: absolute;
   left: 948px;
   top: 655px;
-  object-fit: cover;
+  object-fit: cover ;
   aspect-ratio: 25.08/33.56;
 }
 .service-plants {
@@ -197,40 +200,40 @@
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 987px;
+  left: 982px;
   top: 700px;
   width: 119px;
 }
 .client {
   color: #888b61;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 971px;
+  left: 982px;
   top: 737px;
   width: 86px;
 }
 ._456-main-street-san-francisco-ca {
   color: #000000;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 1057px;
+  left: 1065px;
   top: 660px;
   width: 322px;
 }
 ._2026-03-07-12-pm-3-pm {
   color: #000000;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 1063px;
+  left: 1083px;
   top: 700px;
   width: 280px;
 }
@@ -273,6 +276,7 @@
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 .contact-client2 {
+  pointer-events: none;
   color: #ffffff;
   text-align: center;
   font-family: "Asap-Regular", sans-serif;
@@ -283,12 +287,7 @@
   top: 775px;
   width: 113px;
 }
-.edit {
-  width: 129px;
-  height: 37px;
-  position: static;
-}
-.rectangle-11 {
+.materials-button2 {
   background: #f2eae3;
   border-radius: 7px;
   width: 129px;
@@ -298,7 +297,8 @@
   top: 765px;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
-.materials {
+.materials2 {
+  pointer-events: none;
   color: #000000;
   text-align: center;
   font-family: "Asap-Regular", sans-serif;
@@ -335,7 +335,7 @@
   top: 589px;
   width: 115px;
 }
-.gemini-generated-image-o-5-oc-3-co-5-oc-3-co-5-oc-1 {
+.calendar2 {
   width: 25px;
   height: 27px;
   position: absolute;
@@ -344,13 +344,12 @@
   object-fit: cover;
   aspect-ratio: 25/27;
 }
-.image-1 {
+.user-icon2 {
   width: 28px;
   height: 28px;
   position: absolute;
   left: 948px;
   top: 737px;
-  box-shadow: inset 0px 4px 0px 100px rgba(135, 137, 97, 1);
   object-fit: cover;
   aspect-ratio: 1;
 }
@@ -367,10 +366,11 @@
   left: 402px;
   top: 257px;
 }
-.gemini-generated-image-ic-70-vwic-70-vwic-70-12 {
+.location-pin1 {
   width: 25.08px;
   height: 33.56px;
   position: absolute;
+  z-index: 20;
   left: 948px;
   top: 349px;
   object-fit: cover;
@@ -411,45 +411,45 @@
 }
 .date-time2 {
   color: #888b61;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 973px;
+  left: 982px;
   top: 394px;
   width: 119px;
 }
 .client2 {
   color: #888b61;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 971px;
+  left: 982px;
   top: 431px;
   width: 86px;
 }
 ._123-rainbow-road {
   color: #000000;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 1063px;
+  left: 1065px;
   top: 354px;
   width: 176.49px;
 }
 ._2026-03-08-6-pm-9-pm {
   color: #000000;
-  text-align: center;
+  text-align: left;
   font-family: "Asap-Medium", sans-serif;
   font-size: 20px;
   font-weight: 500;
   position: absolute;
-  left: 1063px;
+  left: 1083px;
   top: 394px;
   width: 259px;
 }
@@ -487,6 +487,7 @@
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 .contact-client3 {
+  pointer-events: none;
   color: #ffffff;
   text-align: center;
   font-family: "Asap-Regular", sans-serif;
@@ -497,7 +498,7 @@
   top: 469px;
   width: 113px;
 }
-.rectangle-112 {
+.materials-button1 {
   background: #f2eae3;
   border-radius: 7px;
   width: 129px;
@@ -507,8 +508,9 @@
   top: 459px;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
-.materials2 {
-  color: #000000;
+.materials {
+  pointer-events: none;
+  color: #000000 !important;
   text-align: center;
   font-family: "Asap-Regular", sans-serif;
   font-size: 16px;
@@ -539,7 +541,7 @@
   top: 283px;
   width: 93.85px;
 }
-.gemini-generated-image-o-5-oc-3-co-5-oc-3-co-5-oc-12 {
+.calendar1 {
   width: 25px;
   height: 27px;
   position: absolute;
@@ -548,13 +550,24 @@
   object-fit: cover;
   aspect-ratio: 25/27;
 }
-.image-12 {
+.user-icon1 {
   width: 28px;
   height: 28px;
   position: absolute;
   left: 948px;
   top: 431px;
-  box-shadow: inset 0px 4px 0px 100px rgba(135, 137, 97, 1);
   object-fit: cover;
   aspect-ratio: 1;
+}
+/* Navigation Functions */
+.nav-link {
+display: block;
+color: #000;
+text-decoration: none;
+cursor: pointer;
+}
+.nav-link:hover { color: #888b61 !important; }
+.nav-link.active {
+background: #888b61;
+color: #fff;
 }
