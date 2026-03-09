@@ -1,0 +1,240 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #f2eae3;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+.landing-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background: #f2eae3;
+  overflow: visible;
+}
+
+.plant-photo-2 {
+  width: 47%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.login-container {
+  width: 53%;
+  height: 100%;
+  background: #f2eae3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 30px;
+  padding-right: 30px;
+  overflow: auto;
+}
+
+.planted {
+  margin: 0 0 4px 0;
+  font-family: "Cardo", serif;
+  font-size: 72px;
+  font-weight: 400;
+  line-height: 1;
+  color: #000000;
+}
+
+.plant-management-solutions {
+  margin: 0 0 25px 0;
+  font-family: "Cardo", serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #9a9b6a;
+}
+
+.rectangle-1.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 25px 25px 25px 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.welcome-back {
+  margin: 0 0 12px 0;
+  font-size: 28px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.login-to-your-account {
+  margin: 0 0 18px 0;
+  font-size: 20px;
+  font-weight: 400;
+  color: #9a9b6a;
+}
+
+.frame-1 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 0px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.frame-1 label {
+  font-size: 18px;
+  font-weight: 400;
+  color: #000000;
+}
+
+.email-box,
+.password-box {
+  width: 100%;
+  height: 45px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: #ffffff;
+  padding: 8px 10px;
+  font-size: 16px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.email-box:focus,
+.password-box:focus {
+  border-color: #888b61;
+}
+
+.sign-in-link {
+  display: block;
+  color: #ff0000;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 400;
+  text-align: center;
+  margin-top: 12px;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+
+.sign-in-link:hover {
+  text-decoration: underline;
+}
+
+.sign-in-button {
+  width: 100%;
+  height: 50px;
+  background: #9a9b6a;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  font-size: 20px;
+  font-weight: 400;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  line-height: 50px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.sign-in-button:hover {
+  opacity: 0.95;
+}
+
+.error-messages {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  min-height: 45px;
+}
+
+.error-text {
+  margin: 0;
+  color: #d32f2f;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  display: none;
+}
+
+.error-text.show {
+  display: block;
+}
+
+@media (max-width: 1200px) {
+  .planted {
+    font-size: 72px;
+  }
+
+  .plant-management-solutions {
+    font-size: 20px;
+  }
+
+  .rectangle-1.login-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .landing-page {
+    flex-direction: column;
+  }
+
+  .plant-photo-2 {
+    width: 100%;
+    height: 320px;
+  }
+
+  .login-container {
+    width: 100%;
+    min-height: auto;
+    padding: 50px 20px;
+  }
+
+  .planted {
+    font-size: 60px;
+    text-align: center;
+  }
+
+  .plant-management-solutions {
+    text-align: center;
+  }
+
+  .welcome-back {
+    font-size: 32px;
+  }
+
+  .login-to-your-account {
+    font-size: 24px;
+  }
+
+  .frame-1 label {
+    font-size: 22px;
+  }
+
+  .forgot-password {
+    font-size: 20px;
+  }
+
+  .sign-in-button {
+    font-size: 22px;
+  }
+}
