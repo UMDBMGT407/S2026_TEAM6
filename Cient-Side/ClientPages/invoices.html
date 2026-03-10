@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planted - Invoices</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+      <div class="container-fluid d-flex align-items-center justify-content-between px-4">
+        <div class="d-flex align-items-center gap-3">
+          <img src="planted-logo-10.png" alt="Planted Logo" class="logo-img">
+          <div>
+            <div class="brand-name">Planted</div>
+            <div class="brand-sub">Client Dashboard</div>
+          </div>
+        </div>
+        <a href="#" class="sign-out-link">&#8594; Sign Out</a>
+      </div>
+    </nav>
+
+    <!-- Page Body -->
+    <div class="container-fluid">
+      <div class="row">
+
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar">
+          <ul class="nav flex-column pt-3">
+            <li class="nav-item">
+              <a href="index.html" class="nav-link sidebar-link">Overview</a>
+            </li>
+            <li class="nav-item">
+              <a href="service-request.html" class="nav-link sidebar-link">Service Request</a>
+            </li>
+            <li class="nav-item">
+              <a href="appointments.html" class="nav-link sidebar-link">Appointments</a>
+            </li>
+            <li class="nav-item">
+              <a href="invoices.html" class="nav-link sidebar-link active-link">Invoices</a>
+            </li>
+            <li class="nav-item">
+              <a href="profile.html" class="nav-link sidebar-link">Profile</a>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 main-content">
+
+          <!-- Page Header -->
+          <div class="mb-4">
+            <h1 class="page-title">Your Invoices</h1>
+            <p class="page-subtitle">Review, download, and pay your Planted invoices</p>
+          </div>
+
+          <!-- Stat Cards -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Outstanding Balance</div>
+                <div class="stat-number" id="inv-balance">$245.00</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Total Paid (All Time)</div>
+                <div class="stat-number">$500</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Total Invoices</div>
+                <div class="stat-number">6</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overdue Banner -->
+          <div class="overdue-alert d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <div class="overdue-alert-title">You have 1 overdue invoice.</div>
+              <div class="overdue-alert-sub">Please settle your balance to avoid any service interruptions</div>
+            </div>
+            <button class="pay-now-btn">Pay Now</button>
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="invoice-tabs mb-3">
+            <button class="inv-tab active-tab" data-filter="all">All (3)</button>
+            <button class="inv-tab" data-filter="due">Due (1)</button>
+            <button class="inv-tab" data-filter="overdue">Overdue (1)</button>
+            <button class="inv-tab" data-filter="paid">Paid (1)</button>
+          </div>
+
+          <!-- Invoice Row: INV-2026-088 -->
+          <div class="invoice-row mb-3" data-status="due">
+            <div class="row align-items-center">
+              <div class="col-md-7">
+                <div class="inv-number">INV-2026-088</div>
+                <div class="inv-service">Pest &amp; Disease Inspection</div>
+                <div class="inv-dates">Due Mar 20, 2026 &middot; Issued Mar 6, 2026</div>
+              </div>
+              <div class="col-md-2 text-center">
+                <span class="inv-status status-due">&#x25CF; Due</span>
+              </div>
+              <div class="col-md-2 text-center">
+                <div class="inv-amount">$125</div>
+                <div class="inv-currency">AUD incl. GST</div>
+              </div>
+              <div class="col-md-1 text-end">
+                <button class="inv-pay-btn">Pay</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Invoice Row: INV-2026-007 -->
+          <div class="invoice-row mb-3" data-status="overdue">
+            <div class="row align-items-center">
+              <div class="col-md-7">
+                <div class="inv-number">INV-2026-007</div>
+                <div class="inv-service">New Plant Consultation</div>
+                <div class="inv-dates">Due Feb 14, 2026 &middot; Issued Feb 1, 2026</div>
+              </div>
+              <div class="col-md-2 text-center">
+                <span class="inv-status status-overdue">&#x25CF; Overdue</span>
+              </div>
+              <div class="col-md-2 text-center">
+                <div class="inv-amount">$72</div>
+                <div class="inv-currency">AUD incl. GST</div>
+              </div>
+              <div class="col-md-1 text-end">
+                <button class="inv-pay-btn">Pay</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Invoice Row: INV-2026-006 -->
+          <div class="invoice-row mb-3" data-status="paid">
+            <div class="row align-items-center">
+              <div class="col-md-7">
+                <div class="inv-number">INV-2026-006</div>
+                <div class="inv-service">Plant Maintenance</div>
+                <div class="inv-dates">Due Mar 20, 2026 &middot; Issued Mar 6, 2026</div>
+              </div>
+              <div class="col-md-2 text-center">
+                <span class="inv-status status-paid">&#x25CF; Paid</span>
+              </div>
+              <div class="col-md-2 text-center">
+                <div class="inv-amount">$250</div>
+                <div class="inv-currency">AUD incl. GST</div>
+              </div>
+              <div class="col-md-1 text-end">
+                <button class="inv-pay-btn" disabled>Paid</button>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Compute balance from unpaid rows and save to localStorage
+      function syncBalance() {
+        var total = 0;
+        document.querySelectorAll('.invoice-row').forEach(function(row) {
+          if (row.dataset.status !== 'paid') {
+            var amt = parseFloat(row.querySelector('.inv-amount').textContent.replace('$', '')) || 0;
+            total += amt;
+          }
+        });
+        document.getElementById('inv-balance').textContent = '$' + total.toFixed(2);
+        localStorage.setItem('plantedBalance', total.toFixed(2));
+      }
+
+      // Run on load
+      syncBalance();
+
+      // Filter tabs
+      document.querySelectorAll('.inv-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          document.querySelectorAll('.inv-tab').forEach(function(t) {
+            t.classList.remove('active-tab');
+          });
+          this.classList.add('active-tab');
+          var filter = this.dataset.filter;
+          document.querySelectorAll('.invoice-row').forEach(function(row) {
+            row.style.display = (filter === 'all' || row.dataset.status === filter) ? '' : 'none';
+          });
+        });
+      });
+
+      // Pay buttons
+      document.querySelectorAll('.inv-pay-btn:not([disabled])').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var row     = this.closest('.invoice-row');
+          var service = row.querySelector('.inv-service').textContent;
+          var amount  = row.querySelector('.inv-amount').textContent;
+          if (confirm('Pay ' + amount + ' for "' + service + '"?')) {
+            var badge = row.querySelector('.inv-status');
+            badge.className = 'inv-status status-paid';
+            badge.innerHTML = '&#x25CF; Paid';
+            row.dataset.status = 'paid';
+            this.textContent = 'Paid';
+            this.disabled = true;
+            syncBalance();
+            // Hide overdue banner if no overdue rows remain
+            if (!document.querySelector('.invoice-row[data-status="overdue"]')) {
+              document.querySelector('.overdue-alert').classList.add('d-none');
+            }
+          }
+        });
+      });
+
+      // Pay Now button on overdue banner
+      document.querySelector('.pay-now-btn').addEventListener('click', function() {
+        var overdueRow = document.querySelector('.invoice-row[data-status="overdue"]');
+        if (!overdueRow) return;
+        var service = overdueRow.querySelector('.inv-service').textContent;
+        var amount  = overdueRow.querySelector('.inv-amount').textContent;
+        if (confirm('Pay ' + amount + ' for "' + service + '"?')) {
+          var badge = overdueRow.querySelector('.inv-status');
+          badge.className = 'inv-status status-paid';
+          badge.innerHTML = '&#x25CF; Paid';
+          overdueRow.dataset.status = 'paid';
+          var payBtn = overdueRow.querySelector('.inv-pay-btn');
+          payBtn.textContent = 'Paid';
+          payBtn.disabled = true;
+          syncBalance();
+          document.querySelector('.overdue-alert').classList.add('d-none');
+        }
+      });
+
+      // Sign out
+      document.querySelector('.sign-out-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to sign out?')) {
+          alert('You have been signed out.');
+        }
+      });
+    </script>
+  </body>
+</html>

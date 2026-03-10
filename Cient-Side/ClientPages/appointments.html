@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planted - Appointments</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+      <div class="container-fluid d-flex align-items-center justify-content-between px-4">
+        <div class="d-flex align-items-center gap-3">
+          <img src="planted-logo-10.png" alt="Planted Logo" class="logo-img">
+          <div>
+            <div class="brand-name">Planted</div>
+            <div class="brand-sub">Client Dashboard</div>
+          </div>
+        </div>
+        <a href="#" class="sign-out-link">&#8594; Sign Out</a>
+      </div>
+    </nav>
+
+    <!-- Body -->
+    <div class="container-fluid">
+      <div class="row">
+
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar">
+          <ul class="nav flex-column pt-3">
+            <li class="nav-item">
+              <a href="index.html" class="nav-link sidebar-link">Overview</a>
+            </li>
+            <li class="nav-item">
+              <a href="service-request.html" class="nav-link sidebar-link">Service Request</a>
+            </li>
+            <li class="nav-item">
+              <a href="appointments.html" class="nav-link sidebar-link active-link">Appointments</a>
+            </li>
+            <li class="nav-item">
+              <a href="invoices.html" class="nav-link sidebar-link">Invoices</a>
+            </li>
+            <li class="nav-item">
+              <a href="profile.html" class="nav-link sidebar-link">Profile</a>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 main-content">
+
+          <!-- Page Header -->
+          <div class="mb-4">
+            <h1 class="page-title">Good morning,</h1>
+            <p class="page-subtitle">Here's a look at all your appointments</p>
+          </div>
+
+          <!-- Statistics Row -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Total Appointments</div>
+                <div class="stat-number" id="appt-total">10</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Upcoming</div>
+                <div class="stat-number stat-unassigned" id="appt-upcoming">4</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card text-center p-4">
+                <div class="stat-label">Completed</div>
+                <div class="stat-number stat-scheduled">6</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Showing Appointments -->
+          <div class="job-card mb-3">
+            <div class="row align-items-start">
+              <div class="col-md-9">
+                <p class="detail-label mb-1">Next Appointment</p>
+                <h2 class="job-title">Weekly Maintenance</h2>
+                <p class="job-client">With Peter Smith</p>
+                <div class="row mt-2">
+                  <div class="col-md-6">
+                    <p class="job-detail"><span class="detail-label">Date:</span> 2026-03-15</p>
+                    <p class="job-detail"><span class="detail-label">Time:</span> 12:00 pm</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="job-detail"><span class="detail-label">Location:</span> 123 Rainbow Road</p>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                  <button class="btn-action">Reassign</button>
+                  <button class="btn-action">Details</button>
+                </div>
+              </div>
+              <div class="col-md-3 text-end">
+                <span class="status-badge status-scheduled">Scheduled</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Saving Requests -->
+          <div id="saved-appointments"></div>
+
+          <!-- Need Appointment Banner -->
+          <div class="cta-banner d-flex align-items-center justify-content-between">
+            <div>
+              <div class="cta-title">Need another appointment?</div>
+              <div class="cta-subtitle">Schedule a new service with our specialists</div>
+            </div>
+            <a href="service-request.html" class="book-appt-btn">Book appointment</a>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- Appointment Details  -->
+    <div class="modal fade" id="apptDetailsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">Appointment Details</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Service:</strong> Weekly Maintenance</p>
+            <p><strong>Technician:</strong> Peter Smith</p>
+            <p><strong>Date:</strong> 2026-03-15</p>
+            <p><strong>Time:</strong> 12:00 pm</p>
+            <p><strong>Location:</strong> 123 Rainbow Road</p>
+            <p><strong>Status:</strong> <span class="inv-status status-scheduled modal-status-inline">&#x25CF; Scheduled</span></p>
+          </div>
+          <div class="modal-footer">
+            <a href="service-request.html" class="book-appt-btn btn-modal-secondary">Book Another</a>
+            <button type="button" class="btn-action" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
+
+      // Load saved service requests from localStorage
+      var savedAppts = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
+      var container  = document.getElementById('saved-appointments');
+      savedAppts.forEach(function(appt) {
+        var card = document.createElement('div');
+        card.className = 'job-card mb-3';
+        card.innerHTML =
+          '<div class="row align-items-start">' +
+            '<div class="col-md-9">' +
+              '<p class="detail-label mb-1">Requested Service</p>' +
+              '<h2 class="job-title">' + appt.service + '</h2>' +
+              '<div class="row mt-2">' +
+                '<div class="col-md-6">' +
+                  '<p class="job-detail"><span class="detail-label">Requested Date:</span> ' + appt.date + '</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="col-md-3 text-end">' +
+              '<span class="status-badge status-unassigned">Pending</span>' +
+            '</div>' +
+          '</div>';
+        container.appendChild(card);
+      });
+
+      // Update stat counts
+      if (savedAppts.length > 0) {
+        var upcomingEl = document.getElementById('appt-upcoming');
+        var totalEl    = document.getElementById('appt-total');
+        upcomingEl.textContent = 4 + savedAppts.length;
+        totalEl.textContent    = 10 + savedAppts.length;
+      }
+
+      document.querySelectorAll('.btn-action').forEach(function(btn) {
+        if (btn.textContent.trim() === 'Details') {
+          btn.addEventListener('click', function() {
+            apptModal.show();
+          });
+        }
+        if (btn.textContent.trim() === 'Reassign') {
+          btn.addEventListener('click', function() {
+            window.location.href = 'service-request.html';
+          });
+        }
+      });
+
+      // Sign out
+      document.querySelector('.sign-out-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to sign out?')) {
+          alert('You have been signed out.');
+        }
+      });
+    </script>
+  </body>
+</html>
