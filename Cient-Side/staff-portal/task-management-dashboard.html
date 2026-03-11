@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./task-management-dashboard.css" />
+
+    <link rel="stylesheet" href="./staff-portal-base.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Document</title>
+  </head>
+  <body>
+    <main class="staff-mobile-layout d-lg-none">
+      <header class="staff-mobile-header">
+        <a href="inventory-dashboard.html" class="staff-mobile-brand">
+          <img src="images/PlantedLogo1.png" alt="Planted Logo" class="staff-mobile-logo" />
+          <span class="staff-mobile-brand-text">Planted Staff</span>
+        </a>
+        <a href="../login-portal/LoginPortal.html" class="staff-mobile-signout">Sign Out</a>
+      </header>
+
+      <nav class="staff-mobile-nav">
+        <a href="staff-scheduling-dashboard.html" class="staff-mobile-nav-link">Scheduling</a>
+        <a href="task-management-dashboard.html" class="staff-mobile-nav-link active">Tasks</a>
+        <a href="inventory-dashboard.html" class="staff-mobile-nav-link">Inventory</a>
+      </nav>
+
+      <section class="staff-mobile-card">
+        <h1 class="staff-mobile-title">Tasks</h1>
+        <p class="staff-mobile-subtitle">Track and Update Job Progress</p>
+      </section>
+
+      <section class="staff-mobile-task-grid">
+        <article class="staff-mobile-card">
+          <h2 class="staff-mobile-card-title">Plant Installation</h2>
+          <div class="staff-mobile-task-meta">
+            <p><strong>Location:</strong> 123 Rainbow Road</p>
+            <p><strong>Date/Time:</strong> 2026-03-08, 6PM - 9PM</p>
+            <p><strong>Client:</strong> Tech Innovations Inc.</p>
+            <p><strong>Description:</strong> Outfit client office space with plants</p>
+          </div>
+          <span class="staff-mobile-status complete">Complete</span>
+          <div class="staff-mobile-action-row">
+            <a href="job-materials.html" class="staff-mobile-button secondary">Materials</a>
+            <a href="contact-client.html" class="staff-mobile-button">Contact Client</a>
+          </div>
+        </article>
+
+        <article class="staff-mobile-card">
+          <h2 class="staff-mobile-card-title">Service Plants</h2>
+          <div class="staff-mobile-task-meta">
+            <p><strong>Location:</strong> 456 Main Street, San Francisco, CA</p>
+            <p><strong>Date/Time:</strong> 2026-03-07, 12PM - 3PM</p>
+            <p><strong>Client:</strong> Hotel Downtown</p>
+            <p><strong>Description:</strong> Handle upkeep of the plant life in the client's office space</p>
+          </div>
+          <span class="staff-mobile-status incomplete">Incomplete</span>
+          <div class="staff-mobile-action-row">
+            <a href="job-materials.html" class="staff-mobile-button secondary">Materials</a>
+            <a href="contact-client.html" class="staff-mobile-button">Contact Client</a>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <div class="container-fluid staff-grid-wrapper px-0">
+      <div class="row g-0">
+        <div class="col-12">
+    <!-- ===== Task Management Dashboard Structure ===== -->
+    <!-- Sections: root container, navigation/header layers, page content, actions/scripts -->
+    <div class="task-management-dashboard d-none d-lg-block">
+      <!-- Sidebar Navigation -->
+      <div class="sidebar-panel"></div>
+      <a href="staff-scheduling-dashboard.html" class="nav-link scheduling">Scheduling</a>
+      <div class="sidebar-active-pill"></div>
+      <div class="tasks">Tasks</div>
+      <a href="inventory-dashboard.html" class="nav-link inventory">Inventory</a>
+      <!-- Top Header -->
+      <div class="top-header-panel"></div>
+      <img class="planted-logo-image" src="images/PlantedLogo1.png" />
+      <div class="planted">Planted</div>
+      <div class="staff-portal">Staff Portal</div>
+      <a href="../login-portal/LoginPortal.html" class="sign-out">[→ Sign Out</a>
+      <!-- Page Heading -->
+      <div class="page-title">Tasks</div>
+      <div class="page-subtitle">
+        Track and Update Job Progress
+      </div>
+      <!-- Task Cards -->
+      <div class="task-card-secondary"></div>
+      <img class="task-primary-location-icon" src="images/location-pin.png" />
+      <div class="plant-installation">Plant Installation</div>
+
+      <div class="service-plants">Service Plants</div>
+      <div class="task-secondary-description-label">Description:</div>
+      <div class="task-secondary-location-label">Location:</div>
+      <div class="task-secondary-datetime-label">Date/Time:</div>
+      <div class="task-secondary-client-label">Client:</div>
+      <div class="task-secondary-location-value">
+        456 Main Street, San Francisco, CA
+      </div>
+      <div class="task-secondary-datetime-value">2026-03-07, 12PM - 3PM</div>
+      <div class="task-secondary-client-value">Hotel Downtown</div>
+      <div class="task-secondary-description-value">
+        Handle upkeep of the plant life in the client's office space
+      </div>
+    
+      <div class="task-status-group">
+        <div class="task-status-secondary-bg"></div>
+        <div class="task-status-secondary-text">Incomplete</div>
+      </div>
+      <img class="task-secondary-calendar-icon" src="images/calendar.png" />
+      <img class="task-secondary-user-icon" src="images/user-icon.png" />
+      <div class="task-card-primary"></div>
+      <img class="task-secondary-location-icon" src="images/location-pin.png" />
+      <div class="plant-installation">Plant Installation</div>
+      <div class="task-primary-description-label">Description:</div>
+      <div class="task-primary-location-label">Location:</div>
+      <div class="task-primary-datetime-label">Date/Time:</div>
+      <div class="task-primary-client-label">Client:</div>
+      <div class="task-primary-location-value">123 Rainbow Road</div>
+      <div class="task-primary-datetime-value">2026-03-08, 6PM - 9PM</div>
+      <div class="task-primary-client-value">Tech Innovations Inc.</div>
+      <div class="task-primary-description-value">
+        Outfit client office space with plants
+      </div>
+    <div class="task-primary-materials-button"></div>
+    <a href="job-materials.html" class="task-primary-materials-button"></a>
+    <div class="task-primary-contact-button"></div>
+    <a href="contact-client.html" class="task-primary-contact-button"></a>
+    <div class="task-primary-contact-text">Contact Client</div>
+      <div class="task-secondary-contact-group">
+        <div class="task-secondary-contact-button"></div>
+        <a href="contact-client.html" class="task-secondary-contact-button"></a>
+        <div class="task-secondary-contact-text">Contact Client</div>
+      </div>
+        <div class="task-secondary-materials-button"></div>
+         <div class="task-primary-materials-text ">Materials</div>
+        <a href="job-materials.html" class="task-secondary-materials-button"></a>
+        <div class="task-secondary-materials-text ">Materials</div>
+        
+      <div class="task-status-group">
+        <div class="task-status-primary-bg"></div>
+        <div class="task-status-primary-text">Complete</div>
+      </div>
+        <img class="task-primary-calendar-icon" src="images/calendar.png" />
+      <img class="task-primary-user-icon" src="images/user-icon.png" />
+    </div>
+          </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+

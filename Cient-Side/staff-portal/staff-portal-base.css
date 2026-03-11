@@ -1,0 +1,306 @@
+﻿/* ===== Staff Portal Base ===== */
+/* Shared reset and cross-page utility rules */
+
+a,
+button,
+input,
+select,
+h1,
+h2,
+h3,
+h4,
+h5,
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  text-decoration: none;
+  background: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+menu,
+ol,
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Keep staff portal links visually consistent after Bootstrap defaults */
+a,
+a:hover,
+a:focus,
+a:active {
+  text-decoration: none !important;
+}
+
+.inventory,
+.sign-out,
+.staff-mobile-signout {
+  text-decoration: none !important;
+}
+
+/* Bootstrap Grid Wrapper */
+.staff-grid-wrapper {
+  overflow-x: auto;
+}
+
+/* Fixed desktop canvases remain readable on smaller screens via horizontal scroll */
+.staff-grid-wrapper .staff-scheduling-dashboard,
+.staff-grid-wrapper .task-management-dashboard,
+.staff-grid-wrapper .inventory-dashboard,
+.staff-grid-wrapper .material-requests,
+.staff-grid-wrapper .used-material-log {
+  min-width: 1440px;
+}
+
+/* ===== Staff Portal Mobile Layout ===== */
+/* Shared responsive building blocks for page-level mobile views */
+.staff-mobile-layout {
+  min-height: 100vh;
+  background: #f2eae3;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-mobile-header {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.staff-mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #000000;
+}
+
+.staff-mobile-logo {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+}
+
+.staff-mobile-brand-text {
+  font-family: "Cardo-Regular", sans-serif;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.staff-mobile-signout {
+  color: #000000;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 16px;
+}
+
+.staff-mobile-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.staff-mobile-nav-link {
+  background: #ffffff;
+  color: #000000;
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 15px;
+}
+
+.staff-mobile-nav-link.active {
+  background: #888b61;
+  color: #ffffff !important;
+}
+
+.staff-mobile-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.07);
+}
+
+.staff-mobile-title {
+  color: #000000;
+  font-family: "Asap-SemiBold", sans-serif;
+  font-size: 28px;
+}
+
+.staff-mobile-subtitle {
+  color: #888b61;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 17px;
+  margin-top: 4px;
+}
+
+.staff-mobile-card-title {
+  color: #000000;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+}
+
+.staff-mobile-card-subtitle {
+  color: #888b61;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 15px;
+  margin-top: 3px;
+}
+
+.staff-mobile-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.staff-mobile-list li {
+  color: #000000;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 15px;
+}
+
+.staff-mobile-task-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-mobile-task-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.staff-mobile-task-meta p {
+  color: #000000;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 14px;
+}
+
+.staff-mobile-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 13px;
+}
+
+.staff-mobile-status.complete {
+  background: rgba(35, 158, 96, 0.24);
+  color: #006231;
+}
+
+.staff-mobile-status.incomplete {
+  background: rgba(134, 134, 134, 0.28);
+  color: #464646;
+}
+
+.staff-mobile-action-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.staff-mobile-button {
+  background: #888b61;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 9px 12px;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.staff-mobile-button.secondary {
+  background: #f2eae3;
+  color: #000000;
+}
+
+.staff-mobile-link-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.staff-mobile-link-card {
+  background: #f2eae3;
+  border-radius: 12px;
+  padding: 14px;
+  color: #000000;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 18px;
+}
+
+.staff-mobile-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-mobile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.staff-mobile-label {
+  color: #888b61;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 15px;
+}
+
+.staff-mobile-input,
+.staff-mobile-textarea {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #000000;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 15px;
+}
+
+.staff-mobile-input:focus,
+.staff-mobile-textarea:focus {
+  outline: 2px solid rgba(136, 139, 97, 0.5);
+}
+
+.staff-mobile-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.staff-mobile-used-rows {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-mobile-used-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.staff-mobile-modal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
