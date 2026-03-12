@@ -1,39 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./vars.css">
-  <link rel="stylesheet" href="./style.css">
-  
-  
-  <style>
-   a,
-   button,
-   input,
-   select,
-   h1,
-   h2,
-   h3,
-   h4,
-   h5,
-   * {
-       box-sizing: border-box;
-       margin: 0;
-       padding: 0;
-       border: none;
-       text-decoration: none;
-       background: none;
-   
-       -webkit-font-smoothing: antialiased;
-   }
-   
-   menu, ol, ul {
-       list-style-type: none;
-       margin: 0;
-       padding: 0;
-   }
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planted - Overview</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+      <div class="container-fluid d-flex align-items-center justify-content-between px-4">
+        <div class="d-flex align-items-center gap-3">
+          <img src="planted-logo-10.png" alt="Planted Logo" class="logo-img">
+          <div>
+            <div class="brand-name">Planted</div>
+            <div class="brand-sub">Client Dashboard</div>
+          </div>
+        </div>
+        <a href="#" class="sign-out-link">&#8594; Sign Out</a>
+      </div>
+    </nav>
+
+    <!-- Page Body -->
+    <div class="container-fluid">
+      <div class="row">
+
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar">
+          <ul class="nav flex-column pt-3">
+            <li class="nav-item">
+              <a href="manage-employee-info.html" class="nav-link sidebar-link active-link">Employee</a>
+            </li>
+            <li class="nav-item">
+              <a href="scheduling.html" class="nav-link sidebar-link">Scheduling</a>
+            </li>
+            <li class="nav-item">
+              <a href="suppliers.html" class="nav-link sidebar-link">Suppliers</a>
+            </li>
+            <li class="nav-item">
+              <a href="inventory.html" class="nav-link sidebar-link">Inventory</a>
+            </li>
+            <li class="nav-item">
+              <a href="clients.html" class="nav-link sidebar-link">Clients</a>
+            </li>
+            </li>
+            <li class="nav-item">
+              <a href="job-order.html" class="nav-link sidebar-link">Job Orders</a>
+            </li>
+          </ul>
+        </nav>
+
+
    </style>
   <title>Document</title>
 </head>
