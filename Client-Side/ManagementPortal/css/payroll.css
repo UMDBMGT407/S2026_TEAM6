@@ -1,0 +1,142 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: #f2eae3;
+  font-family: "Asap", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.top-navbar {
+  background-color: #ffffff;
+  height: 80px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  width: 55px;
+  height: auto;
+}
+
+.brand-name {
+  font-family: "Cardo", Georgia, serif;
+  font-size: 26px;
+  color: #000000;
+}
+
+.brand-sub {
+  font-size: 14px;
+  color: #888b61;
+}
+
+.sign-out-link {
+  font-size: 20px;
+  color: #000000;
+  text-decoration: none;
+}
+.sidebar {
+  background-color: #ffffff;
+  min-height: calc(100vh - 80px);
+  border-right: 1px solid #e8e1da;
+}
+
+.sidebar-link {
+  color: #000000;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin: 2px 10px;
+}
+
+.sidebar-link:hover {
+  background-color: #f2eae3;
+}
+
+.active-link {
+  background-color: #888b61;
+  color: #ffffff;
+}
+
+.main-content {
+  padding: 32px 40px;
+}
+
+.card-box {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.payroll-title {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.payroll-subtitle {
+  font-size: 18px;
+  color: #888b61;
+}
+
+.hours-card {
+  background-color: #f6f3ef;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.hours-number {
+  font-size: 36px;
+  font-weight: 600;
+}
+
+.hours-red {
+  color: #d60004;
+}
+
+.hours-green {
+  color: #00c261;
+}
+
+.pay-row {
+  background-color: #d9d1ca;
+  border-radius: 6px;
+  padding: 10px 16px;
+}
+
+.pay-bonus {
+  background-color: rgba(35,158,96,0.16);
+  border: 1px solid #00c261;
+  color: #006231;
+}
+
+.pay-deduction {
+  background-color: rgba(158,35,35,0.23);
+  border: 1px solid #991b1b;
+  color: #991b1b;
+}
+
+.pay-total {
+  background-color: #d9d9d9;
+}
+
+.pay-net {
+  background-color: #d9d1ca;
+  border: 1px solid #a29a94;
+  font-weight: 600;
+}
+
+.payment-card {
+  background-color: #d9d1ca;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 4px 4px rgba(0,0,0,0.2);
+}

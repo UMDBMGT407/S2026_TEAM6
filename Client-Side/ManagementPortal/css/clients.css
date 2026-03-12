@@ -1,0 +1,835 @@
+.clients,
+.clients * {
+  box-sizing: border-box;
+}
+.clients {
+  background: #f2eae3;
+  height: 1024px;
+  position: relative;
+  overflow: hidden;
+}
+.side-bar {
+  position: absolute;
+  inset: 0;
+}
+.rectangle-1 {
+  background: #ffffff;
+  width: 355.73px;
+  height: 903px;
+  position: absolute;
+  left: 0px;
+  top: 121px;
+}
+.scheduling {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33px;
+  top: 228px;
+  width: 146.21px;
+}
+.rectangle-3 {
+  background: #888b61;
+  border-radius: 15px;
+  width: 323.12px;
+  height: 56px;
+  position: absolute;
+  left: 10px;
+  top: 413px;
+}
+.employees {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33px;
+  top: 165px;
+  width: 349.98px;
+  height: 27px;
+}
+.suppliers {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33px;
+  top: 294px;
+  width: 123.18px;
+}
+.inventory {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33px;
+  top: 360px;
+  width: 125.48px;
+}
+.clients2 {
+  color: #ffffff;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33px;
+  top: 426px;
+  width: 90.95px;
+}
+.job-orders {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  position: absolute;
+  left: 33.02px;
+  top: 492px;
+  width: 142.75px;
+}
+.top-banner {
+  position: absolute;
+  inset: 0;
+}
+.rectangle {
+  background: #ffffff;
+  width: 1440px;
+  height: 121px;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.05);
+}
+.planted-logo-1 {
+  width: 92px;
+  height: 128px;
+  position: absolute;
+  left: 14px;
+  top: -7px;
+  object-fit: cover;
+  aspect-ratio: 92/128;
+}
+.planted {
+  color: #000000;
+  text-align: left;
+  font-family: "Cardo-Regular", sans-serif;
+  font-size: 32px;
+  font-weight: 400;
+  position: absolute;
+  left: 121px;
+  top: 25px;
+}
+.management-portal {
+  color: #888b61;
+  text-align: left;
+  font-family: "AksaraBaliGalang-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 121px;
+  top: 57px;
+}
+.sign-out {
+  color: #000000;
+  text-align: left;
+  font-family: "AksaraBaliGalang-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 1273px;
+  top: 28px;
+}
+.client-management {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-SemiBold", sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  position: absolute;
+  left: 401px;
+  top: 151px;
+}
+.view-all-clients-and-their-info {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 401px;
+  top: 193px;
+}
+.frame-2 {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 1082px;
+  position: absolute;
+  left: 329px;
+  top: 258px;
+}
+.frame-1 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  align-self: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+.total-clients {
+  flex-shrink: 0;
+  width: 290px;
+  height: 132px;
+  position: static;
+}
+.box {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 243px;
+  height: 132px;
+  position: absolute;
+  left: 47px;
+  top: 0px;
+}
+.total-clients2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 0px;
+  top: 23px;
+  width: 260px;
+  height: 48px;
+}
+._2 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  position: absolute;
+  left: 83px;
+  top: 53px;
+}
+.active-clients {
+  margin: 0 0 0 -25px;
+  flex-shrink: 0;
+  width: 282px;
+  height: 132px;
+  position: static;
+}
+.box2 {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 243px;
+  height: 132px;
+  position: absolute;
+  left: 304px;
+  top: 0px;
+}
+.active-clients2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 265px;
+  top: 23px;
+  width: 260px;
+  height: 48px;
+}
+._1 {
+  color: #00c261;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  position: absolute;
+  left: 348px;
+  top: 53px;
+}
+.total-contracts {
+  margin: 0 0 0 -25px;
+  flex-shrink: 0;
+  width: 284px;
+  height: 132px;
+  position: static;
+}
+.box3 {
+  border-radius: 0px;
+  width: 243px;
+  height: 132px;
+  position: absolute;
+  left: 563px;
+  top: 0px;
+  overflow: visible;
+}
+.total-contracts2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 522px;
+  top: 23px;
+  width: 260px;
+  height: 48px;
+}
+._5 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  position: absolute;
+  left: 605px;
+  top: 53px;
+}
+.total-revenue {
+  margin: 0 0 0 -25px;
+  flex-shrink: 0;
+  width: 279px;
+  height: 132px;
+  position: static;
+}
+.box4 {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 238px;
+  height: 132px;
+  position: absolute;
+  left: 822px;
+  top: 0px;
+}
+.total-revenue2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  position: absolute;
+  left: 781px;
+  top: 23px;
+  width: 260px;
+  height: 48px;
+}
+._78-000 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 40px;
+  font-weight: 400;
+  position: absolute;
+  left: 843px;
+  top: 58px;
+}
+.search-bar {
+  position: absolute;
+  inset: 0;
+}
+.rounded-rectangle {
+  background: #ffffff;
+  border-radius: 5px;
+  width: 889.58px;
+  height: 41px;
+  position: absolute;
+  left: 387px;
+  top: 426px;
+}
+.pngtree-vector-search-icon-3783210-1 {
+  width: 28.28px;
+  height: 28.28px;
+  position: absolute;
+  left: 404.48px;
+  top: 433.86px;
+  object-fit: cover;
+  aspect-ratio: 1;
+}
+.search-client {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 435.97px;
+  top: 435px;
+  width: 119.36px;
+}
+.rectangle-16 {
+  background: #888b61;
+  border-radius: 5px;
+  width: 96.92px;
+  height: 41px;
+  position: absolute;
+  left: 1302.08px;
+  top: 426px;
+}
+.search {
+  color: #ffffff;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 1320.45px;
+  top: 435px;
+  width: 61.21px;
+}
+.client-1 {
+  position: absolute;
+  inset: 0;
+}
+.rounded-rectangle2 {
+  background: #fffefe;
+  border-radius: 20px;
+  width: 1012px;
+  height: 227px;
+  position: absolute;
+  left: 386px;
+  top: 496px;
+}
+.gemini-generated-image-ic-70-vwic-70-vwic-70-1 {
+  width: 25.08px;
+  height: 33.56px;
+  position: absolute;
+  left: 933px;
+  top: 586px;
+  object-fit: cover;
+  aspect-ratio: 25.08/33.56;
+}
+.gemini-generated-image-6-efj-3-v-6-efj-3-v-6-efj-1 {
+  width: 25.07px;
+  height: 29.5px;
+  position: absolute;
+  left: 429.97px;
+  top: 606.85px;
+  object-fit: cover;
+  aspect-ratio: 25.07/29.5;
+}
+.tech-innovations-inc {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 30px;
+  font-weight: 500;
+  position: absolute;
+  left: 424px;
+  top: 529px;
+  width: 279px;
+}
+.contact-jessica-day {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 424px;
+  top: 563px;
+  width: 187.71px;
+}
+.phone {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 455.35px;
+  top: 610px;
+  width: 67.33px;
+}
+.location {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 967px;
+  top: 591px;
+  width: 82.63px;
+}
+.next-service {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 967px;
+  top: 631px;
+  width: 119px;
+}
+.revenue {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 966px;
+  top: 668px;
+  width: 86px;
+}
+.mail {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 459.43px;
+  top: 646px;
+  width: 48.97px;
+}
+.jday-techinnovations-com {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 508.4px;
+  top: 645px;
+  width: 293.81px;
+}
+._123-rainbow-road {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1048px;
+  top: 591px;
+  width: 176.49px;
+}
+._2026-03-08 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1048px;
+  top: 631px;
+  width: 176.49px;
+}
+._45-600 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1057px;
+  top: 668px;
+  width: 70px;
+}
+._555-100-1000 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 512.48px;
+  top: 610px;
+  width: 164.25px;
+}
+.active {
+  width: 172.41px;
+  height: 34px;
+  position: static;
+}
+.rounded-rectangle3 {
+  background: rgba(35, 158, 96, 0.37);
+  border-radius: 5px;
+  width: 172.41px;
+  height: 34px;
+  position: absolute;
+  left: 1198.03px;
+  top: 515px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.active2 {
+  color: #006231;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1237.81px;
+  top: 520px;
+  width: 93.85px;
+}
+.gemini-generated-image-gxddacgxddacgxdd-1-1 {
+  width: 31.98px;
+  height: 25.52px;
+  position: absolute;
+  left: 426.95px;
+  top: 644.87px;
+  object-fit: cover;
+  aspect-ratio: 31.98/25.52;
+}
+.gemini-generated-image-o-5-oc-3-co-5-oc-3-co-5-oc-1 {
+  width: 25px;
+  height: 27px;
+  position: absolute;
+  left: 933px;
+  top: 629px;
+  object-fit: cover;
+  aspect-ratio: 25/27;
+}
+.gemini-generated-image-uy-1-pr-0-uy-1-pr-0-uy-1-p-1 {
+  width: 19px;
+  height: 32px;
+  position: absolute;
+  left: 936px;
+  top: 665px;
+  object-fit: cover;
+  aspect-ratio: 19/32;
+}
+.client-2 {
+  position: absolute;
+  inset: 0;
+}
+.rounded-rectangle4 {
+  background: #fffefe;
+  border-radius: 20px;
+  width: 1012px;
+  height: 231px;
+  position: absolute;
+  left: 386px;
+  top: 754px;
+}
+.gemini-generated-image-ic-70-vwic-70-vwic-70-12 {
+  width: 25.08px;
+  height: 33.56px;
+  position: absolute;
+  left: 932px;
+  top: 846px;
+  object-fit: cover;
+  aspect-ratio: 25.08/33.56;
+}
+.gemini-generated-image-6-efj-3-v-6-efj-3-v-6-efj-12 {
+  width: 25.07px;
+  height: 29.5px;
+  position: absolute;
+  left: 428.97px;
+  top: 866.85px;
+  object-fit: cover;
+  aspect-ratio: 25.07/29.5;
+}
+.hotel-downtown {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 30px;
+  font-weight: 500;
+  position: absolute;
+  left: 426px;
+  top: 789px;
+  width: 232px;
+}
+.contact-micheal-chen {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 424px;
+  top: 823px;
+  width: 209px;
+}
+.phone2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 454.35px;
+  top: 870px;
+  width: 67.33px;
+}
+.location2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 966px;
+  top: 851px;
+  width: 82.63px;
+}
+.next-service2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 966px;
+  top: 891px;
+  width: 119px;
+}
+.revenue2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 969px;
+  top: 928px;
+  width: 86px;
+}
+.mail2 {
+  color: #888b61;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 458.43px;
+  top: 906px;
+  width: 48.97px;
+}
+.mchen-downtownhotel-com {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 507.4px;
+  top: 905px;
+  width: 293.81px;
+}
+._456-main-street-san-francisco-ca {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1047px;
+  top: 851px;
+  width: 303px;
+}
+._2026-03-07 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1047px;
+  top: 891px;
+  width: 176.49px;
+}
+._32-400 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1056px;
+  top: 928px;
+  width: 70px;
+}
+._555-200-2000 {
+  color: #000000;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 511.48px;
+  top: 870px;
+  width: 164.25px;
+}
+.inactive {
+  width: 172.41px;
+  height: 34px;
+  position: static;
+}
+.rounded-rectangle5 {
+  background: rgba(204, 114, 11, 0.26);
+  border-radius: 5px;
+  width: 172.41px;
+  height: 34px;
+  position: absolute;
+  left: 1197.03px;
+  top: 775px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.inactive2 {
+  color: #cc720b;
+  text-align: center;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 1236.81px;
+  top: 780px;
+  width: 93.85px;
+}
+.gemini-generated-image-uy-1-pr-0-uy-1-pr-0-uy-1-p-2 {
+  width: 19px;
+  height: 32px;
+  position: absolute;
+  left: 935px;
+  top: 924px;
+  object-fit: cover;
+  aspect-ratio: 19/32;
+}
+.gemini-generated-image-gxddacgxddacgxdd-1-12 {
+  width: 31.98px;
+  height: 25.52px;
+  position: absolute;
+  left: 425.95px;
+  top: 904.87px;
+  object-fit: cover;
+  aspect-ratio: 31.98/25.52;
+}
+.gemini-generated-image-o-5-oc-3-co-5-oc-3-co-5-oc-12 {
+  width: 25px;
+  height: 27px;
+  position: absolute;
+  left: 932px;
+  top: 889px;
+  object-fit: cover;
+  aspect-ratio: 25/27;
+}
+.frame-4 {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  left: 638px;
+  top: 647px;
+  overflow: hidden;
+}

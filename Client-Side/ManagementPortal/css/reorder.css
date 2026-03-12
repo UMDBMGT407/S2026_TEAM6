@@ -1,0 +1,180 @@
+.reorder,
+.reorder * {
+  box-sizing: border-box;
+}
+.reorder {
+  background: #ffffff;
+  height: 305px;
+  position: relative;
+  overflow: hidden;
+}
+.reorder-quantity {
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 26px;
+  top: 32px;
+}
+.reorder-quantity-span {
+  color: #000000;
+}
+.reorder-quantity-span2 {
+  color: #d60004;
+}
+.rectangle-26 {
+  background: #f2eae3;
+  width: 363px;
+  height: 29px;
+  position: absolute;
+  left: 26px;
+  top: 63px;
+}
+.text {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 372px;
+  top: 76px;
+}
+.cancel-button {
+  position: absolute;
+  inset: 0;
+}
+.frame-5 {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  left: 149px;
+  top: 233px;
+  overflow: hidden;
+}
+.rectangle-27 {
+  background: #f2eae3;
+  border-radius: 5px;
+  border-style: solid;
+  border-color: #f2eae3;
+  border-width: 1px;
+  width: 130px;
+  height: 27px;
+  position: absolute;
+  left: 116px;
+  top: 266px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.cancel {
+  color: #1e1e1e;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 151px;
+  top: 268px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.confirm-button {
+  position: absolute;
+  inset: 0;
+}
+.confirm {
+  color: #006231;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 288px;
+  top: 266px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.rectangle-272 {
+  background: rgba(35, 158, 96, 0.37);
+  border-radius: 5px;
+  width: 130px;
+  height: 27px;
+  position: absolute;
+  left: 259px;
+  top: 266px;
+}
+.rectangle-28 {
+  background: #f2eae3;
+  width: 363px;
+  height: 154px;
+  position: absolute;
+  left: 26px;
+  top: 101px;
+}
+.order-summary {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 36px;
+  top: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.quantity {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  position: absolute;
+  left: 36px;
+  top: 153px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.unit-price {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  position: absolute;
+  left: 36px;
+  top: 179px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.line-1 {
+  margin-top: -1px;
+  border-style: solid;
+  border-color: #000000;
+  border-width: 1px 0 0 0;
+  width: 363px;
+  height: 0px;
+  position: absolute;
+  left: 26px;
+  top: 213px;
+  transform-origin: 0 0;
+  transform: rotate(0.158deg) scale(1, 1);
+}
+.total {
+  color: #000000;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 36px;
+  top: 222px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}

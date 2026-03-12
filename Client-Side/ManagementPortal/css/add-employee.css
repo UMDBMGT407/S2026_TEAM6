@@ -1,0 +1,359 @@
+.employee-management,
+.employee-management * {
+  box-sizing: border-box;
+}
+.employee-management {
+  background: #f2eae3;
+  height: 415px;
+  position: relative;
+  overflow: hidden;
+}
+.heading-banner {
+  background: #888b61;
+  width: 550px;
+  height: 66px;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+.x-button {
+  background: rgba(212, 230, 195, 0.6);
+  border-radius: 40px;
+  padding: 0px 6px 0px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 24px;
+  position: absolute;
+  left: 506px;
+  top: 15px;
+}
+.image-1 {
+  width: 39px;
+  height: 26px;
+  position: absolute;
+  left: 500px;
+  top: 14px;
+  object-fit: cover;
+  aspect-ratio: 3/2;
+}
+.add-new-employee {
+  border-radius: 14px;
+  border-style: dashed;
+  border-color: #616344;
+  border-width: 1.5px;
+  padding: 8px 199px 8px 185px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 500px;
+  height: 35px;
+  position: absolute;
+  left: 25px;
+  top: 86px;
+}
+.add-button {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  position: relative;
+}
+.div {
+  color: #616344;
+  text-align: left;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+}
+.add-new-employee2 {
+  color: #616344;
+  text-align: left;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 241px;
+  position: absolute;
+  left: 11px;
+  top: 13px;
+}
+.employee-management2 {
+  color: #ffffff;
+  text-align: left;
+  font-family: "Asap-SemiBold", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.add-or-remove-specialists-from-the-system {
+  color: #ffffff;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.current-employees-3 {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  position: absolute;
+  left: 25px;
+  top: 145px;
+}
+.martha-schemer {
+  border-radius: 15px;
+  border-style: solid;
+  border-color: #c4c79f;
+  border-width: 1px;
+  padding: 10px 18px 16px 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 51px;
+  align-items: center;
+  justify-content: flex-start;
+  width: 500px;
+  height: 69px;
+  position: absolute;
+  left: 25px;
+  top: 168px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.frame-9 {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: 182px;
+  position: relative;
+}
+.frame-7 {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: 88px;
+  position: relative;
+}
+.martha-schemer2 {
+  color: #616344;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+}
+.senior-horticulturist {
+  color: #555555;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+}
+.frame-8 {
+  display: flex;
+  flex-direction: row;
+  gap: 21px;
+  align-items: center;
+  justify-content: flex-start;
+  align-self: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+.martha-s-planted-co {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
+._240-134-2567 {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
+.frame-10 {
+  display: flex;
+  flex-direction: row;
+  gap: 51px;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  position: relative;
+}
+.remove {
+  background: #fee2e2;
+  border-radius: 40px;
+  padding: 0px 6px 0px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 103px;
+  height: 20px;
+  position: relative;
+}
+.remove2 {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.remove-employee {
+  color: #991b1b;
+  text-align: left;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  position: relative;
+}
+.active {
+  background: #d4e6c3;
+  border-radius: 40px;
+  padding: 0px 6px 0px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 18px;
+  position: relative;
+}
+.active2 {
+  color: #2d6a3f;
+  text-align: left;
+  font-family: "Asap-Medium", sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  position: relative;
+}
+.mike-chen {
+  border-radius: 15px;
+  border-style: solid;
+  border-color: #c4c79f;
+  border-width: 1px;
+  padding: 10px 18px 16px 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 51px;
+  align-items: center;
+  justify-content: flex-start;
+  width: 500px;
+  height: 69px;
+  position: absolute;
+  left: 25px;
+  top: 246px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.mike-chen2 {
+  color: #616344;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+}
+.mike-c-planted-co {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
+._240-176-5456 {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
+.emma-rob {
+  border-radius: 15px;
+  border-style: solid;
+  border-color: #c4c79f;
+  border-width: 1px;
+  padding: 10px 18px 16px 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 51px;
+  align-items: center;
+  justify-content: flex-start;
+  width: 500px;
+  height: 69px;
+  position: absolute;
+  left: 25px;
+  top: 324px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.emma-rob2 {
+  color: #616344;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+}
+.emma-r-planted-co {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
+._240-786-1324 {
+  color: #888b61;
+  text-align: left;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  position: relative;
+}
