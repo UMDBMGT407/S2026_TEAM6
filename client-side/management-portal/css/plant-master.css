@@ -1,0 +1,66 @@
+.plant-card{
+    background:#f3efe9;
+    border-radius:14px;
+    padding:18px;
+    height:100%;
+}
+
+.plant-title{
+    font-weight:600;
+    font-size:18px;
+}
+
+.plant-sub{
+    font-style:italic;
+    color:#777;
+    font-size:13px;
+}
+
+.plant-icon{
+    width:36px;
+    height:36px;
+    background:#e6e0d7;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-right:10px;
+}
+
+.info-row{
+    display:flex;
+    align-items:center;
+    margin-top:8px;
+    font-size:14px;
+}
+
+.info-row i{
+    margin-right:8px;
+}
+
+.plant-modal{
+  border-radius:20px;
+}
+
+.photo-box{
+  background:#e5e5e5;
+  height:80px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  color:#555;
+}
+
+.info-line{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:16px;
+  margin-top:16px;
+}
+
+.info-line i{
+  font-size:28px;
+}

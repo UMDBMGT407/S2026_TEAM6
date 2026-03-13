@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planted Management Portal</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+    <link rel="stylesheet" href="./css/base-style.css" />
+    <link rel="stylesheet" href="./css/plant-master.css" />
+  </head>
+
+  <body>
+    <div class="app-wrapper">
+      <!-- Top Header -->
+      <header class="topbar d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <img
+            src="./images/logo-trans.png"
+            alt="Planted Logo"
+            class="brand-logo"
+          />
+          <div>
+            <h1 class="brand-title">Planted</h1>
+            <p class="brand-subtitle">Management Portal</p>
+          </div>
+        </div>
+
+        <a href="#" class="signout-link">[→ Sign Out</a>
+      </header>
+
+      <!-- Sidebar + Main -->
+      <div class="d-flex content-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <nav class="nav flex-column">
+            <a class="nav-link" href="manage-employee.html">Employees</a>
+            <a class="nav-link" href="scheduling.html">Scheduling</a>
+            <a class="nav-link" href="suppliers.html">Suppliers</a>
+            <a class="nav-link active" href="inventory.html">Inventory</a>
+            <a class="nav-link" href="clients.html">Clients</a>
+            <a class="nav-link" href="job-order.html">Job Orders</a>
+          </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <div class="row align-items-center mb-2">
+            <div class="col">
+              <h2 class="page-title mb-0">Plant Master List</h2>
+              <p class="page-subtitle mb-0">View All Plants and Care Info</p>
+            </div>
+            <div class="col-auto">
+              <button
+                class="btn btn-success"
+                data-bs-toggle="modal"
+                data-bs-target="#plantModal"
+              >
+                Add Plant
+              </button>
+            </div>
+          </div>
+
+          <div class="my-4">
+            <form role="search">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0">
+                  <img
+                    src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg"
+                    alt="Search"
+                    style="width: 20px; height: 20px"
+                  />
+                </span>
+                <input
+                  class="form-control border-start-0 me-2"
+                  type="search"
+                  placeholder="Search Items"
+                  aria-label="Search"
+                />
+                <button class="btn btn-outline-success px-4" type="submit">
+                  Search
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="container py-5">
+            <div class="row g-4">
+              <!-- Plant -->
+              <div class="col-md-4">
+                <div class="plant-card">
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="plant-icon">
+                      <i class="bi bi-tree"></i>
+                    </div>
+                    <div>
+                      <div class="plant-title">Monstera Deliciosa</div>
+                      <div class="plant-sub">Monstera deliciosa</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-sun text-warning"></i>
+                    Bright Indirect Light
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-droplet text-primary"></i>
+                    Weekly
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-thermometer-half text-danger"></i>
+                    65-85°F (18-29°C)
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-wind text-info"></i>
+                    Humidity: 60-80%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plant -->
+              <div class="col-md-4">
+                <div class="plant-card">
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="plant-icon">
+                      <i class="bi bi-tree"></i>
+                    </div>
+                    <div>
+                      <div class="plant-title">Golden Pothos</div>
+                      <div class="plant-sub">Epipremnum aureum</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-sun text-warning"></i>
+                    Low to Bright Indirect Light
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-droplet text-primary"></i>
+                    Every 1-2 Weeks
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-thermometer-half text-danger"></i>
+                    65-85°F (18-29°C)
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-wind text-info"></i>
+                    Humidity: 40-60%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plant -->
+              <div class="col-md-4">
+                <div class="plant-card">
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="plant-icon">
+                      <i class="bi bi-tree"></i>
+                    </div>
+                    <div>
+                      <div class="plant-title">Snake Plant</div>
+                      <div class="plant-sub">Dracaena trifasciata</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-sun text-warning"></i>
+                    Low to Bright Indirect Light
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-droplet text-primary"></i>
+                    Every 2-4 Weeks
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-thermometer-half text-danger"></i>
+                    60-85°F (16-29°C)
+                  </div>
+
+                  <div class="info-row">
+                    <i class="bi bi-wind text-info"></i>
+                    Humidity: 30-50%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add plant pop up -->
+          <div class="modal fade" id="plantModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content plant-modal">
+                <div class="modal-body p-4">
+                  <!-- CLOSE BUTTON -->
+                  <button
+                    type="button"
+                    class="btn-close float-end"
+                    data-bs-dismiss="modal"
+                  ></button>
+
+                  <div class="row mt-3">
+                    <!-- PHOTO -->
+                    <div class="col-3">
+                      <div class="photo-box">Add<br />Photo</div>
+                    </div>
+
+                    <!-- PLANT NAME -->
+                    <div class="col-9">
+                      <label class="form-label fw-semibold">Plant Name</label>
+                      <input
+                        class="form-control mb-2"
+                        placeholder="Enter plant name"
+                      />
+
+                      <small class="text-muted fst-italic"
+                        >Scientific Name</small
+                      >
+                      <input class="form-control" />
+                    </div>
+                  </div>
+
+                  <!-- SETTINGS -->
+                  <div class="mt-4">
+                    <!-- SUNLIGHT -->
+                    <div class="info-line">
+                      <i class="bi bi-sun-fill text-warning"></i>
+
+                      <select class="form-select">
+                        <option selected>Sunlight Levels</option>
+                        <option>Low Light</option>
+                        <option>Medium Light</option>
+                        <option>Bright Indirect Light</option>
+                        <option>Full Sun</option>
+                      </select>
+                    </div>
+
+                    <!-- WATER -->
+                    <div class="info-line">
+                      <i class="bi bi-droplet-fill text-primary"></i>
+
+                      <select class="form-select">
+                        <option selected>Water Levels</option>
+                        <option>Every Few Days</option>
+                        <option>Weekly</option>
+                        <option>Every 2 Weeks</option>
+                        <option>Monthly</option>
+                      </select>
+                    </div>
+
+                    <!-- TEMP -->
+                    <div class="info-line">
+                      <i class="bi bi-thermometer-half text-danger"></i>
+
+                      <select class="form-select">
+                        <option selected>Temperature</option>
+                        <option>60-70°F</option>
+                        <option>65-75°F</option>
+                        <option>70-85°F</option>
+                      </select>
+                    </div>
+
+                    <!-- HUMIDITY -->
+                    <div class="info-line">
+                      <i class="bi bi-wind text-info"></i>
+
+                      <select class="form-select">
+                        <option selected>Humidity</option>
+                        <option>Low (30-40%)</option>
+                        <option>Medium (40-60%)</option>
+                        <option>High (60-80%)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- SAVE BUTTON -->
+                  <div class="mt-4 text-end">
+                    <button class="btn btn-success">Save Plant</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
