@@ -1,0 +1,145 @@
+body {
+      background-color: #e9e2db;
+      font-family: Georgia, "Times New Roman", serif;
+      margin: 0;
+    }
+
+    .app-wrapper {
+      min-height: 100vh;
+    }
+
+    /* Top header */
+    .topbar {
+      height: 110px;
+      background: #f7f7f5;
+      border-bottom: 1px solid #ddd;
+      padding: 20px 20px;
+    }
+
+    .brand-logo {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      border-radius: 15%;
+      background: #f7f7f5;
+    }
+
+    .brand-title {
+      font-size: 2.1rem;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .brand-subtitle {
+      font-size: 1rem;
+      color: #8d8b58;
+      margin: 0;
+    }
+
+    .signout-link {
+      color: #111;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      min-height: calc(100vh - 110px);
+      background: #f4f4f2;
+      padding: 28px 18px;
+      border-right: 1px solid #e0ddd8;
+    }
+
+    .sidebar .nav-link {
+      color: #111;
+      font-size: 1.15rem;
+      padding: 14px 20px;
+      border-radius: 18px;
+      margin-bottom: 10px;
+    }
+
+    .sidebar .nav-link.active {
+      background-color: #919163;
+      color: white;
+    }
+
+    .sidebar .nav-link:hover {
+      background-color: #dcdccf;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 28px 36px 40px;
+      background-color: #e9e2db;
+    }
+
+    .page-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0;
+    }
+
+    .page-subtitle {
+      color: #8d8b58;
+      font-size: 1rem;
+      margin-bottom: 28px;
+    }
+
+    /* Stat cards */
+    .stat-card {
+      background: #f8f8f7;
+      border-radius: 20px;
+      padding: 18px 20px;
+      min-height: 130px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+
+    .stat-card h6 {
+      color: #8d8b58;
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+
+    .stat-number {
+      font-size: 3rem;
+      line-height: 1;
+      margin: 0;
+    }
+
+    .text-red {
+      color: #c41212;
+    }
+
+    .text-green {
+      color: #12b84f;
+    }
+
+    .custom-btn {
+      background: #ddd4cb;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 18px;
+      box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+      color: #111;
+    }
+
+    .custom-btn:hover {
+      background: #cfc5bb;
+    }
+
+    @media (max-width: 991px) {
+      .sidebar {
+        width: 100%;
+        min-height: auto;
+      }
+
+      .content-layout {
+        flex-direction: column;
+      }
+
+      .main-content {
+        padding: 24px 20px 32px;
+      }
+    }
