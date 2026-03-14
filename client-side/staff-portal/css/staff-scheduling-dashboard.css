@@ -290,6 +290,26 @@
   left: 820px;
   top: 337px;
 }
+.thursday-entry-availability-button {
+  background: #8e8e8e;
+  border-radius: 10px;
+  width: 124px;
+  height: 36px;
+  position: absolute;
+  left: 816px;
+  top: 739px;
+  color: #ffffff;
+  font-family: "Asap-Regular", sans-serif;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.22);
+}
+.thursday-entry-availability-button:hover {
+  background: #787878;
+  color: #ffffff !important;
+}
 .wednesday-column-bg {
   background: rgba(136, 139, 97, 0.1);
   border-radius: 15px;
@@ -509,6 +529,18 @@ cursor: pointer;
 .nav-link.active {
 background: #888b61;
 color: #fff;
+}
+
+.staff-mobile-button.schedule-entry-availability-button {
+  margin-top: 12px;
+  background: #8e8e8e;
+  color: #ffffff;
+  width: 100%;
+  display: block;
+}
+.staff-mobile-button.schedule-entry-availability-button:hover {
+  background: #787878;
+  color: #ffffff !important;
 }
 
 

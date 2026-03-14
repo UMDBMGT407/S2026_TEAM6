@@ -44,16 +44,42 @@ a:active {
 
 /* Bootstrap Grid Wrapper */
 .staff-grid-wrapper {
+  width: 100%;
   overflow-x: auto;
+  overflow-y: auto;
 }
 
-/* Fixed desktop canvases remain readable on smaller screens via horizontal scroll */
+/* Use a shared 1440px design canvas so scaling behavior is consistent across staff pages. */
 .staff-grid-wrapper .staff-scheduling-dashboard,
 .staff-grid-wrapper .task-management-dashboard,
 .staff-grid-wrapper .inventory-dashboard,
 .staff-grid-wrapper .material-requests,
-.staff-grid-wrapper .used-material-log {
+.staff-grid-wrapper .used-material-log,
+.staff-grid-wrapper .availability-entry-page {
+  width: 1440px;
   min-width: 1440px;
+}
+
+/* Typography alignment with management/client portals */
+.staff-mobile-layout,
+.staff-mobile-layout *,
+.staff-grid-wrapper .staff-scheduling-dashboard,
+.staff-grid-wrapper .staff-scheduling-dashboard *,
+.staff-grid-wrapper .task-management-dashboard,
+.staff-grid-wrapper .task-management-dashboard *,
+.staff-grid-wrapper .inventory-dashboard,
+.staff-grid-wrapper .inventory-dashboard *,
+.staff-grid-wrapper .material-requests,
+.staff-grid-wrapper .material-requests *,
+.staff-grid-wrapper .used-material-log,
+.staff-grid-wrapper .used-material-log *,
+.staff-grid-wrapper .availability-entry-page,
+.staff-grid-wrapper .availability-entry-page *,
+.staff-grid-wrapper .job-materials-modal,
+.staff-grid-wrapper .job-materials-modal *,
+.staff-grid-wrapper .contact-client-modal,
+.staff-grid-wrapper .contact-client-modal * {
+  font-family: Georgia, "Times New Roman", serif !important;
 }
 
 /* ===== Staff Portal Mobile Layout ===== */
