@@ -1,0 +1,75 @@
+.inventory-card {
+  background-color: var(--color-light-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+
+.inventory-card.low-stock {
+  border-color: #d59a57;
+}
+
+.plant-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: #f4f1e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.item-title {
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--color-dark);
+  font-family: var(--font-family-primary);
+}
+
+.item-meta {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.low-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e2a15a;
+  background: #f8eadb;
+  color: #d78322;
+  line-height: 1;
+}
+
+.btn-adjust {
+  background: #ddd4cb;
+  color: var(--color-dark);
+  border: 1px solid #cfc7bf;
+  font-size: 0.9rem;
+  padding: 0.35rem 1rem;
+  min-width: 115px;
+  border-radius: 10px;
+}
+
+.btn-adjust:hover {
+  background: #cfc5bb;
+}
+
+.btn-reorder {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  font-size: 0.9rem;
+  padding: 0.35rem 1rem;
+  min-width: 115px;
+  border-radius: 10px;
+}
+
+.btn-reorder:hover {
+  background: #74774f;
+  color: white;
+}

@@ -1,0 +1,198 @@
+/* ===== Staff Portal Base ===== */
+a, button, input, select, h1, h2, h3, h4, h5, * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  text-decoration: none;
+  background: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+menu, ol, ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+a, a:hover, a:focus, a:active { text-decoration: none !important; }
+
+.inventory, .sign-out, .staff-mobile-signout { text-decoration: none !important; }
+
+.staff-grid-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.staff-grid-wrapper .staff-scheduling-dashboard,
+.staff-grid-wrapper .task-management-dashboard,
+.staff-grid-wrapper .inventory-dashboard,
+.staff-grid-wrapper .material-requests,
+.staff-grid-wrapper .used-material-log,
+.staff-grid-wrapper .availability-entry-page {
+  width: 1440px;
+  min-width: 1440px;
+}
+
+/* Typography unified with management portal */
+.staff-mobile-layout,
+.staff-mobile-layout *,
+.staff-grid-wrapper .staff-scheduling-dashboard,
+.staff-grid-wrapper .staff-scheduling-dashboard *,
+.staff-grid-wrapper .task-management-dashboard,
+.staff-grid-wrapper .task-management-dashboard *,
+.staff-grid-wrapper .inventory-dashboard,
+.staff-grid-wrapper .inventory-dashboard *,
+.staff-grid-wrapper .material-requests,
+.staff-grid-wrapper .material-requests *,
+.staff-grid-wrapper .used-material-log,
+.staff-grid-wrapper .used-material-log *,
+.staff-grid-wrapper .availability-entry-page,
+.staff-grid-wrapper .availability-entry-page *,
+.staff-grid-wrapper .job-materials-modal,
+.staff-grid-wrapper .job-materials-modal *,
+.staff-grid-wrapper .contact-client-modal,
+.staff-grid-wrapper .contact-client-modal * {
+  font-family: var(--font-family-primary) !important;
+}
+
+/* ===== Staff Portal Mobile Layout ===== */
+.staff-mobile-layout {
+  min-height: 100vh;
+  background: var(--color-main-bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-mobile-header {
+  background: var(--color-light-bg);
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
+  border-bottom: 1px solid #e0ddd8;
+}
+
+.staff-mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-dark);
+}
+
+.staff-mobile-logo { width: 40px; height: 56px; object-fit: cover; }
+
+.staff-mobile-brand-text {
+  font-family: var(--font-family-primary);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.staff-mobile-signout { color: var(--color-dark); font-size: 16px; }
+
+.staff-mobile-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.staff-mobile-nav-link {
+  background: var(--color-light-bg);
+  color: var(--color-dark);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 15px;
+  font-family: var(--font-family-primary);
+}
+
+.staff-mobile-nav-link.active {
+  background: var(--color-primary);
+  color: #ffffff !important;
+}
+
+.staff-mobile-card {
+  background: var(--color-light-bg-tertiary);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.07);
+}
+
+.staff-mobile-title { color: var(--color-dark); font-size: 1.6rem; font-family: var(--font-family-primary); }
+.staff-mobile-subtitle { color: var(--color-text-secondary); font-size: 1rem; margin-top: 4px; }
+.staff-mobile-card-title { color: var(--color-dark); font-size: 1.1rem; font-family: var(--font-family-primary); }
+.staff-mobile-card-subtitle { color: var(--color-text-secondary); font-size: 0.9rem; margin-top: 3px; }
+
+.staff-mobile-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.staff-mobile-list li { color: var(--color-dark); font-size: 0.95rem; }
+
+.staff-mobile-task-grid { display: flex; flex-direction: column; gap: 12px; }
+.staff-mobile-task-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.staff-mobile-task-meta p { color: var(--color-dark); font-size: 14px; }
+
+.staff-mobile-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.staff-mobile-status.complete { background: #abd7bc; color: #0d5e28; }
+.staff-mobile-status.incomplete { background: #ddd4cb; color: #555; }
+
+.staff-mobile-action-row { margin-top: 12px; display: flex; gap: 8px; }
+
+.staff-mobile-button {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 9px 12px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: var(--font-family-primary);
+}
+
+.staff-mobile-button.secondary { background: #ddd4cb; color: var(--color-dark); }
+
+.staff-mobile-link-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+
+.staff-mobile-link-card {
+  background: #ddd4cb;
+  border-radius: 12px;
+  padding: 14px;
+  color: var(--color-dark);
+  font-size: 1.1rem;
+  font-family: var(--font-family-primary);
+}
+
+.staff-mobile-form { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.staff-mobile-field { display: flex; flex-direction: column; gap: 5px; }
+.staff-mobile-label { color: var(--color-text-secondary); font-size: 0.95rem; }
+
+.staff-mobile-input,
+.staff-mobile-textarea {
+  width: 100%;
+  border: 1px solid #c8c2b6;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--color-dark);
+  font-size: 15px;
+  font-family: var(--font-family-primary);
+}
+
+.staff-mobile-input:focus,
+.staff-mobile-textarea:focus { outline: 2px solid rgba(136,139,97,0.5); }
+
+.staff-mobile-textarea { min-height: 96px; resize: vertical; }
+
+.staff-mobile-used-rows { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.staff-mobile-used-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.staff-mobile-modal-actions { margin-top: 12px; display: flex; justify-content: flex-end; }
