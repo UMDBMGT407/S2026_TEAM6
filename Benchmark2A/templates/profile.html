@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planted - My Profile</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+      <div class="container-fluid d-flex align-items-center justify-content-between px-4">
+        <div class="d-flex align-items-center gap-3">
+          <img class="logo-img" src="{{ url_for('static', filename='images/planted-logo-10.png') }}" alt="Planted Logo">          
+          <div>
+            <div class="brand-name">Planted</div>
+            <div class="brand-sub">Client Dashboard</div>
+          </div>
+        </div>
+        <a href="#" class="sign-out-link">&#8594; Sign Out</a>
+      </div>
+    </nav>
+
+    <!-- Page Body -->
+    <div class="container-fluid">
+      <div class="row">
+
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar">
+          <ul class="nav flex-column pt-3">
+            <li class="nav-item">
+              <a href="index.html" class="nav-link sidebar-link">Overview</a>
+            </li>
+            <li class="nav-item">
+              <a href="service-request.html" class="nav-link sidebar-link">Service Request</a>
+            </li>
+            <li class="nav-item">
+              <a href="appointments.html" class="nav-link sidebar-link">Appointments</a>
+            </li>
+            <li class="nav-item">
+              <a href="invoices.html" class="nav-link sidebar-link">Invoices</a>
+            </li>
+            <li class="nav-item">
+              <a href="profile.html" class="nav-link sidebar-link active-link">Profile</a>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 main-content">
+
+          <!-- Page Header -->
+          <div class="mb-4">
+            <h1 class="page-title">My Profile</h1>
+            <p class="page-subtitle">Manage your account information and preferences</p>
+          </div>
+
+          <!-- Profile Banner -->
+          <div class="profile-banner mb-4">
+            <div class="row align-items-center">
+              <div class="col-md-9 d-flex align-items-center gap-4">
+                <div class="profile-avatar">SM</div>
+                <div>
+                  <div class="profile-name">Sarah Mitchell</div>
+                  <div class="profile-email">sarah.mitchell@gmail.com</div>
+                  <div class="profile-since">Member since 2024</div>
+                </div>
+              </div>
+              <div class="col-md-3 text-end">
+                <button class="upload-photo-btn">Upload Photo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal Information -->
+          <div class="profile-card mb-3">
+            <div class="row align-items-center">
+              <div class="col-md-10">
+                <div class="profile-section-title">Personal Information</div>
+                <div class="row mt-2">
+                  <div class="col-md-4">
+                    <div class="profile-field-label">FIRST NAME</div>
+                    <div class="profile-field-value">Sarah</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="profile-field-label">LAST NAME</div>
+                    <div class="profile-field-value">Mitchell</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-2 text-end">
+                <button class="profile-edit-btn">Edit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Details -->
+          <div class="profile-card mb-3">
+            <div class="row align-items-center">
+              <div class="col-md-10">
+                <div class="profile-section-title">Contact Details</div>
+                <div class="row mt-2">
+                  <div class="col-md-4">
+                    <div class="profile-field-label">EMAIL ADDRESS</div>
+                    <div class="profile-field-value">sarah.mitchell@gmail.com</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="profile-field-label">PHONE NUMBER</div>
+                    <div class="profile-field-value">+1 (555) 123-4567</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-2 text-end">
+                <button class="profile-edit-btn">Edit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Service Address -->
+          <div class="profile-card mb-3">
+            <div class="row align-items-center">
+              <div class="col-md-10">
+                <div class="profile-section-title">Service Address</div>
+                <div class="row mt-2">
+                  <div class="col-md-5">
+                    <div class="profile-field-label">STREET ADDRESS</div>
+                    <div class="profile-field-value">123 Elm Street</div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="profile-field-label">CITY</div>
+                    <div class="profile-field-value">Portland</div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="profile-field-label">STATE</div>
+                    <div class="profile-field-value">OR</div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="profile-field-label">ZIP CODE</div>
+                    <div class="profile-field-value">97205</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-2 text-end">
+                <button class="profile-edit-btn">Edit</button>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Inline editing for each profile card
+      document.querySelectorAll('.profile-card').forEach(function(card) {
+        var editBtn = card.querySelector('.profile-edit-btn');
+        editBtn.addEventListener('click', function() {
+          var saving = this.textContent.trim() === 'Save';
+          card.querySelectorAll('.profile-field-value').forEach(function(field) {
+            if (saving) {
+              var input = field.querySelector('input');
+              if (input) field.textContent = input.value;
+            } else {
+              var val = field.textContent.trim();
+              field.innerHTML = '<input type="text" class="profile-input" value="' + val + '" />';
+            }
+          });
+          this.textContent = saving ? 'Edit' : 'Save';
+        });
+      });
+
+      // Sign out
+      document.querySelector('.sign-out-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to sign out?')) {
+          alert('You have been signed out.');
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/staff-scheduling-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/staff-portal-base.css') }}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Document</title>
+  </head>
+  <body>
+    <main class="staff-mobile-layout d-lg-none">
+      <header class="staff-mobile-header">
+        <a href="inventory-dashboard.html" class="staff-mobile-brand">
+          <img src="images/PlantedLogo1.png" alt="Planted Logo" class="staff-mobile-logo" />
+          <span class="staff-mobile-brand-text">Planted Staff</span>
+        </a>
+        <a href="../login-portal/LoginPortal.html" class="staff-mobile-signout">Sign Out</a>
+      </header>
+
+      <nav class="staff-mobile-nav">
+        <a href="staff-scheduling-dashboard.html" class="staff-mobile-nav-link active">Scheduling</a>
+        <a href="task-management-dashboard.html" class="staff-mobile-nav-link">Tasks</a>
+        <a href="inventory-dashboard.html" class="staff-mobile-nav-link">Inventory</a>
+      </nav>
+
+      <section class="staff-mobile-card">
+        <h1 class="staff-mobile-title">Scheduling</h1>
+        <p class="staff-mobile-subtitle">Input your availability</p>
+      </section>
+
+      <section class="staff-mobile-card">
+        <h2 class="staff-mobile-card-title">My Weekly Schedule</h2>
+        <p class="staff-mobile-card-subtitle">March 2 - March 8, 2026</p>
+        <ul class="staff-mobile-list">
+          <li>Mon: 8AM - 4PM</li>
+          <li>Tue: 8AM - 4PM</li>
+          <li>Wed: Unavailable</li>
+          <li>Thu: 10AM - 6PM</li>
+          <li>Fri: 8AM - 2PM</li>
+          <li>Sat: 12:00 PM - Service Plants</li>
+          <li>Sun: 06:00 PM - Plant Install</li>
+        </ul>
+        <a href="availability-entry.html" class="staff-mobile-button schedule-entry-availability-button">
+          Enter Availability
+        </a>
+      </section>
+
+      <section class="staff-mobile-card">
+        <h2 class="staff-mobile-card-title">Skills</h2>
+        <ul class="staff-mobile-list">
+          <li>Caretaking</li>
+          <li>Plant Installation</li>
+        </ul>
+      </section>
+    </main>
+
+    <div class="container-fluid staff-grid-wrapper px-0">
+      <div class="row g-0">
+        <div class="col-12">
+    <!-- ===== Staff Scheduling Dashboard Structure ===== -->
+    <!-- Sections: root container, navigation/header layers, page content, actions/scripts -->
+    <div class="staff-scheduling-dashboard d-none d-lg-block">
+      <!-- Scheduling Content -->
+      <div class="schedule-grid-card"></div>
+      <div class="availability-card"></div>
+      <div class="skills-card"></div>
+      <div
+        class="availability-hours-text"
+      >
+        Mon : 8AM - 4PM
+        <br />
+        Tue : 8AM - 4PM
+        <br />
+        Wed : Unavailable
+        <br />
+        Thu : 10AM - 6PM
+        <br />
+        Fri : 8AM - 2PM
+        <br />
+      </div>
+      <img class="skills-check-icon-secondary" src="images/checkmark.png" />
+      <div class="skill-plant-installation">Plant installation</div>
+      <div class="skills-title">Skills</div>
+      <div class="availability-title">
+        Availability Status
+        <br />
+      </div>
+      <!-- Sidebar Navigation -->
+      <div class="sidebar-panel"></div>
+      <div class="sidebar-active-pill"></div>
+      <div class="scheduling">Scheduling</div>
+      <a href="task-management-dashboard.html" class="nav-link tasks">Tasks</a>
+      <a href="inventory-dashboard.html" class="nav-link inventory">Inventory</a>
+      <div class="saturday-column-bg"></div>
+      <div class="saturday-column-overlay"></div>
+      <div class="saturday-appointment-text">
+        12:00 PM
+        <br />
+        Service Plants
+      </div>
+      <div class="saturday-appointment-pill"></div>
+      <div class="saturday-label">SAT</div>
+      <div class="sunday-column-bg"></div>
+      <div class="sunday-column-overlay"></div>
+      <div class="sunday-label">SUN</div>
+      <div class="friday-column-bg"></div>
+      <div class="friday-column-overlay"></div>
+      <div class="sunday-appointment-pill"></div>
+      <div class="friday-label">FRI</div>
+      <div class="thursday-column-bg"></div>
+      <div class="thursday-column-overlay"></div>
+      <div class="thursday-label">THU</div>
+      <a href="availability-entry.html" class="thursday-entry-availability-button">
+        Enter Availability
+      </a>
+      <div class="wednesday-column-bg"></div>
+      <div class="wednesday-column-overlay"></div>
+      <div class="tuesday-column-bg"></div>
+      <div class="tuesday-column-overlay"></div>
+      <div class="tuesday-label">TUE</div>
+      <div class="wednesday-label">WED</div>
+      <div class="monday-column-bg"></div>
+      <div class="monday-column-overlay"></div>
+      <div class="monday-label">MON</div>
+      <!-- Top Header -->
+      <div class="top-header-panel"></div>
+      <img class="planted-logo-image" src="images/PlantedLogo1.png" />
+      <div class="planted">Planted</div>
+      <div class="staff-portal">Staff Portal</div>
+     <a href="../login-portal/LoginPortal.html" class="sign-out">[→ Sign Out</a>
+      <!-- Page Heading -->
+      <div class="page-title">Scheduling</div>
+      <div class="page-subtitle">Input your availability</div>
+      <div class="sunday-evening-appointment-text">
+        06:00 PM
+        <br />
+        Plant Install
+      </div>
+      <div class="weekly-schedule-heading">
+        <span>
+          <span class="weekly-schedule-heading-main">
+            My Weekly Schedule
+            <br />
+          </span>
+          <span class="weekly-schedule-heading-dates">
+            March 2 - March 8, 2026
+          </span>
+        </span>
+      </div>
+      <img class="skills-check-icon-primary" src="images/checkmark.png" />
+      <div class="skill-caretaking">Caretaking</div>
+    </div>
+          </div>
+      </div>
+    </div>
+      <script src="./js/staff-portal-scale.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
