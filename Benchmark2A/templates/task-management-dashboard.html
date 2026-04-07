@@ -1,0 +1,385 @@
+{% extends "base_staff.html" %}
+{% set active_page = 'tasks' %}
+
+{% block title %}Planted Staff Tasks{% endblock %}
+
+{% block page_css %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/task-management-dashboard.css') }}"
+  />
+{% endblock %}
+
+{% block page_content %}
+  <div class="task-management-dashboard">
+    <div class="staff-page-header">
+      <h1 class="page-title">Tasks</h1>
+      <p class="page-subtitle">Track job progress and keep field work moving.</p>
+    </div>
+
+    <section class="task-dashboard-list">
+      <article class="task-dashboard-card surface-card">
+        <div class="task-dashboard-card-header">
+          <div class="task-dashboard-title-wrap">
+            <h2 class="task-dashboard-title">Plant Installation</h2>
+            <span class="task-dashboard-status status-pill staff-status-complete">Complete</span>
+          </div>
+        </div>
+
+        <div class="task-dashboard-meta">
+          <div class="task-dashboard-description">
+            <p class="detail-label">Description</p>
+            <p class="task-dashboard-description-copy">
+              Outfit client office space with plants and finish the install checklist.
+            </p>
+          </div>
+
+          <div class="task-dashboard-detail-list">
+            <p><span class="detail-label">Location:</span> 123 Rainbow Road</p>
+            <p><span class="detail-label">Date/Time:</span> March 8, 2026, 6:00 PM - 9:00 PM</p>
+            <p><span class="detail-label">Client:</span> Tech Innovations Inc.</p>
+          </div>
+        </div>
+
+        <div class="task-dashboard-actions">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-toggle="modal"
+            data-bs-target="#taskMaterialsModal"
+            data-task-title="Plant Installation"
+            data-task-context="Assigned materials for the March 8 install."
+            data-materials="Monstera Deliciosa::6 plants|Decorative Planters::6 units|Premium Potting Mix::4 bags|Top Dressing Pebbles::2 bags"
+          >
+            Materials
+          </button>
+          <button
+            type="button"
+            class="btn management-action-btn btn-olive"
+            data-bs-toggle="modal"
+            data-bs-target="#taskContactModal"
+            data-task-title="Plant Installation"
+            data-task-service-window="March 8, 2026, 6:00 PM - 9:00 PM"
+            data-company="Tech Innovations Inc."
+            data-contact-name="Jessica Day"
+            data-contact-phone="(555) 100-1000"
+            data-contact-email="jday@techinnovations.com"
+            data-contact-location="123 Rainbow Road"
+          >
+            Contact Client
+          </button>
+        </div>
+      </article>
+
+      <article class="task-dashboard-card surface-card">
+        <div class="task-dashboard-card-header">
+          <div class="task-dashboard-title-wrap">
+            <h2 class="task-dashboard-title">Service Plants</h2>
+            <span class="task-dashboard-status status-pill staff-status-incomplete">Incomplete</span>
+          </div>
+        </div>
+
+        <div class="task-dashboard-meta">
+          <div class="task-dashboard-description">
+            <p class="detail-label">Description</p>
+            <p class="task-dashboard-description-copy">
+              Handle weekly upkeep of the plant life in the client's office space.
+            </p>
+          </div>
+
+          <div class="task-dashboard-detail-list">
+            <p><span class="detail-label">Location:</span> 456 Main Street, San Francisco, CA</p>
+            <p><span class="detail-label">Date/Time:</span> March 7, 2026, 12:00 PM - 3:00 PM</p>
+            <p><span class="detail-label">Client:</span> Hotel Downtown</p>
+          </div>
+        </div>
+
+        <div class="task-dashboard-actions">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-toggle="modal"
+            data-bs-target="#taskMaterialsModal"
+            data-task-title="Service Plants"
+            data-task-context="Materials needed for the weekly maintenance visit."
+            data-materials="Leaf Shine::1 bottle|Moisture Meter::1 unit|Premium Potting Mix::1 bag|Microfiber Cloths::6 pieces"
+          >
+            Materials
+          </button>
+          <button
+            type="button"
+            class="btn management-action-btn btn-olive"
+            data-bs-toggle="modal"
+            data-bs-target="#taskContactModal"
+            data-task-title="Service Plants"
+            data-task-service-window="March 7, 2026, 12:00 PM - 3:00 PM"
+            data-company="Hotel Downtown"
+            data-contact-name="Marcus Lee"
+            data-contact-phone="(555) 320-4432"
+            data-contact-email="mlee@hoteldowntown.com"
+            data-contact-location="456 Main Street, San Francisco, CA"
+          >
+            Contact Client
+          </button>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <div
+    class="modal fade staff-modal"
+    id="taskMaterialsModal"
+    tabindex="-1"
+    aria-labelledby="taskMaterialsModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="taskMaterialsModalLabel">Task Materials</h2>
+            <p class="staff-modal-subtitle" id="task-materials-subtitle">
+              Assigned materials for the selected task.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="staff-modal-stack">
+            <section class="staff-modal-panel">
+              <p class="staff-modal-section-label">Task</p>
+              <h3 class="staff-modal-heading" id="task-materials-title">Plant Installation</h3>
+              <p class="staff-modal-copy muted" id="task-materials-context">
+                Assigned materials for the selected task.
+              </p>
+            </section>
+
+            <section class="staff-modal-panel">
+              <p class="staff-modal-section-label">Packing List</p>
+              <div class="staff-modal-list-head">
+                <span>Item</span>
+                <span>Quantity</span>
+              </div>
+              <div id="task-materials-list" class="staff-modal-list"></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade staff-modal"
+    id="taskContactModal"
+    tabindex="-1"
+    aria-labelledby="taskContactModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="taskContactModalLabel">Client Contact</h2>
+            <p class="staff-modal-subtitle">
+              Key contact details for the selected job without leaving the task board.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="staff-modal-stack">
+            <section class="staff-modal-panel">
+              <p class="staff-modal-section-label">Client</p>
+              <h3 class="staff-modal-heading" id="task-contact-company">Tech Innovations Inc.</h3>
+              <p class="staff-modal-copy muted" id="task-contact-person">Jessica Day</p>
+            </section>
+
+            <section class="staff-modal-panel">
+              <p class="staff-modal-section-label">Details</p>
+              <div class="staff-modal-detail-grid">
+                <div class="staff-modal-detail">
+                  <span class="staff-modal-detail-label">Task</span>
+                  <div class="staff-modal-detail-value" id="task-contact-title">
+                    Plant Installation
+                  </div>
+                </div>
+                <div class="staff-modal-detail">
+                  <span class="staff-modal-detail-label">Service Window</span>
+                  <div class="staff-modal-detail-value" id="task-contact-window">
+                    March 8, 2026, 6:00 PM - 9:00 PM
+                  </div>
+                </div>
+                <div class="staff-modal-detail">
+                  <span class="staff-modal-detail-label">Phone</span>
+                  <div class="staff-modal-detail-value" id="task-contact-phone">
+                    (555) 100-1000
+                  </div>
+                </div>
+                <div class="staff-modal-detail">
+                  <span class="staff-modal-detail-label">Email</span>
+                  <div class="staff-modal-detail-value" id="task-contact-email">
+                    jday@techinnovations.com
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="staff-modal-panel">
+              <p class="staff-modal-section-label">Location</p>
+              <p class="staff-modal-copy" id="task-contact-location">123 Rainbow Road</p>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_js %}
+  <script>
+    (function () {
+      if (typeof bootstrap === "undefined") {
+        return;
+      }
+
+      var materialsModalElement = document.getElementById("taskMaterialsModal");
+      var contactModalElement = document.getElementById("taskContactModal");
+      var materialsList = document.getElementById("task-materials-list");
+      var materialsTitle = document.getElementById("task-materials-title");
+      var materialsSubtitle = document.getElementById("task-materials-subtitle");
+      var materialsContext = document.getElementById("task-materials-context");
+      var contactCompany = document.getElementById("task-contact-company");
+      var contactPerson = document.getElementById("task-contact-person");
+      var contactTitle = document.getElementById("task-contact-title");
+      var contactWindow = document.getElementById("task-contact-window");
+      var contactPhone = document.getElementById("task-contact-phone");
+      var contactEmail = document.getElementById("task-contact-email");
+      var contactLocation = document.getElementById("task-contact-location");
+      var firstMaterialsTrigger = document.querySelector('[data-bs-target="#taskMaterialsModal"]');
+      var firstContactTrigger = document.querySelector('[data-bs-target="#taskContactModal"]');
+      var modalParam = new URLSearchParams(window.location.search).get("modal");
+
+      function clearModalQuery() {
+        var currentUrl = new URL(window.location.href);
+        if (!currentUrl.searchParams.has("modal")) {
+          return;
+        }
+
+        currentUrl.searchParams.delete("modal");
+        var nextUrl = currentUrl.pathname;
+        if (currentUrl.searchParams.toString()) {
+          nextUrl += "?" + currentUrl.searchParams.toString();
+        }
+        if (currentUrl.hash) {
+          nextUrl += currentUrl.hash;
+        }
+        window.history.replaceState({}, "", nextUrl);
+      }
+
+      function parseMaterials(materialString) {
+        return (materialString || "")
+          .split("|")
+          .filter(Boolean)
+          .map(function (entry) {
+            var parts = entry.split("::");
+            return {
+              item: parts[0] || "",
+              quantity: parts[1] || ""
+            };
+          });
+      }
+
+      function populateMaterials(trigger) {
+        var taskTitle = trigger.getAttribute("data-task-title") || "Task Materials";
+        var taskContext = trigger.getAttribute("data-task-context") || "Assigned materials";
+        var materials = parseMaterials(trigger.getAttribute("data-materials"));
+
+        materialsTitle.textContent = taskTitle;
+        materialsSubtitle.textContent = "Assigned materials for " + taskTitle + ".";
+        materialsContext.textContent = taskContext;
+        materialsList.innerHTML = "";
+
+        materials.forEach(function (material) {
+          var row = document.createElement("div");
+          row.className = "staff-modal-list-row";
+          row.innerHTML =
+            '<span class="staff-modal-list-label">' + material.item + "</span>" +
+            '<span class="staff-modal-list-value">' + material.quantity + "</span>";
+          materialsList.appendChild(row);
+        });
+      }
+
+      function populateContact(trigger) {
+        contactCompany.textContent = trigger.getAttribute("data-company") || "Client";
+        contactPerson.textContent = trigger.getAttribute("data-contact-name") || "";
+        contactTitle.textContent = trigger.getAttribute("data-task-title") || "";
+        contactWindow.textContent = trigger.getAttribute("data-task-service-window") || "";
+        contactPhone.textContent = trigger.getAttribute("data-contact-phone") || "";
+        contactEmail.textContent = trigger.getAttribute("data-contact-email") || "";
+        contactLocation.textContent = trigger.getAttribute("data-contact-location") || "";
+      }
+
+      if (materialsModalElement) {
+        materialsModalElement.addEventListener("show.bs.modal", function (event) {
+          if (event.relatedTarget) {
+            populateMaterials(event.relatedTarget);
+          }
+        });
+
+        materialsModalElement.addEventListener("hidden.bs.modal", clearModalQuery);
+      }
+
+      if (contactModalElement) {
+        contactModalElement.addEventListener("show.bs.modal", function (event) {
+          if (event.relatedTarget) {
+            populateContact(event.relatedTarget);
+          }
+        });
+
+        contactModalElement.addEventListener("hidden.bs.modal", clearModalQuery);
+      }
+
+      if (modalParam === "materials" && materialsModalElement && firstMaterialsTrigger) {
+        populateMaterials(firstMaterialsTrigger);
+        bootstrap.Modal.getOrCreateInstance(materialsModalElement).show();
+      }
+
+      if (modalParam === "contact" && contactModalElement && firstContactTrigger) {
+        populateContact(firstContactTrigger);
+        bootstrap.Modal.getOrCreateInstance(contactModalElement).show();
+      }
+    })();
+  </script>
+{% endblock %}

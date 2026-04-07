@@ -1,0 +1,526 @@
+{% extends "base_staff.html" %}
+{% set active_page = 'scheduling' %}
+
+{% block title %}Planted Staff Scheduling{% endblock %}
+
+{% block page_css %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/staff-scheduling-dashboard.css') }}"
+  />
+{% endblock %}
+
+{% block page_content %}
+  <div class="staff-scheduling-dashboard">
+    <div class="staff-page-header">
+      <h1 class="page-title">Scheduling</h1>
+      <p class="page-subtitle">Input your availability and review your week at a glance.</p>
+    </div>
+
+    <section class="staff-schedule-card staff-section-card">
+      <div class="staff-schedule-card-header">
+        <div class="staff-schedule-title-group">
+          <h2 class="staff-schedule-title">My Weekly Schedule</h2>
+          <p class="staff-schedule-range">March 2 - March 8, 2026</p>
+        </div>
+
+        <button
+          type="button"
+          class="btn management-action-btn btn-olive"
+          data-bs-toggle="modal"
+          data-bs-target="#availabilityEntryModal"
+        >
+          Enter Availability
+        </button>
+      </div>
+
+      <div class="staff-schedule-grid">
+        <article class="staff-schedule-day">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Mon</h3>
+            <p class="staff-schedule-day-date">3/2</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot">
+              <strong>Shift</strong>
+              8:00 AM - 4:00 PM
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Tue</h3>
+            <p class="staff-schedule-day-date">3/3</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot">
+              <strong>Shift</strong>
+              8:00 AM - 4:00 PM
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day is-unavailable">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Wed</h3>
+            <p class="staff-schedule-day-date">3/4</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot is-unavailable">
+              <strong>Status</strong>
+              Unavailable
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Thu</h3>
+            <p class="staff-schedule-day-date">3/5</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot">
+              <strong>Shift</strong>
+              10:00 AM - 6:00 PM
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Fri</h3>
+            <p class="staff-schedule-day-date">3/6</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot">
+              <strong>Shift</strong>
+              8:00 AM - 2:00 PM
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day is-booked">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Sat</h3>
+            <p class="staff-schedule-day-date">3/7</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot is-job">
+              <strong>12:00 PM</strong>
+              Service Plants
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-schedule-day is-booked">
+          <div class="staff-schedule-day-head">
+            <h3 class="staff-schedule-day-label">Sun</h3>
+            <p class="staff-schedule-day-date">3/8</p>
+          </div>
+          <div class="staff-schedule-body">
+            <div class="staff-schedule-slot is-job">
+              <strong>6:00 PM</strong>
+              Plant Install
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="staff-scheduling-summary">
+      <article class="staff-section-card">
+        <p class="staff-section-kicker">Availability</p>
+        <h2 class="staff-section-title">Current Hours</h2>
+        <div class="staff-availability-hours" id="availability-summary-list">
+          <p data-availability-day="Monday">Monday: 8:00 AM - 4:00 PM</p>
+          <p data-availability-day="Tuesday">Tuesday: 8:00 AM - 4:00 PM</p>
+          <p data-availability-day="Wednesday">Wednesday: Unavailable</p>
+          <p data-availability-day="Thursday">Thursday: 10:00 AM - 6:00 PM</p>
+          <p data-availability-day="Friday">Friday: 8:00 AM - 2:00 PM</p>
+          <p data-availability-day="Saturday">Saturday: 12:00 PM - 4:00 PM</p>
+          <p data-availability-day="Sunday">Sunday: 4:00 PM - 8:00 PM</p>
+        </div>
+      </article>
+
+      <article class="staff-section-card">
+        <p class="staff-section-kicker">Skills</p>
+        <h2 class="staff-section-title">Assigned Specialties</h2>
+        <ul class="staff-skills-list">
+          <li>Caretaking</li>
+          <li>Plant Installation</li>
+        </ul>
+      </article>
+    </section>
+  </div>
+
+  <div
+    class="modal fade staff-modal staff-modal-wide"
+    id="availabilityEntryModal"
+    tabindex="-1"
+    aria-labelledby="availabilityEntryModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="availabilityEntryModalLabel">Weekly Availability</h2>
+            <p class="staff-modal-subtitle">
+              Update your hours without leaving the scheduling dashboard.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="staff-modal-stack">
+            <section class="staff-modal-panel availability-entry-shell">
+              <div class="staff-card-header">
+                <p class="staff-eyebrow">Week Of</p>
+                <h3 class="availability-card-title">March 9 - March 15, 2026</h3>
+                <p class="availability-card-subtitle">
+                  Choose a start and end time for each day, or mark the entire day unavailable.
+                </p>
+              </div>
+
+              <form class="availability-entry-form" action="#">
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Monday</h4>
+                    <p class="availability-day-date">3/9</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="monday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="monday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Tuesday</h4>
+                    <p class="availability-day-date">3/10</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="tuesday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="tuesday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Wednesday</h4>
+                    <p class="availability-day-date">3/11</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="wednesday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="wednesday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Thursday</h4>
+                    <p class="availability-day-date">3/12</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="thursday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="thursday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Friday</h4>
+                    <p class="availability-day-date">3/13</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="friday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="friday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Saturday</h4>
+                    <p class="availability-day-date">3/14</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="saturday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="saturday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Sunday</h4>
+                    <p class="availability-day-date">3/15</p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="sunday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="sunday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+            </section>
+
+            <p id="availability-validation-message" class="staff-modal-message" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="availability-confirm-button"
+            class="btn management-action-btn btn-olive"
+          >
+            Save Availability
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_js %}
+  <script>
+    (function () {
+      var availabilityModalElement = document.getElementById("availabilityEntryModal");
+      if (!availabilityModalElement || typeof bootstrap === "undefined") {
+        return;
+      }
+
+      var availabilityModal = bootstrap.Modal.getOrCreateInstance(availabilityModalElement);
+      var confirmButton = document.getElementById("availability-confirm-button");
+      var messageElement = document.getElementById("availability-validation-message");
+      var summaryContainer = document.getElementById("availability-summary-list");
+      var modalParam = new URLSearchParams(window.location.search).get("modal");
+      var timeSlots = [];
+      var dayConfigs = [
+        { key: "monday", label: "Monday" },
+        { key: "tuesday", label: "Tuesday" },
+        { key: "wednesday", label: "Wednesday" },
+        { key: "thursday", label: "Thursday" },
+        { key: "friday", label: "Friday" },
+        { key: "saturday", label: "Saturday" },
+        { key: "sunday", label: "Sunday" }
+      ];
+
+      function setMessage(type, text) {
+        if (!messageElement) {
+          return;
+        }
+
+        messageElement.textContent = text || "";
+        messageElement.classList.remove("is-error", "is-success");
+        if (type) {
+          messageElement.classList.add(type === "error" ? "is-error" : "is-success");
+        }
+      }
+
+      function clearModalQuery() {
+        var currentUrl = new URL(window.location.href);
+        if (!currentUrl.searchParams.has("modal")) {
+          return;
+        }
+
+        currentUrl.searchParams.delete("modal");
+        var nextUrl = currentUrl.pathname;
+        if (currentUrl.searchParams.toString()) {
+          nextUrl += "?" + currentUrl.searchParams.toString();
+        }
+        if (currentUrl.hash) {
+          nextUrl += currentUrl.hash;
+        }
+        window.history.replaceState({}, "", nextUrl);
+      }
+
+      function buildTimeOptionLabel(hourValue) {
+        var periodLabel = hourValue >= 12 ? "PM" : "AM";
+        var displayHour = hourValue % 12;
+        if (displayHour === 0) {
+          displayHour = 12;
+        }
+        return displayHour + ":00 " + periodLabel;
+      }
+
+      function populateTimeDropdown(timeSelect) {
+        var previousValue = timeSelect.value;
+        timeSelect.innerHTML = "";
+
+        var defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select Time";
+        timeSelect.appendChild(defaultOption);
+
+        for (var hourValue = 8; hourValue <= 22; hourValue += 1) {
+          var timeLabel = buildTimeOptionLabel(hourValue);
+          var hourOption = document.createElement("option");
+          hourOption.value = timeLabel;
+          hourOption.textContent = timeLabel;
+          timeSelect.appendChild(hourOption);
+          if (timeSlots.indexOf(timeLabel) === -1) {
+            timeSlots.push(timeLabel);
+          }
+        }
+
+        var unavailableOption = document.createElement("option");
+        unavailableOption.value = "Unavailable";
+        unavailableOption.textContent = "Unavailable";
+        timeSelect.appendChild(unavailableOption);
+
+        timeSelect.value = previousValue;
+      }
+
+      function getTimeIndex(value) {
+        return timeSlots.indexOf(value);
+      }
+
+      function buildSummaryText(dayLabel, fromValue, toValue) {
+        if (fromValue === "Unavailable" && toValue === "Unavailable") {
+          return dayLabel + ": Unavailable";
+        }
+        return dayLabel + ": " + fromValue + " - " + toValue;
+      }
+
+      document.querySelectorAll(".availability-time-select").forEach(function (timeSelect) {
+        populateTimeDropdown(timeSelect);
+        timeSelect.addEventListener("change", function () {
+          setMessage("", "");
+        });
+      });
+
+      if (confirmButton) {
+        confirmButton.addEventListener("click", function () {
+          var firstError = "";
+
+          dayConfigs.forEach(function (dayConfig) {
+            if (firstError) {
+              return;
+            }
+
+            var fromSelect = document.querySelector('[name="' + dayConfig.key + '-from"]');
+            var toSelect = document.querySelector('[name="' + dayConfig.key + '-to"]');
+            var fromValue = fromSelect ? fromSelect.value : "";
+            var toValue = toSelect ? toSelect.value : "";
+
+            if (!fromValue || !toValue) {
+              firstError = dayConfig.label + ": select both a start and end time.";
+              return;
+            }
+
+            if (fromValue === "Unavailable" || toValue === "Unavailable") {
+              if (!(fromValue === "Unavailable" && toValue === "Unavailable")) {
+                firstError = dayConfig.label + ': use "Unavailable" for both fields on a day off.';
+              }
+              return;
+            }
+
+            if (getTimeIndex(fromValue) >= getTimeIndex(toValue)) {
+              firstError = dayConfig.label + ": end time must be later than start time.";
+              return;
+            }
+
+            if (summaryContainer) {
+              var summaryLine = summaryContainer.querySelector(
+                '[data-availability-day="' + dayConfig.label + '"]'
+              );
+              if (summaryLine) {
+                summaryLine.textContent = buildSummaryText(dayConfig.label, fromValue, toValue);
+              }
+            }
+          });
+
+          if (firstError) {
+            setMessage("error", firstError);
+            return;
+          }
+
+          setMessage("success", "Availability updated.");
+          availabilityModal.hide();
+        });
+      }
+
+      availabilityModalElement.addEventListener("show.bs.modal", function () {
+        setMessage("", "");
+      });
+
+      availabilityModalElement.addEventListener("hidden.bs.modal", function () {
+        setMessage("", "");
+        clearModalQuery();
+      });
+
+      if (modalParam === "availability") {
+        availabilityModal.show();
+      }
+    })();
+  </script>
+{% endblock %}
