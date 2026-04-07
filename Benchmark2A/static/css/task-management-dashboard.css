@@ -1,0 +1,95 @@
+﻿/* ===== Task Management Dashboard Styles ===== */
+.task-management-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.task-dashboard-list {
+  display: grid;
+  gap: 24px;
+}
+
+.task-dashboard-card {
+  padding: 28px;
+}
+
+.task-dashboard-card-header {
+  margin-bottom: 20px;
+}
+
+.task-dashboard-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.task-dashboard-title {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--color-dark);
+  line-height: 1.15;
+}
+
+.task-dashboard-status {
+  min-width: 110px;
+  font-size: 0.85rem;
+}
+
+.task-dashboard-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: 28px;
+}
+
+.task-dashboard-description {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-dashboard-description p,
+.task-dashboard-detail-list p {
+  margin: 0;
+}
+
+.task-dashboard-description-copy,
+.task-dashboard-detail-list p {
+  color: var(--color-dark);
+  line-height: 1.6;
+}
+
+.task-dashboard-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-dashboard-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 991px) {
+  .task-dashboard-title-wrap,
+  .task-dashboard-meta {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .task-dashboard-title-wrap {
+    gap: 12px;
+  }
+
+  .task-dashboard-actions {
+    flex-direction: column;
+  }
+
+  .task-dashboard-actions .btn {
+    width: 100%;
+  }
+}
