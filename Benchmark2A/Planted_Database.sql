@@ -23,7 +23,6 @@ DROP TABLE IF EXISTS employee_skills;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS service_contracts;
 DROP TABLE IF EXISTS client_locations;
-DROP TABLE IF EXISTS client_contacts;
 DROP TABLE IF EXISTS clients;
 DROP TABLE IF EXISTS addresses;
 DROP TABLE IF EXISTS users;
