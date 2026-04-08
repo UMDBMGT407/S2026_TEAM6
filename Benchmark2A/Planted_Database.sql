@@ -21,7 +21,6 @@ DROP TABLE IF EXISTS suppliers;
 DROP TABLE IF EXISTS employee_availability;
 DROP TABLE IF EXISTS employee_skills;
 DROP TABLE IF EXISTS employees;
-DROP TABLE IF EXISTS service_contracts;
 DROP TABLE IF EXISTS client_locations;
 DROP TABLE IF EXISTS clients;
 DROP TABLE IF EXISTS addresses;
@@ -37,13 +36,13 @@ CREATE TABLE users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(30),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- tracks when the account was made
 );
 
 -- ADDRESSES
 
 CREATE TABLE addresses (
-    address_id INT PRIMARY KEY AUTO_INCREMENT,
+    address_id INT PRIMARY KEY AUTO_INCREMENT, -- Makes it easier to link to other tables
     street_1 VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100) NOT NULL,
@@ -58,7 +57,8 @@ CREATE TABLE clients (
     company_name VARCHAR(255),
     member_since DATE,
     account_status VARCHAR(50),
-    FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
+    FOREIGN KEY (contact_user_id) REFERENCES users(user_id),
+    FOREIGN KEY (member_since) REFERENCES users(created_at)
 );
 
 CREATE TABLE client_locations (
@@ -66,20 +66,8 @@ CREATE TABLE client_locations (
     client_id INT NOT NULL,
     address_id INT NOT NULL,
     location_name VARCHAR(255),
-    is_primary BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
-);
-
-CREATE TABLE service_contracts (
-    contract_id INT PRIMARY KEY AUTO_INCREMENT,
-    client_id INT NOT NULL,
-    contract_name VARCHAR(255) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    contract_value DECIMAL(10,2),
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (client_id) REFERENCES clients(client_id)
 );
 
 -- EMPLOYEES / STAFF
@@ -89,13 +77,13 @@ CREATE TABLE employees (
     user_id INT NOT NULL,
     employee_code VARCHAR(20) NOT NULL UNIQUE,
     job_title VARCHAR(150),
-    dob DATE,
     employment_status VARCHAR(50),
     hire_date DATE,
     pay_rate_hourly DECIMAL(10,2),
     address_id INT,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (address_id) REFERENCES addresses(address_id)
+    FOREIGN KEY (address_id) REFERENCES addresses(address_id),
+    FOREIGN KEY (hire_date) REFERENCES users(created_at)
 );
 
 CREATE TABLE employee_skills (
@@ -106,13 +94,13 @@ CREATE TABLE employee_skills (
 );
 
 CREATE TABLE employee_availability (
-    availability_id INT PRIMARY KEY AUTO_INCREMENT,
     employee_id INT NOT NULL,
     week_start_date DATE NOT NULL,
     day_of_week INT NOT NULL,
     available_from TIME,
     available_to TIME,
     is_available BOOLEAN DEFAULT TRUE,
+    PRIMARY KEY (employee_id, week_start_date, day_of_week), --makes it so each employee can only have one availability entry for each day in each week
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
