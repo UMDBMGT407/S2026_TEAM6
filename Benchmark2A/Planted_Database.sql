@@ -37,7 +37,6 @@ CREATE TABLE users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(30),
-    is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -46,7 +45,6 @@ CREATE TABLE users (
 CREATE TABLE addresses (
     address_id INT PRIMARY KEY AUTO_INCREMENT,
     street_1 VARCHAR(255) NOT NULL,
-    street_2 VARCHAR(255),
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100) NOT NULL,
     zip_code VARCHAR(20) NOT NULL
@@ -58,10 +56,8 @@ CREATE TABLE clients (
     client_id INT PRIMARY KEY AUTO_INCREMENT,
     contact_user_id INT,
     company_name VARCHAR(255),
-    display_name VARCHAR(255) NOT NULL,
     member_since DATE,
     account_status VARCHAR(50),
-    notes TEXT,
     FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
 );
 
@@ -71,7 +67,6 @@ CREATE TABLE client_locations (
     address_id INT NOT NULL,
     location_name VARCHAR(255),
     is_primary BOOLEAN DEFAULT FALSE,
-    notes TEXT,
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
@@ -164,7 +159,6 @@ CREATE TABLE inventory_items (
     quantity_on_hand DECIMAL(10,2),
     reorder_level DECIMAL(10,2),
     unit_label VARCHAR(50),
-    is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (plant_id) REFERENCES plant_master(plant_id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
 );
@@ -209,7 +203,6 @@ CREATE TABLE appointments (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     status VARCHAR(50),
-    notes TEXT,
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (location_id) REFERENCES client_locations(location_id),
     FOREIGN KEY (service_id) REFERENCES services(service_id),
@@ -255,7 +248,6 @@ CREATE TABLE tasks (
     description TEXT,
     status VARCHAR(50),
     completed_at DATETIME,
-    notes TEXT,
     FOREIGN KEY (job_order_id) REFERENCES job_orders(job_order_id),
     FOREIGN KEY (assigned_employee_id) REFERENCES employees(employee_id)
 );
@@ -363,7 +355,6 @@ CREATE TABLE material_usage_logs (
     task_id INT NOT NULL,
     employee_id INT NOT NULL,
     logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    note TEXT,
     FOREIGN KEY (task_id) REFERENCES tasks(task_id),
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
