@@ -109,14 +109,12 @@ CREATE TABLE employee_availability (
 CREATE TABLE suppliers (
     supplier_id INT PRIMARY KEY AUTO_INCREMENT,
     supplier_name VARCHAR(255) NOT NULL,
-    category VARCHAR(150),
     phone VARCHAR(30),
     email VARCHAR(255),
     address_id INT,
-    rating DECIMAL(2,1),
     total_orders INT DEFAULT 0,
     last_order_date DATE,
-    status VARCHAR(50),
+    status ENUM('Ordered','Shipped','Delivered'), -- Changed from VARCHAR to ENUM because it simplifies the options
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
