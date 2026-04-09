@@ -1,0 +1,356 @@
+.staff-modal .modal-dialog {
+  max-width: min(92vw, 860px);
+}
+
+.staff-modal-wide .modal-dialog {
+  max-width: min(94vw, 980px);
+}
+
+.staff-modal .modal-content {
+  border: none;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #f4efe9;
+  box-shadow: 0 28px 60px rgba(54, 42, 28, 0.2);
+}
+
+.staff-modal .modal-header {
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px 30px 22px;
+  background: linear-gradient(135deg, #8e9456 0%, #74774f 100%);
+  border-bottom: none;
+}
+
+.staff-modal .modal-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.staff-modal-subtitle {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.staff-modal .btn-close {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 18px rgba(32, 24, 16, 0.12);
+  opacity: 1;
+}
+
+.staff-modal .modal-body {
+  padding: 28px 30px 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.staff-modal .modal-footer {
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 30px 24px;
+  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(126, 118, 96, 0.16);
+}
+
+.staff-modal .modal-footer .btn {
+  min-width: 132px;
+  border-radius: 999px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+}
+
+.staff-modal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.staff-modal-panel {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid #d9d1c6;
+  border-radius: 22px;
+  padding: 20px 22px;
+  box-shadow: 0 10px 24px rgba(72, 51, 26, 0.08);
+}
+
+.staff-modal-section-label {
+  margin: 0 0 14px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.staff-modal-heading {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.staff-modal-copy {
+  margin: 0;
+  color: var(--color-dark);
+  line-height: 1.65;
+}
+
+.staff-modal-copy.muted {
+  color: var(--color-text-secondary);
+}
+
+.staff-modal-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.staff-modal-detail {
+  background: #ffffff;
+  border: 1px solid rgba(126, 118, 96, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.staff-modal-detail-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.staff-modal-detail-value {
+  color: var(--color-dark);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.staff-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-modal-list-head,
+.staff-modal-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.staff-modal-list-head {
+  padding: 0 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.staff-modal-list-row {
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid rgba(126, 118, 96, 0.14);
+  border-radius: 16px;
+}
+
+.staff-modal-list-label,
+.staff-modal-list-value {
+  color: var(--color-dark);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.staff-modal-list-value {
+  font-weight: 600;
+}
+
+.staff-modal-message {
+  min-height: 22px;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.staff-modal-message.is-error {
+  color: #b42318;
+}
+
+.staff-modal-message.is-success {
+  color: #0d7a39;
+}
+
+.material-requests,
+.used-material-log,
+.availability-entry-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.staff-modal .staff-card-header {
+  margin-bottom: 20px;
+}
+
+.staff-modal .staff-form-card,
+.staff-modal .used-log-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.submit-request-button,
+.submit-log-button {
+  min-width: 140px;
+}
+
+.availability-card-title {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.availability-card-subtitle {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.availability-entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.availability-day-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(126, 118, 96, 0.14);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.availability-day-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.availability-day-name {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.availability-day-date {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.98rem;
+}
+
+.availability-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.availability-time-label {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.availability-time-select {
+  height: 46px;
+  border-radius: 12px;
+  padding: 0 12px;
+}
+
+.used-log-table-header {
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+}
+
+.used-log-item-input,
+.used-log-quantity-input {
+  min-height: 46px;
+  padding: 10px 14px;
+}
+
+.used-log-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.used-log-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-control-button {
+  padding: 0;
+}
+
+@media (max-width: 991px) {
+  .staff-modal .modal-header,
+  .staff-modal .modal-body,
+  .staff-modal .modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .staff-modal .modal-dialog,
+  .staff-modal-wide .modal-dialog {
+    max-width: calc(100vw - 24px);
+    margin: 12px auto;
+  }
+
+  .staff-modal-detail-grid,
+  .availability-day-row {
+    grid-template-columns: 1fr;
+  }
+
+  .used-log-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .used-log-row-controls {
+    justify-content: flex-start;
+  }
+
+  .submit-request-button,
+  .submit-log-button,
+  .staff-modal .modal-footer .btn {
+    width: 100%;
+  }
+
+  .staff-modal .modal-footer {
+    flex-direction: column-reverse;
+  }
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planted - Plant Management Solutions</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cardo:wght@400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/design-system.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/auth-base.css') }}"
+    />
+  </head>
+  <body>
+    <div class="landing-page">
+      <div class="login-container">
+        <img
+          class="logo-img"
+          src="{{ url_for('static', filename='images/planted-logo-10.png') }}"
+          alt="Planted Logo"
+        />
+        <h1 class="planted">Planted</h1>
+        <p class="plant-management-solutions">Plant Management Solutions</p>
+        <div class="rectangle-1 login-card">
+          <h2 class="welcome-back">Welcome Back</h2>
+          <p class="login-to-your-account">Login to your account</p>
+          <form class="frame-1" action="{{ url_for('login') }}" method="post">
+            <label for="email">Email</label>
+            <input
+              class="email-box"
+              type="email"
+              id="email"
+              name="email"
+              required
+            />
+
+            <label for="password">Password</label>
+            <input
+              class="password-box"
+              type="password"
+              id="password"
+              name="password"
+              required
+            />
+
+            <div class="error-messages">
+              <p id="email-error" class="error-text"></p>
+              <p id="password-error" class="error-text"></p>
+              <p id="credentials-error" class="error-text"></p>
+              {% if error %}
+              <p class="error-text show">{{ error }}</p>
+              {% endif %}
+            </div>
+
+            <button type="submit" class="sign-in-button">Sign In</button>
+            <button
+              type="button"
+              onclick="location.href='{{ url_for('create_account') }}'"
+              class="create-account-button"
+            >
+              Create New Account
+            </button>
+            <a href="{{ url_for('forgot_password') }}" class="forgot-password"
+              >Forgot Password?</a
+            >
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='javascript/login.js') }}"></script>
+  </body>
+</html>
