@@ -22,8 +22,8 @@ DROP TABLE IF EXISTS employee_availability;
 DROP TABLE IF EXISTS employee_skills;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS client_locations;
-DROP TABLE IF EXISTS clients;
 DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS clients;
 DROP TABLE IF EXISTS users;
 
 -- USERS
@@ -36,13 +36,14 @@ CREATE TABLE users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(30),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- tracks when the account was made
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ADDRESSES
 
 CREATE TABLE addresses (
-    address_id INT PRIMARY KEY AUTO_INCREMENT, -- Makes it easier to link to other tables
+    address_id INT PRIMARY KEY AUTO_INCREMENT,
     street_1 VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100) NOT NULL,
@@ -57,8 +58,7 @@ CREATE TABLE clients (
     company_name VARCHAR(255),
     member_since DATETIME,
     account_status VARCHAR(50),
-    FOREIGN KEY (contact_user_id) REFERENCES users(user_id),
-    FOREIGN KEY (member_since) REFERENCES users(created_at)
+    FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE client_locations (
@@ -70,7 +70,7 @@ CREATE TABLE client_locations (
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
--- EMPLOYEES / STAFF
+-- EMPLOYEES
 
 CREATE TABLE employees (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -82,8 +82,7 @@ CREATE TABLE employees (
     pay_rate_hourly DECIMAL(10,2),
     address_id INT,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (address_id) REFERENCES addresses(address_id),
-    FOREIGN KEY (hire_date) REFERENCES users(created_at)
+    FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
 CREATE TABLE employee_skills (
@@ -100,7 +99,7 @@ CREATE TABLE employee_availability (
     available_from TIME,
     available_to TIME,
     is_available BOOLEAN DEFAULT TRUE,
-    PRIMARY KEY (employee_id, week_start_date, day_of_week), --makes it so each employee can only have one availability entry for each day in each week
+    PRIMARY KEY (employee_id, week_start_date, day_of_week),
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
@@ -114,11 +113,11 @@ CREATE TABLE suppliers (
     address_id INT,
     total_orders INT DEFAULT 0,
     last_order_date DATE,
-    status ENUM('Ordered','Shipped','Delivered'), -- Changed from VARCHAR to ENUM because it simplifies the options
+    status ENUM('Ordered','Shipped','Delivered'),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
--- PLANT MASTER LIST
+-- PLANT MASTER
 
 CREATE TABLE plant_master (
     plant_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -311,7 +310,7 @@ CREATE TABLE payroll_records (
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
--- STAFF MATERIAL REQUESTS
+-- MATERIAL REQUESTS
 
 CREATE TABLE material_requests (
     material_request_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -334,8 +333,6 @@ CREATE TABLE material_request_items (
     FOREIGN KEY (item_id) REFERENCES inventory_items(item_id)
 );
 
--- STAFF MATERIAL USAGE LOGS
-
 CREATE TABLE material_usage_logs (
     usage_log_id INT PRIMARY KEY AUTO_INCREMENT,
     task_id INT NOT NULL,
@@ -352,4 +349,24 @@ CREATE TABLE material_usage_items (
     quantity_used DECIMAL(10,2),
     FOREIGN KEY (usage_log_id) REFERENCES material_usage_logs(usage_log_id),
     FOREIGN KEY (item_id) REFERENCES inventory_items(item_id)
+);
+
+-- ADMIN USER
+
+INSERT INTO users (
+    role,
+    email,
+    password,
+    first_name,
+    last_name,
+    phone,
+    is_active
+) VALUES (
+    'Management',
+    'admin@test.com',
+    'scrypt:32768:8:1$6rMePe6Pg4whHb8b$3364b9f8dfbd6ddfda885f94e44a750f26ef4b7182c7589ca0ebbf8c7adc643d41f48a2a148e34f62a8dc3485d1046f5ccb7c65b94595e9d4e57df6f58c97064',
+    'Test',
+    'Admin',
+    '555-123-4567',
+    1
 );
