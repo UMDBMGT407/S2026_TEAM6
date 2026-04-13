@@ -1,0 +1,238 @@
+{% extends "base_management.html" %}
+{% set active_page = 'services' %}
+
+{% block title %}Planted Management Portal{% endblock %}
+
+{% block vendor_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block page_content %}
+<div class="row align-items-center mb-2">
+  <div class="col">
+    <h2 class="page-title mb-0">Services</h2>
+    <p class="page-subtitle mb-0">Create and manage services your clients can request</p>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-success px-4" data-bs-toggle="modal" data-bs-target="#addServiceModal">+ Add Service</button>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <h6>Total Services</h6>
+      <p class="stat-number" id="service-total-count">0</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <h6>Popular Services</h6>
+      <p class="stat-number" id="service-popular-count">0</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <h6>Average Price</h6>
+      <p class="stat-number" id="service-average-price">$0.00</p>
+    </div>
+  </div>
+</div>
+
+<div class="management-section mt-4">
+  <div class="row gy-3 align-items-end">
+    <div class="col-md-6">
+      <label for="serviceSearch" class="form-label visually-hidden">Search services</label>
+      <input id="serviceSearch" class="form-control" type="search" placeholder="Search services by name or description" />
+    </div>
+    <div class="col-md-4">
+      <label for="serviceSort" class="form-label visually-hidden">Sort services</label>
+      <select id="serviceSort" class="form-select">
+        <option value="name-asc">Name A–Z</option>
+        <option value="name-desc">Name Z–A</option>
+        <option value="price-low">Price Low to High</option>
+        <option value="price-high">Price High to Low</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive mt-4">
+  <table class="table table-bordered table-hover" id="servicesTable">
+    <thead class="table-light">
+      <tr>
+        <th>Service</th>
+        <th>Description</th>
+        <th class="text-end">Price</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="servicesTableBody">
+      <tr>
+        <td colspan="4" class="text-center text-muted py-4">Loading services...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content employee-modal">
+      <div class="modal-header employee-modal-header border-0">
+        <div>
+          <h2 class="modal-title mb-0" id="addServiceModalLabel">Add New Service</h2>
+          <p class="mb-0 employee-modal-subtitle">Define a service name, price, and description</p>
+        </div>
+        <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="addServiceForm">
+          <div class="mb-3">
+            <label for="serviceName" class="form-label">Service Name *</label>
+            <input type="text" class="form-control" id="serviceName" required />
+          </div>
+          <div class="mb-3">
+            <label for="servicePrice" class="form-label">Price *</label>
+            <input type="number" step="0.01" min="0" class="form-control" id="servicePrice" required />
+          </div>
+          <div class="mb-3">
+            <label for="serviceDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="serviceDescription" rows="4"></textarea>
+          </div>
+          <div id="serviceFormMessage" class="alert d-none" role="alert"></div>
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success">Add Service</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  const serviceSearch = document.getElementById('serviceSearch');
+  const serviceSort = document.getElementById('serviceSort');
+  const servicesTableBody = document.getElementById('servicesTableBody');
+  const serviceTotalCount = document.getElementById('service-total-count');
+  const servicePopularCount = document.getElementById('service-popular-count');
+  const serviceAveragePrice = document.getElementById('service-average-price');
+  const serviceFormMessage = document.getElementById('serviceFormMessage');
+
+  let serviceCache = [];
+  let searchTerm = '';
+  let sortOrder = 'name-asc';
+
+  async function fetchServices() {
+    const response = await fetch('/services');
+    if (!response.ok) throw new Error('Failed to load services');
+    serviceCache = await response.json();
+    renderServices();
+  }
+
+  function formatPrice(value) {
+    return `$${Number(value).toFixed(2)}`;
+  }
+
+  function sortServices(items) {
+    return items.slice().sort((a, b) => {
+      if (sortOrder === 'name-asc') return a.service_name.localeCompare(b.service_name);
+      if (sortOrder === 'name-desc') return b.service_name.localeCompare(a.service_name);
+      if (sortOrder === 'price-low') return Number(a.base_price) - Number(b.base_price);
+      if (sortOrder === 'price-high') return Number(b.base_price) - Number(a.base_price);
+      return 0;
+    });
+  }
+
+  function filterServices(items) {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(service => {
+      return service.service_name.toLowerCase().includes(q) || (service.description || '').toLowerCase().includes(q);
+    });
+  }
+
+  function renderServices() {
+    const filtered = filterServices(serviceCache);
+    const sorted = sortServices(filtered);
+
+    if (!sorted.length) {
+      servicesTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No services found.</td></tr>';
+    } else {
+      servicesTableBody.innerHTML = sorted.map(service => `
+        <tr>
+          <td>${service.service_name}</td>
+          <td>${service.description || '—'}</td>
+          <td class="text-end">${formatPrice(service.base_price)}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-secondary" disabled>View</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    serviceTotalCount.textContent = String(serviceCache.length);
+    servicePopularCount.textContent = String(serviceCache.length);
+    const average = serviceCache.length ? (serviceCache.reduce((sum, svc) => sum + Number(svc.base_price), 0) / serviceCache.length) : 0;
+    serviceAveragePrice.textContent = formatPrice(average);
+  }
+
+  serviceSearch.addEventListener('input', function() {
+    searchTerm = this.value;
+    renderServices();
+  });
+
+  serviceSort.addEventListener('change', function() {
+    sortOrder = this.value;
+    renderServices();
+  });
+
+  document.getElementById('addServiceForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const name = document.getElementById('serviceName').value.trim();
+    const price = document.getElementById('servicePrice').value.trim();
+    const description = document.getElementById('serviceDescription').value.trim();
+
+    if (!name || !price) {
+      serviceFormMessage.textContent = 'Service name and price are required.';
+      serviceFormMessage.className = 'alert alert-danger';
+      serviceFormMessage.classList.remove('d-none');
+      return;
+    }
+
+    try {
+      const response = await fetch('/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service_name: name, description, base_price: price })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to add service');
+
+      serviceFormMessage.textContent = 'Service added successfully!';
+      serviceFormMessage.className = 'alert alert-success';
+      serviceFormMessage.classList.remove('d-none');
+      document.getElementById('addServiceForm').reset();
+      await fetchServices();
+      setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addServiceModal'));
+        if (modal) modal.hide();
+        serviceFormMessage.classList.add('d-none');
+      }, 1000);
+    } catch (error) {
+      serviceFormMessage.textContent = error.message;
+      serviceFormMessage.className = 'alert alert-danger';
+      serviceFormMessage.classList.remove('d-none');
+      console.error(error);
+    }
+  });
+
+  fetchServices();
+</script>
+{% endblock %}
