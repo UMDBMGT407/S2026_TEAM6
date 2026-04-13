@@ -74,6 +74,10 @@
   flex-wrap: wrap;
 }
 
+.task-dashboard-empty {
+  border-style: dashed;
+}
+
 @media (max-width: 991px) {
   .task-dashboard-title-wrap,
   .task-dashboard-meta {

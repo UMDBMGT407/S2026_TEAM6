@@ -1,386 +1,297 @@
 /* ===== Staff Material Forms ===== */
-/* Section Guide: bootstrapping, shared utilities, material requests, used material log */
 (function () {
   'use strict';
 
-  /* Bootstrapping */
   document.addEventListener('DOMContentLoaded', function () {
-    initMaterialRequestsPage();
-    initUsedMaterialLogPage();
+    initInventoryForms();
   });
 
-  /* Shared Utility */
-  function isValidNumber(value) {
-    return value.trim() !== '' && Number.isFinite(Number(value));
+  function setStatusMessage(element, type, text) {
+    if (!element) {
+      return;
+    }
+
+    element.textContent = text || '';
+    element.classList.remove('is-error', 'is-success');
+    if (type) {
+      element.classList.add(type === 'error' ? 'is-error' : 'is-success');
+    }
   }
 
-  function saveMaterialRequest(entry) {
-    var requests = JSON.parse(localStorage.getItem('staffMaterialRequests') || '[]');
-    requests.push(entry);
-    localStorage.setItem('staffMaterialRequests', JSON.stringify(requests));
+  function normalizeText(value) {
+    return (value || '').replace(/\s+/g, ' ').trim();
   }
 
-  function saveUsedMaterialLog(rows) {
-    var logs = JSON.parse(localStorage.getItem('staffUsedMaterialLogs') || '[]');
-    logs.push({
-      rows: rows,
-      submittedAt: new Date().toISOString()
+  function parsePositiveNumber(value) {
+    var parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  async function fetchTaskOptions() {
+    var response = await fetch('/staff/tasks/options');
+    var payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Unable to load tasks.');
+    }
+
+    return payload.tasks || [];
+  }
+
+  function populateTaskSelect(selectElement, tasks, emptyLabel) {
+    if (!selectElement) {
+      return;
+    }
+
+    var previousValue = selectElement.value;
+    selectElement.innerHTML = '';
+
+    var firstOption = document.createElement('option');
+    firstOption.value = '';
+    firstOption.textContent = emptyLabel;
+    selectElement.appendChild(firstOption);
+
+    tasks.forEach(function (task) {
+      var option = document.createElement('option');
+      option.value = String(task.id);
+      option.textContent = task.label || task.name || ('Task #' + String(task.id));
+      selectElement.appendChild(option);
     });
-    localStorage.setItem('staffUsedMaterialLogs', JSON.stringify(logs));
+
+    if (previousValue && Array.from(selectElement.options).some(function (opt) { return opt.value === previousValue; })) {
+      selectElement.value = previousValue;
+    }
   }
 
-  function collectUsedLogRows(itemInputs, quantityInputs) {
-    var hasInvalidEntry = false;
-    var validEntries = [];
+  function createUsageRow(index) {
+    var row = document.createElement('div');
+    row.className = 'used-log-row staff-table-row';
 
-    for (var i = 0; i < itemInputs.length; i += 1) {
-      var itemValue = itemInputs[i].value.trim();
-      var quantityValue = quantityInputs[i].value.trim();
+    var itemInput = document.createElement('input');
+    itemInput.type = 'text';
+    itemInput.id = 'used-log-item-' + String(index);
+    itemInput.className = 'used-log-item-input staff-input';
+    itemInput.placeholder = 'Search';
 
-      /* Ignore fully empty rows */
-      if (itemValue === '' && quantityValue === '') {
+    var qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.min = '0';
+    qtyInput.step = 'any';
+    qtyInput.id = 'used-log-quantity-' + String(index);
+    qtyInput.className = 'used-log-quantity-input staff-input';
+    qtyInput.placeholder = 'Enter amount';
+
+    row.appendChild(itemInput);
+    row.appendChild(qtyInput);
+    return row;
+  }
+
+  function collectUsageEntries(rowsContainer) {
+    var rows = Array.from(rowsContainer.querySelectorAll('.used-log-row'));
+    var entries = [];
+
+    for (var i = 0; i < rows.length; i += 1) {
+      var itemInput = rows[i].querySelector('.used-log-item-input');
+      var qtyInput = rows[i].querySelector('.used-log-quantity-input');
+
+      var itemName = normalizeText(itemInput ? itemInput.value : '');
+      var quantityText = normalizeText(qtyInput ? qtyInput.value : '');
+
+      if (!itemName && !quantityText) {
         continue;
       }
 
-      /* Reject partially filled or non-numeric rows */
-      if (itemValue === '' || !isValidNumber(quantityValue)) {
-        hasInvalidEntry = true;
-        continue;
+      var quantity = parsePositiveNumber(quantityText);
+      if (!itemName || quantity === null) {
+        return {
+          error: 'Each used-material row needs both an item and a quantity greater than zero.'
+        };
       }
 
-      validEntries.push({
-        item: itemValue,
-        quantity: Number(quantityValue)
+      entries.push({
+        item: itemName,
+        quantity: quantity
       });
+    }
+
+    if (!entries.length) {
+      return {
+        error: 'Add at least one used material entry before submitting.'
+      };
     }
 
     return {
-      hasInvalidEntry: hasInvalidEntry,
-      validEntries: validEntries
+      entries: entries
     };
   }
 
-  /* ===== Material Requests ===== */
-  function bindMaterialRequestForm(config) {
-    var itemInput = document.getElementById(config.itemId);
-    var quantityInput = document.getElementById(config.quantityId);
-    var noteInput = document.getElementById(config.noteId);
-    var submitButton = document.getElementById(config.submitId);
+  function resetUsageRows(rowsContainer, baseRowCount) {
+    var rows = Array.from(rowsContainer.querySelectorAll('.used-log-row'));
+    rows.forEach(function (row, index) {
+      var itemInput = row.querySelector('.used-log-item-input');
+      var qtyInput = row.querySelector('.used-log-quantity-input');
 
-    if (!itemInput || !quantityInput || !noteInput || !submitButton) {
-      return;
-    }
-
-    submitButton.addEventListener('click', function () {
-      var itemValue = itemInput.value.trim();
-      var quantityValue = quantityInput.value.trim();
-
-      /* Validation Rules */
-      if (itemValue === '' || !isValidNumber(quantityValue)) {
-        alert('Invalid Entry: Please Review Request');
-        return;
+      if (index < baseRowCount) {
+        if (itemInput) itemInput.value = '';
+        if (qtyInput) qtyInput.value = '';
+      } else {
+        row.remove();
       }
-
-      /* localStorage Persistence */
-      saveMaterialRequest({
-        item: itemValue,
-        quantity: Number(quantityValue),
-        note: noteInput.value.trim(),
-        submittedAt: new Date().toISOString()
-      });
-
-      alert('Material Request Submitted Successfully.');
     });
   }
 
-  function initMaterialRequestsPage() {
-    var hasDesktopView = Boolean(document.querySelector('.material-requests'));
-    var hasMobileView = Boolean(document.querySelector('.material-requests-mobile'));
+  function initInventoryForms() {
+    var requestItemInput = document.getElementById('request-item-input');
+    var requestQuantityInput = document.getElementById('request-quantity-input');
+    var requestNoteInput = document.getElementById('request-note-input');
+    var requestTaskSelect = document.getElementById('request-task-select');
+    var requestSubmitButton = document.getElementById('submit-material-request');
+    var requestStatus = document.getElementById('material-request-status');
 
-    if (!hasDesktopView && !hasMobileView) {
+    var usageTaskSelect = document.getElementById('used-log-task-select');
+    var usageRowsContainer = document.getElementById('dynamic-used-log-rows');
+    var usageAddRowButton = document.getElementById('add-used-log-row-btn');
+    var usageRemoveRowButton = document.getElementById('remove-used-log-row-btn');
+    var usageSubmitButton = document.getElementById('submit-used-log-btn');
+    var usageStatus = document.getElementById('used-log-status');
+
+    if (!requestSubmitButton || !usageSubmitButton || !usageRowsContainer) {
       return;
     }
 
-    bindMaterialRequestForm({
-      itemId: 'request-item-input',
-      quantityId: 'request-quantity-input',
-      noteId: 'request-note-input',
-      submitId: 'submit-material-request'
-    });
+    var baseUsageRowCount = usageRowsContainer.querySelectorAll('.used-log-row').length;
 
-    bindMaterialRequestForm({
-      itemId: 'request-item-input-mobile',
-      quantityId: 'request-quantity-input-mobile',
-      noteId: 'request-note-input-mobile',
-      submitId: 'submit-material-request-mobile'
-    });
-  }
-
-  /* ===== Used Material Log ===== */
-  function initUsedMaterialLogPage() {
-    var desktopPage = document.querySelector('.used-material-log');
-    if (desktopPage) {
-      initDesktopUsedMaterialLog(desktopPage);
-    }
-
-    var mobilePage = document.querySelector('.used-material-log-mobile');
-    if (mobilePage) {
-      initMobileUsedMaterialLog(mobilePage);
-    }
-  }
-
-  function initDesktopUsedMaterialLog(page) {
-    /* Element Bindings */
-    var addRowButton = document.getElementById('add-used-log-row-btn');
-    var removeRowButton = document.getElementById('remove-used-log-row-btn');
-    var submitButton = document.getElementById('submit-used-log-btn');
-    var dynamicRowsContainer = document.getElementById('dynamic-used-log-rows');
-    var formCard = page.querySelector('.used-log-form-card');
-    var submitText = page.querySelector('.submit-log-text');
-    var addIcon = page.querySelector('.add-row-icon');
-    var removeIcon = page.querySelector('.remove-row-icon');
-
-    /* Safety Guard */
-    if (!addRowButton || !removeRowButton || !submitButton || !dynamicRowsContainer || !formCard) {
-      return;
-    }
-
-    /* Dynamic Row State */
-    var initialRows = page.querySelectorAll('.used-log-item-input').length;
-    var currentRowCount = initialRows;
-    var dynamicRows = [];
-
-    /* Layout Constants */
-    var rowStartTop = 379;
-    var rowGap = 51;
-
-    /* Baseline Layout Measurements */
-    var baseFormCardHeight = parseInt(getComputedStyle(formCard).height, 10);
-    var baseSubmitTop = parseInt(getComputedStyle(submitButton).top, 10);
-    var baseSubmitTextTop = submitText ? parseInt(getComputedStyle(submitText).top, 10) : 0;
-    var baseAddTop = parseInt(getComputedStyle(addRowButton).top, 10);
-    var baseAddIconTop = addIcon ? parseInt(getComputedStyle(addIcon).top, 10) : 0;
-    var baseRemoveTop = parseInt(getComputedStyle(removeRowButton).top, 10);
-    var baseRemoveIconTop = removeIcon ? parseInt(getComputedStyle(removeIcon).top, 10) : 0;
-    var basePageHeight = parseInt(getComputedStyle(page).height, 10);
-
-    /* Layout Updater */
-    function updateDynamicLayout() {
-      var extraRows = Math.max(0, currentRowCount - initialRows);
-      var offset = extraRows * rowGap;
-
-      formCard.style.height = String(baseFormCardHeight + offset) + 'px';
-      submitButton.style.top = String(baseSubmitTop + offset) + 'px';
-      addRowButton.style.top = String(baseAddTop + offset) + 'px';
-      removeRowButton.style.top = String(baseRemoveTop + offset) + 'px';
-      page.style.height = String(basePageHeight + offset) + 'px';
-
-      if (submitText) {
-        submitText.style.top = String(baseSubmitTextTop + offset) + 'px';
-      }
-
-      if (addIcon) {
-        addIcon.style.top = String(baseAddIconTop + offset) + 'px';
-      }
-
-      if (removeIcon) {
-        removeIcon.style.top = String(baseRemoveIconTop + offset) + 'px';
+    async function loadTaskSelectors() {
+      try {
+        var tasks = await fetchTaskOptions();
+        populateTaskSelect(requestTaskSelect, tasks, 'General Inventory Need');
+        populateTaskSelect(usageTaskSelect, tasks, 'Select Task');
+      } catch (error) {
+        setStatusMessage(requestStatus, 'error', error.message || 'Unable to load task options.');
+        setStatusMessage(usageStatus, 'error', error.message || 'Unable to load task options.');
       }
     }
 
-    /* Row Factory */
-    function createDynamicRow(rowNumber) {
-      var rowTop = rowStartTop + (rowNumber - 1) * rowGap;
-      var itemLabelTop = rowTop - 3;
-      var quantityLabelTop = rowTop - 2;
+    loadTaskSelectors();
 
-      var itemLabel = document.createElement('div');
-      itemLabel.className = 'dynamic-log-item-label';
-      itemLabel.textContent = 'Item:';
-      itemLabel.style.top = String(itemLabelTop) + 'px';
+    requestSubmitButton.addEventListener('click', async function () {
+      var itemValue = normalizeText(requestItemInput ? requestItemInput.value : '');
+      var quantityValue = parsePositiveNumber(requestQuantityInput ? requestQuantityInput.value : '');
+      var noteValue = normalizeText(requestNoteInput ? requestNoteInput.value : '');
+      var selectedTask = requestTaskSelect ? normalizeText(requestTaskSelect.value) : '';
 
-      var quantityLabel = document.createElement('div');
-      quantityLabel.className = 'dynamic-log-quantity-label';
-      quantityLabel.textContent = 'Quantity:';
-      quantityLabel.style.top = String(quantityLabelTop) + 'px';
-
-      var itemBg = document.createElement('div');
-      itemBg.className = 'dynamic-log-row-item-bg';
-      itemBg.style.top = String(rowTop) + 'px';
-
-      var quantityBg = document.createElement('div');
-      quantityBg.className = 'dynamic-log-row-qty-bg';
-      quantityBg.style.top = String(rowTop) + 'px';
-
-      var itemInput = document.createElement('input');
-      itemInput.type = 'text';
-      itemInput.id = 'used-log-item-' + String(rowNumber);
-      itemInput.className = 'used-log-item-input dynamic-row';
-      itemInput.placeholder = 'Search';
-      itemInput.style.top = String(rowTop + 3) + 'px';
-
-      var quantityInput = document.createElement('input');
-      quantityInput.type = 'number';
-      quantityInput.min = '0';
-      quantityInput.step = 'any';
-      quantityInput.id = 'used-log-quantity-' + String(rowNumber);
-      quantityInput.className = 'used-log-quantity-input dynamic-row';
-      quantityInput.placeholder = 'Enter Amount';
-      quantityInput.style.top = String(rowTop + 3) + 'px';
-
-      dynamicRowsContainer.appendChild(itemLabel);
-      dynamicRowsContainer.appendChild(quantityLabel);
-      dynamicRowsContainer.appendChild(itemBg);
-      dynamicRowsContainer.appendChild(quantityBg);
-      dynamicRowsContainer.appendChild(itemInput);
-      dynamicRowsContainer.appendChild(quantityInput);
-
-      dynamicRows.push({
-        elements: [itemLabel, quantityLabel, itemBg, quantityBg, itemInput, quantityInput]
-      });
-    }
-
-    /* Row Removal */
-    function removeDynamicRow() {
-      if (dynamicRows.length === 0) {
+      if (!itemValue) {
+        setStatusMessage(requestStatus, 'error', 'Enter an item name before submitting.');
         return;
       }
 
-      var lastRow = dynamicRows.pop();
-      for (var i = 0; i < lastRow.elements.length; i += 1) {
-        lastRow.elements[i].remove();
-      }
-    }
-
-    /* Row Controls */
-    addRowButton.addEventListener('click', function () {
-      currentRowCount += 1;
-      createDynamicRow(currentRowCount);
-      updateDynamicLayout();
-    });
-
-    removeRowButton.addEventListener('click', function () {
-      if (currentRowCount <= initialRows) {
+      if (quantityValue === null) {
+        setStatusMessage(requestStatus, 'error', 'Quantity must be greater than zero.');
         return;
       }
 
-      removeDynamicRow();
-      currentRowCount -= 1;
-      updateDynamicLayout();
+      requestSubmitButton.disabled = true;
+      setStatusMessage(requestStatus, '', 'Submitting request...');
+
+      try {
+        var response = await fetch('/staff/material-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            task_id: selectedTask || null,
+            item: itemValue,
+            quantity: quantityValue,
+            note: noteValue
+          })
+        });
+
+        var payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to submit request.');
+        }
+
+        setStatusMessage(
+          requestStatus,
+          'success',
+          payload.request_code
+            ? 'Request submitted (' + payload.request_code + ').'
+            : 'Request submitted successfully.'
+        );
+
+        if (requestItemInput) requestItemInput.value = '';
+        if (requestQuantityInput) requestQuantityInput.value = '';
+        if (requestNoteInput) requestNoteInput.value = '';
+        if (requestTaskSelect) requestTaskSelect.value = '';
+      } catch (error) {
+        setStatusMessage(requestStatus, 'error', error.message || 'Unable to submit request.');
+      } finally {
+        requestSubmitButton.disabled = false;
+      }
     });
 
-    /* Submit Flow: validate -> persist -> notify */
-    submitButton.addEventListener('click', function () {
-      var itemInputs = page.querySelectorAll('.used-log-item-input');
-      var quantityInputs = page.querySelectorAll('.used-log-quantity-input');
-      var rowData = collectUsedLogRows(itemInputs, quantityInputs);
+    usageAddRowButton.addEventListener('click', function () {
+      var nextIndex = usageRowsContainer.querySelectorAll('.used-log-row').length + 1;
+      usageRowsContainer.appendChild(createUsageRow(nextIndex));
+      setStatusMessage(usageStatus, '', '');
+    });
 
-      /* Final validation gate */
-      if (rowData.hasInvalidEntry || rowData.validEntries.length === 0) {
-        alert('Please Make a Valid Seclection to Submit');
+    usageRemoveRowButton.addEventListener('click', function () {
+      var rows = Array.from(usageRowsContainer.querySelectorAll('.used-log-row'));
+      if (rows.length <= baseUsageRowCount) {
         return;
       }
 
-      /* localStorage Persistence */
-      saveUsedMaterialLog(rowData.validEntries);
-
-      alert('Used Material Log Successfully Submitted');
-    });
-  }
-
-  function initMobileUsedMaterialLog(page) {
-    /* Element Bindings */
-    var addRowButton = document.getElementById('add-used-log-row-btn-mobile');
-    var removeRowButton = document.getElementById('remove-used-log-row-btn-mobile');
-    var submitButton = document.getElementById('submit-used-log-btn-mobile');
-    var rowsContainer = document.getElementById('dynamic-used-log-rows-mobile');
-
-    /* Safety Guard */
-    if (!addRowButton || !removeRowButton || !submitButton || !rowsContainer) {
-      return;
-    }
-
-    /* Dynamic Row State */
-    var dynamicRows = [];
-    var nextRowNumber = page.querySelectorAll('.used-log-item-input-mobile').length + 1;
-
-    /* Row Factory */
-    function createMobileRow(rowNumber) {
-      var row = document.createElement('div');
-      row.className = 'staff-mobile-used-row';
-
-      var itemField = document.createElement('label');
-      itemField.className = 'staff-mobile-field';
-      itemField.setAttribute('for', 'used-log-item-mobile-' + String(rowNumber));
-
-      var itemLabel = document.createElement('span');
-      itemLabel.className = 'staff-mobile-label';
-      itemLabel.textContent = 'Item';
-
-      var itemInput = document.createElement('input');
-      itemInput.type = 'text';
-      itemInput.id = 'used-log-item-mobile-' + String(rowNumber);
-      itemInput.className = 'staff-mobile-input used-log-item-input-mobile';
-      itemInput.placeholder = 'Search';
-
-      var quantityField = document.createElement('label');
-      quantityField.className = 'staff-mobile-field';
-      quantityField.setAttribute('for', 'used-log-quantity-mobile-' + String(rowNumber));
-
-      var quantityLabel = document.createElement('span');
-      quantityLabel.className = 'staff-mobile-label';
-      quantityLabel.textContent = 'Quantity';
-
-      var quantityInput = document.createElement('input');
-      quantityInput.type = 'number';
-      quantityInput.min = '0';
-      quantityInput.step = 'any';
-      quantityInput.id = 'used-log-quantity-mobile-' + String(rowNumber);
-      quantityInput.className = 'staff-mobile-input used-log-quantity-input-mobile';
-      quantityInput.placeholder = 'Enter Amount';
-
-      itemField.appendChild(itemLabel);
-      itemField.appendChild(itemInput);
-      quantityField.appendChild(quantityLabel);
-      quantityField.appendChild(quantityInput);
-      row.appendChild(itemField);
-      row.appendChild(quantityField);
-
-      rowsContainer.appendChild(row);
-      dynamicRows.push(row);
-    }
-
-    /* Row Controls */
-    addRowButton.addEventListener('click', function () {
-      createMobileRow(nextRowNumber);
-      nextRowNumber += 1;
-    });
-
-    removeRowButton.addEventListener('click', function () {
-      if (dynamicRows.length === 0) {
-        return;
-      }
-
-      var lastRow = dynamicRows.pop();
+      var lastRow = rows[rows.length - 1];
       lastRow.remove();
+      setStatusMessage(usageStatus, '', '');
     });
 
-    /* Submit Flow: validate -> persist -> notify */
-    submitButton.addEventListener('click', function () {
-      var itemInputs = page.querySelectorAll('.used-log-item-input-mobile');
-      var quantityInputs = page.querySelectorAll('.used-log-quantity-input-mobile');
-      var rowData = collectUsedLogRows(itemInputs, quantityInputs);
-
-      /* Final validation gate */
-      if (rowData.hasInvalidEntry || rowData.validEntries.length === 0) {
-        alert('Please Make a Valid Seclection to Submit');
+    usageSubmitButton.addEventListener('click', async function () {
+      var selectedTask = usageTaskSelect ? normalizeText(usageTaskSelect.value) : '';
+      if (!selectedTask) {
+        setStatusMessage(usageStatus, 'error', 'Select a task before submitting used materials.');
         return;
       }
 
-      /* localStorage Persistence */
-      saveUsedMaterialLog(rowData.validEntries);
+      var collection = collectUsageEntries(usageRowsContainer);
+      if (collection.error) {
+        setStatusMessage(usageStatus, 'error', collection.error);
+        return;
+      }
 
-      alert('Used Material Log Successfully Submitted');
+      usageSubmitButton.disabled = true;
+      setStatusMessage(usageStatus, '', 'Submitting used material log...');
+
+      try {
+        var response = await fetch('/staff/material-usage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            task_id: Number(selectedTask),
+            items: collection.entries
+          })
+        });
+
+        var payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to submit used material log.');
+        }
+
+        setStatusMessage(usageStatus, 'success', 'Used material log submitted successfully.');
+        if (usageTaskSelect) usageTaskSelect.value = '';
+        resetUsageRows(usageRowsContainer, baseUsageRowCount);
+      } catch (error) {
+        setStatusMessage(usageStatus, 'error', error.message || 'Unable to submit used material log.');
+      } finally {
+        usageSubmitButton.disabled = false;
+      }
     });
   }
 })();

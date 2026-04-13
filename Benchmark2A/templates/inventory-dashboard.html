@@ -83,6 +83,13 @@
 
               <div class="staff-form-card">
                 <div class="staff-form-grid">
+                  <label class="staff-field staff-field-full" for="request-task-select">
+                    <span class="staff-field-label">Related Task (Optional)</span>
+                    <select id="request-task-select" class="staff-select">
+                      <option value="">General Inventory Need</option>
+                    </select>
+                  </label>
+
                   <label class="staff-field" for="request-item-input">
                     <span class="staff-field-label">Item</span>
                     <input
@@ -175,6 +182,13 @@
                   Record supplies used on completed and in-progress jobs.
                 </p>
               </div>
+
+              <label class="staff-field staff-field-full" for="used-log-task-select">
+                <span class="staff-field-label">Task</span>
+                <select id="used-log-task-select" class="staff-select">
+                  <option value="">Select Task</option>
+                </select>
+              </label>
 
               <div class="used-log-table-header staff-table-header">
                 <div>Item</div>

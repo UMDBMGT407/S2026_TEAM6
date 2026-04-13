@@ -6,6 +6,10 @@
 {% block page_css %}
   <link
     rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css"
+  />
+  <link
+    rel="stylesheet"
     href="{{ url_for('static', filename='css/staff-scheduling-dashboard.css') }}"
   />
 {% endblock %}
@@ -14,14 +18,14 @@
   <div class="staff-scheduling-dashboard">
     <div class="staff-page-header">
       <h1 class="page-title">Scheduling</h1>
-      <p class="page-subtitle">Input your availability and review your week at a glance.</p>
+      <p class="page-subtitle">View upcoming orders and shifts while managing your weekly availability.</p>
     </div>
 
     <section class="staff-schedule-card staff-section-card">
       <div class="staff-schedule-card-header">
         <div class="staff-schedule-title-group">
           <h2 class="staff-schedule-title">My Weekly Schedule</h2>
-          <p class="staff-schedule-range">March 2 - March 8, 2026</p>
+          <p class="staff-schedule-range" id="staff-schedule-range">This Week</p>
         </div>
 
         <button
@@ -34,122 +38,67 @@
         </button>
       </div>
 
-      <div class="staff-schedule-grid">
-        <article class="staff-schedule-day">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Mon</h3>
-            <p class="staff-schedule-day-date">3/2</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot">
-              <strong>Shift</strong>
-              8:00 AM - 4:00 PM
-            </div>
-          </div>
-        </article>
+      <div class="staff-calendar-shell">
+        <div class="staff-calendar-meta">
+          <h3 class="staff-calendar-title">My Orders and Shifts</h3>
+          <p id="staff-calendar-status" class="staff-calendar-status" aria-live="polite">
+            Loading schedule...
+          </p>
+        </div>
 
-        <article class="staff-schedule-day">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Tue</h3>
-            <p class="staff-schedule-day-date">3/3</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot">
-              <strong>Shift</strong>
-              8:00 AM - 4:00 PM
-            </div>
-          </div>
-        </article>
+        <div class="staff-calendar-legend" aria-hidden="true">
+          <span class="calendar-legend-chip is-shift">Shift</span>
+          <span class="calendar-legend-chip is-order">Job Order</span>
+        </div>
 
-        <article class="staff-schedule-day is-unavailable">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Wed</h3>
-            <p class="staff-schedule-day-date">3/4</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot is-unavailable">
-              <strong>Status</strong>
-              Unavailable
-            </div>
-          </div>
-        </article>
+        <div id="staff-calendar"></div>
 
-        <article class="staff-schedule-day">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Thu</h3>
-            <p class="staff-schedule-day-date">3/5</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot">
-              <strong>Shift</strong>
-              10:00 AM - 6:00 PM
-            </div>
-          </div>
-        </article>
-
-        <article class="staff-schedule-day">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Fri</h3>
-            <p class="staff-schedule-day-date">3/6</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot">
-              <strong>Shift</strong>
-              8:00 AM - 2:00 PM
-            </div>
-          </div>
-        </article>
-
-        <article class="staff-schedule-day is-booked">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Sat</h3>
-            <p class="staff-schedule-day-date">3/7</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot is-job">
-              <strong>12:00 PM</strong>
-              Service Plants
-            </div>
-          </div>
-        </article>
-
-        <article class="staff-schedule-day is-booked">
-          <div class="staff-schedule-day-head">
-            <h3 class="staff-schedule-day-label">Sun</h3>
-            <p class="staff-schedule-day-date">3/8</p>
-          </div>
-          <div class="staff-schedule-body">
-            <div class="staff-schedule-slot is-job">
-              <strong>6:00 PM</strong>
-              Plant Install
-            </div>
-          </div>
-        </article>
+        <section class="staff-upcoming-strip" aria-live="polite">
+          <h4 class="staff-upcoming-title">Upcoming Orders and Shifts</h4>
+          <ul id="staff-upcoming-list" class="staff-upcoming-list">
+            <li class="staff-upcoming-empty">Loading upcoming schedule...</li>
+          </ul>
+        </section>
       </div>
     </section>
 
-    <section class="staff-scheduling-summary">
-      <article class="staff-section-card">
-        <p class="staff-section-kicker">Availability</p>
-        <h2 class="staff-section-title">Current Hours</h2>
-        <div class="staff-availability-hours" id="availability-summary-list">
-          <p data-availability-day="Monday">Monday: 8:00 AM - 4:00 PM</p>
-          <p data-availability-day="Tuesday">Tuesday: 8:00 AM - 4:00 PM</p>
-          <p data-availability-day="Wednesday">Wednesday: Unavailable</p>
-          <p data-availability-day="Thursday">Thursday: 10:00 AM - 6:00 PM</p>
-          <p data-availability-day="Friday">Friday: 8:00 AM - 2:00 PM</p>
-          <p data-availability-day="Saturday">Saturday: 12:00 PM - 4:00 PM</p>
-          <p data-availability-day="Sunday">Sunday: 4:00 PM - 8:00 PM</p>
-        </div>
-      </article>
-
+    <section class="staff-scheduling-summary is-single">
       <article class="staff-section-card">
         <p class="staff-section-kicker">Skills</p>
         <h2 class="staff-section-title">Assigned Specialties</h2>
-        <ul class="staff-skills-list">
-          <li>Caretaking</li>
-          <li>Plant Installation</li>
-        </ul>
+        <p class="staff-skills-help">Add and edit your specialties so scheduling reflects your strengths.</p>
+        <div class="staff-skills-editor">
+          <label class="staff-field-label" for="staff-skill-input">Add Skill</label>
+          <div class="staff-skills-input-row">
+            <input
+              id="staff-skill-input"
+              type="text"
+              class="staff-input"
+              placeholder="e.g. Plant Installation"
+            />
+            <button
+              type="button"
+              id="staff-skill-add-button"
+              class="btn management-action-btn btn-soft-neutral"
+            >
+              Add
+            </button>
+          </div>
+
+          <ul id="staff-skills-list" class="staff-skills-list">
+            <li class="staff-skills-empty">Loading specialties...</li>
+          </ul>
+
+          <p id="staff-skills-status" class="staff-modal-message" aria-live="polite"></p>
+
+          <button
+            type="button"
+            id="staff-skills-save-button"
+            class="btn management-action-btn btn-olive"
+          >
+            Save Specialties
+          </button>
+        </div>
       </article>
     </section>
   </div>
@@ -351,6 +300,7 @@
 {% endblock %}
 
 {% block page_js %}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script>
     (function () {
       var availabilityModalElement = document.getElementById("availabilityEntryModal");
@@ -361,8 +311,17 @@
       var availabilityModal = bootstrap.Modal.getOrCreateInstance(availabilityModalElement);
       var confirmButton = document.getElementById("availability-confirm-button");
       var messageElement = document.getElementById("availability-validation-message");
-      var summaryContainer = document.getElementById("availability-summary-list");
-      var scheduleGrid = document.querySelector(".staff-schedule-grid");
+      var scheduleRangeElement = document.getElementById("staff-schedule-range");
+      var calendarElement = document.getElementById("staff-calendar");
+      var calendarStatusElement = document.getElementById("staff-calendar-status");
+      var upcomingListElement = document.getElementById("staff-upcoming-list");
+      var skillsListElement = document.getElementById("staff-skills-list");
+      var skillInputElement = document.getElementById("staff-skill-input");
+      var skillAddButton = document.getElementById("staff-skill-add-button");
+      var skillsSaveButton = document.getElementById("staff-skills-save-button");
+      var skillsStatusElement = document.getElementById("staff-skills-status");
+      var scheduleCalendar = null;
+      var staffSkills = [];
       var modalParam = new URLSearchParams(window.location.search).get("modal");
       var timeSlots = [];
       var dayConfigs = [
@@ -374,6 +333,229 @@
         { key: "saturday", index: 6, label: "Saturday" },
         { key: "sunday", index: 0, label: "Sunday" }
       ];
+
+      function formatDateOnly(dateObject) {
+        var year = dateObject.getFullYear();
+        var month = String(dateObject.getMonth() + 1).padStart(2, "0");
+        var day = String(dateObject.getDate()).padStart(2, "0");
+        return year + "-" + month + "-" + day;
+      }
+
+      function setCalendarStatus(text, isError) {
+        if (!calendarStatusElement) {
+          return;
+        }
+        calendarStatusElement.textContent = text || "";
+        calendarStatusElement.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function getReadableDateLabel(dateValue) {
+        return dateValue.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      function updateScheduleRangeLabel(weekStartDateText) {
+        if (!scheduleRangeElement) {
+          return;
+        }
+
+        var startDate = new Date(weekStartDateText + "T00:00:00");
+        if (isNaN(startDate.getTime())) {
+          scheduleRangeElement.textContent = "This Week";
+          return;
+        }
+
+        var endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        scheduleRangeElement.textContent = getReadableDateLabel(startDate) + " - " + getReadableDateLabel(endDate);
+      }
+
+      function parseEventDate(dateValue) {
+        if (!dateValue) {
+          return null;
+        }
+        var parsedDate = new Date(dateValue);
+        return isNaN(parsedDate.getTime()) ? null : parsedDate;
+      }
+
+      function getEventEndDate(eventItem, startDate) {
+        var endDate = parseEventDate(eventItem.end);
+        if (endDate) {
+          return endDate;
+        }
+
+        if (!startDate) {
+          return null;
+        }
+
+        var fallbackEnd = new Date(startDate);
+        if (eventItem.allDay) {
+          fallbackEnd.setHours(23, 59, 59, 999);
+        } else {
+          fallbackEnd.setHours(fallbackEnd.getHours() + 1);
+        }
+        return fallbackEnd;
+      }
+
+      function getEventTypeLabel(eventItem) {
+        var eventType = eventItem && eventItem.extendedProps ? eventItem.extendedProps.type : "";
+        return eventType === "order" ? "Job Order" : "Shift";
+      }
+
+      function formatEventWindow(eventItem) {
+        var startDate = parseEventDate(eventItem.start);
+        if (!startDate) {
+          return "Date unavailable";
+        }
+
+        var dateLabel = startDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric"
+        });
+
+        if (eventItem.allDay) {
+          return dateLabel + " (All day)";
+        }
+
+        var endDate = getEventEndDate(eventItem, startDate);
+        var timeFormat = {
+          hour: "numeric",
+          minute: "2-digit"
+        };
+
+        var startTime = startDate.toLocaleTimeString("en-US", timeFormat);
+        var endTime = endDate ? endDate.toLocaleTimeString("en-US", timeFormat) : "";
+        return endTime ? dateLabel + " | " + startTime + " - " + endTime : dateLabel + " | " + startTime;
+      }
+
+      function renderUpcomingEvents(events) {
+        if (!upcomingListElement) {
+          return;
+        }
+
+        upcomingListElement.innerHTML = "";
+        var now = new Date();
+        var upcoming = (events || [])
+          .map(function(eventItem) {
+            var startDate = parseEventDate(eventItem.start);
+            var endDate = getEventEndDate(eventItem, startDate);
+            return {
+              eventItem: eventItem,
+              startDate: startDate,
+              endDate: endDate
+            };
+          })
+          .filter(function(item) {
+            return item.startDate && item.endDate && item.endDate.getTime() >= now.getTime();
+          })
+          .sort(function(first, second) {
+            return first.startDate.getTime() - second.startDate.getTime();
+          })
+          .slice(0, 6);
+
+        if (!upcoming.length) {
+          var emptyItem = document.createElement("li");
+          emptyItem.className = "staff-upcoming-empty";
+          emptyItem.textContent = "No upcoming shifts or orders in this range.";
+          upcomingListElement.appendChild(emptyItem);
+          return;
+        }
+
+        upcoming.forEach(function(item) {
+          var eventItem = item.eventItem;
+          var eventTypeLabel = getEventTypeLabel(eventItem);
+          var statusLabel = eventItem.extendedProps && eventItem.extendedProps.status
+            ? eventItem.extendedProps.status
+            : "Scheduled";
+
+          var listItem = document.createElement("li");
+          listItem.className = "staff-upcoming-item";
+
+          var badge = document.createElement("span");
+          badge.className = "staff-upcoming-type " + (eventTypeLabel === "Job Order" ? "is-order" : "is-shift");
+          badge.textContent = eventTypeLabel;
+
+          var textWrap = document.createElement("div");
+          textWrap.className = "staff-upcoming-text";
+
+          var title = document.createElement("p");
+          title.className = "staff-upcoming-item-title";
+          title.textContent = eventItem.title || eventTypeLabel;
+
+          var meta = document.createElement("p");
+          meta.className = "staff-upcoming-item-meta";
+          meta.textContent = formatEventWindow(eventItem) + " | " + statusLabel;
+
+          textWrap.appendChild(title);
+          textWrap.appendChild(meta);
+          listItem.appendChild(badge);
+          listItem.appendChild(textWrap);
+          upcomingListElement.appendChild(listItem);
+        });
+      }
+
+      function initializeScheduleCalendar() {
+        if (!calendarElement) {
+          return;
+        }
+        if (typeof FullCalendar === "undefined") {
+          setCalendarStatus("Calendar library failed to load.", true);
+          return;
+        }
+
+        scheduleCalendar = new FullCalendar.Calendar(calendarElement, {
+          initialView: "timeGridWeek",
+          firstDay: 1,
+          nowIndicator: true,
+          height: "auto",
+          slotMinTime: "06:00:00",
+          slotMaxTime: "22:00:00",
+          headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay"
+          },
+          events: function(fetchInfo, successCallback, failureCallback) {
+            var startDate = formatDateOnly(fetchInfo.start);
+            var endDate = formatDateOnly(new Date(fetchInfo.end.getTime() - 1));
+
+            fetch('/staff/schedule/events?start_date=' + startDate + '&end_date=' + endDate)
+              .then(function(response) {
+                if (!response.ok) {
+                  return response.json().then(function(err) {
+                    throw new Error(err.error || "Unable to load schedule events.");
+                  });
+                }
+                return response.json();
+              })
+              .then(function(payload) {
+                var events = payload.events || [];
+                setCalendarStatus(events.length ? "Showing " + events.length + " scheduled item(s)." : "No shifts or orders in this range.", false);
+                renderUpcomingEvents(events);
+                successCallback(events);
+              })
+              .catch(function(error) {
+                setCalendarStatus(error.message || "Unable to load schedule events.", true);
+                renderUpcomingEvents([]);
+                failureCallback(error);
+              });
+          },
+          eventClick: function(clickInfo) {
+            var eventTypeLabel = getEventTypeLabel(clickInfo.event);
+            setCalendarStatus(eventTypeLabel + ": " + formatEventWindow(clickInfo.event), false);
+          },
+          eventTimeFormat: {
+            hour: "numeric",
+            minute: "2-digit",
+            meridiem: "short"
+          }
+        });
+
+        scheduleCalendar.render();
+      }
 
       // Get current week's Monday date
       function getWeekStartDate() {
@@ -393,80 +575,152 @@
           var weekStart = getWeekStartDate();
           var response = await fetch('/availability/my?week_start_date=' + weekStart);
           var availabilityResponse = await response.json();
-          var availability = availabilityResponse.availability || availabilityResponse;
-          
-          // Update schedule grid
-          updateScheduleGrid(availability);
-          
-          // Update summary
-          updateAvailabilitySummary(availability);
+          var displayWeekStart = availabilityResponse.week_start_date || weekStart;
+
+          updateScheduleRangeLabel(displayWeekStart);
         } catch (error) {
           console.error('Error loading availability:', error);
         }
       }
 
-      // Update the "My Weekly Schedule" grid with availability data
-      function updateScheduleGrid(availability) {
-        if (!scheduleGrid) return;
+      function setSkillsStatus(type, text) {
+        if (!skillsStatusElement) {
+          return;
+        }
 
-        var articleIndexByKey = {
-          monday: 0,
-          tuesday: 1,
-          wednesday: 2,
-          thursday: 3,
-          friday: 4,
-          saturday: 5,
-          sunday: 6
-        };
-        var dayArticles = Array.from(scheduleGrid.querySelectorAll('article'));
-        
-        dayConfigs.forEach(function(dayConfig) {
-          var dayData = availability[String(dayConfig.index)] || availability[dayConfig.index];
-          var dayArticle = dayArticles[articleIndexByKey[dayConfig.key]];
-          
-          if (!dayArticle) return;
-          
-          var body = dayArticle.querySelector('.staff-schedule-body');
-          if (!body) return;
+        skillsStatusElement.textContent = text || "";
+        skillsStatusElement.classList.remove("is-error", "is-success");
+        if (type) {
+          skillsStatusElement.classList.add(type === "error" ? "is-error" : "is-success");
+        }
+      }
 
-          dayArticle.classList.remove('is-unavailable', 'is-booked', 'is-available');
-          
-          body.innerHTML = '';
-          
-          if (dayData && dayData.available && dayData.from && dayData.to) {
-            dayArticle.classList.remove('is-unavailable');
-            dayArticle.classList.add('is-available');
-            var slot = document.createElement('div');
-            slot.className = 'staff-schedule-slot';
-            slot.innerHTML = '<strong>Shift</strong>\n' + dayData.from + ' - ' + dayData.to;
-            body.appendChild(slot);
-          } else {
-            dayArticle.classList.add('is-unavailable');
-            dayArticle.classList.remove('is-available');
-            var slot = document.createElement('div');
-            slot.className = 'staff-schedule-slot is-unavailable';
-            slot.innerHTML = '<strong>Status</strong>\nUnavailable';
-            body.appendChild(slot);
-          }
+      function normalizeSkillName(skillName) {
+        return (skillName || "").replace(/\s+/g, " ").trim();
+      }
+
+      function renderSkillsList() {
+        if (!skillsListElement) {
+          return;
+        }
+
+        skillsListElement.innerHTML = "";
+        if (!staffSkills.length) {
+          var emptySkill = document.createElement("li");
+          emptySkill.className = "staff-skills-empty";
+          emptySkill.textContent = "No specialties added yet.";
+          skillsListElement.appendChild(emptySkill);
+          return;
+        }
+
+        staffSkills.forEach(function(skillName, index) {
+          var skillItem = document.createElement("li");
+          skillItem.className = "staff-skill-item";
+
+          var skillLabel = document.createElement("span");
+          skillLabel.className = "staff-skill-name";
+          skillLabel.textContent = skillName;
+
+          var removeButton = document.createElement("button");
+          removeButton.type = "button";
+          removeButton.className = "staff-skill-remove";
+          removeButton.textContent = "Remove";
+          removeButton.setAttribute("aria-label", "Remove " + skillName);
+          removeButton.addEventListener("click", function() {
+            staffSkills.splice(index, 1);
+            renderSkillsList();
+          });
+
+          skillItem.appendChild(skillLabel);
+          skillItem.appendChild(removeButton);
+          skillsListElement.appendChild(skillItem);
         });
       }
 
-      // Update the "Current Hours" summary text
-      function updateAvailabilitySummary(availability) {
-        if (!summaryContainer) return;
-        
-        dayConfigs.forEach(function(dayConfig) {
-          var dayData = availability[String(dayConfig.index)] || availability[dayConfig.index];
-          var summaryLine = summaryContainer.querySelector('[data-availability-day="' + dayConfig.label + '"]');
-          
-          if (summaryLine) {
-            if (dayData && dayData.available && dayData.from && dayData.to) {
-              summaryLine.textContent = dayConfig.label + ': ' + dayData.from + ' - ' + dayData.to;
-            } else {
-              summaryLine.textContent = dayConfig.label + ': Unavailable';
-            }
-          }
+      function addSkillFromInput() {
+        if (!skillInputElement) {
+          return;
+        }
+
+        var candidateSkill = normalizeSkillName(skillInputElement.value);
+        if (!candidateSkill) {
+          setSkillsStatus("error", "Enter a skill before adding.");
+          return;
+        }
+
+        var duplicateSkill = staffSkills.some(function(existingSkill) {
+          return existingSkill.toLowerCase() === candidateSkill.toLowerCase();
         });
+
+        if (duplicateSkill) {
+          setSkillsStatus("error", "That skill is already listed.");
+          return;
+        }
+
+        staffSkills.push(candidateSkill);
+        skillInputElement.value = "";
+        setSkillsStatus("", "");
+        renderSkillsList();
+      }
+
+      async function loadMySkills() {
+        if (!skillsListElement) {
+          return;
+        }
+
+        try {
+          var response = await fetch('/staff/skills/my');
+          var payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Unable to load specialties.");
+          }
+
+          staffSkills = (payload.skills || [])
+            .map(function(skillItem) {
+              if (typeof skillItem === "string") {
+                return normalizeSkillName(skillItem);
+              }
+              return normalizeSkillName(skillItem.name);
+            })
+            .filter(Boolean);
+
+          renderSkillsList();
+          setSkillsStatus("", "");
+        } catch (error) {
+          staffSkills = [];
+          renderSkillsList();
+          setSkillsStatus("error", error.message || "Unable to load specialties.");
+        }
+      }
+
+      async function saveMySkills() {
+        try {
+          var response = await fetch('/staff/skills/my', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              skills: staffSkills
+            })
+          });
+
+          var payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Unable to save specialties.");
+          }
+
+          staffSkills = (payload.skills || staffSkills)
+            .map(function(skillName) {
+              return normalizeSkillName(skillName);
+            })
+            .filter(Boolean);
+
+          renderSkillsList();
+          setSkillsStatus("success", "Specialties saved successfully.");
+        } catch (error) {
+          setSkillsStatus("error", error.message || "Unable to save specialties.");
+        }
       }
 
       function buildTimeOptionLabel(hourValue) {
@@ -678,6 +932,27 @@
         });
       }
 
+      if (skillAddButton) {
+        skillAddButton.addEventListener("click", function() {
+          addSkillFromInput();
+        });
+      }
+
+      if (skillInputElement) {
+        skillInputElement.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addSkillFromInput();
+          }
+        });
+      }
+
+      if (skillsSaveButton) {
+        skillsSaveButton.addEventListener("click", function() {
+          saveMySkills();
+        });
+      }
+
       // Set up auto-refresh when modal opens
       availabilityModalElement.addEventListener("show.bs.modal", function () {
         setMessage("", "");
@@ -694,9 +969,17 @@
       }
 
       // Load availability on page load and set up auto-refresh
+      initializeScheduleCalendar();
       loadAvailability();
-      // Refresh availability every 5 seconds to catch updates from other sources
-      setInterval(loadAvailability, 5000);
+      loadMySkills();
+      updateScheduleRangeLabel(getWeekStartDate());
+      // Refresh availability and schedule periodically to catch updates from other sources.
+      setInterval(function () {
+        loadAvailability();
+        if (scheduleCalendar) {
+          scheduleCalendar.refetchEvents();
+        }
+      }, 30000);
     })();
   </script>
 {% endblock %}

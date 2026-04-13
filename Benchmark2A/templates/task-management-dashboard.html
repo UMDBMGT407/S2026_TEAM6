@@ -18,26 +18,26 @@
     </div>
 
     <section class="task-dashboard-list">
+      {% if tasks %}
+      {% for task in tasks %}
       <article class="task-dashboard-card surface-card">
         <div class="task-dashboard-card-header">
           <div class="task-dashboard-title-wrap">
-            <h2 class="task-dashboard-title">Plant Installation</h2>
-            <span class="task-dashboard-status status-pill staff-status-complete">Complete</span>
+            <h2 class="task-dashboard-title">{{ task.title }}</h2>
+            <span class="task-dashboard-status status-pill {{ task.status_class }}">{{ task.status_label }}</span>
           </div>
         </div>
 
         <div class="task-dashboard-meta">
           <div class="task-dashboard-description">
             <p class="detail-label">Description</p>
-            <p class="task-dashboard-description-copy">
-              Outfit client office space with plants and finish the install checklist.
-            </p>
+            <p class="task-dashboard-description-copy">{{ task.description }}</p>
           </div>
 
           <div class="task-dashboard-detail-list">
-            <p><span class="detail-label">Location:</span> 123 Rainbow Road</p>
-            <p><span class="detail-label">Date/Time:</span> March 8, 2026, 6:00 PM - 9:00 PM</p>
-            <p><span class="detail-label">Client:</span> Tech Innovations Inc.</p>
+            <p><span class="detail-label">Location:</span> {{ task.location }}</p>
+            <p><span class="detail-label">Date/Time:</span> {{ task.service_window }}</p>
+            <p><span class="detail-label">Client:</span> {{ task.client_company }}</p>
           </div>
         </div>
 
@@ -47,9 +47,9 @@
             class="btn management-action-btn btn-soft-neutral"
             data-bs-toggle="modal"
             data-bs-target="#taskMaterialsModal"
-            data-task-title="Plant Installation"
-            data-task-context="Assigned materials for the March 8 install."
-            data-materials="Monstera Deliciosa::6 plants|Decorative Planters::6 units|Premium Potting Mix::4 bags|Top Dressing Pebbles::2 bags"
+            data-task-title="{{ task.title }}"
+            data-task-context="{{ task.task_context }}"
+            data-materials="{{ task.materials_encoded }}"
           >
             Materials
           </button>
@@ -58,71 +58,32 @@
             class="btn management-action-btn btn-olive"
             data-bs-toggle="modal"
             data-bs-target="#taskContactModal"
-            data-task-title="Plant Installation"
-            data-task-service-window="March 8, 2026, 6:00 PM - 9:00 PM"
-            data-company="Tech Innovations Inc."
-            data-contact-name="Jessica Day"
-            data-contact-phone="(555) 100-1000"
-            data-contact-email="jday@techinnovations.com"
-            data-contact-location="123 Rainbow Road"
+            data-task-title="{{ task.title }}"
+            data-task-service-window="{{ task.service_window }}"
+            data-company="{{ task.client_company }}"
+            data-contact-name="{{ task.contact_name }}"
+            data-contact-phone="{{ task.contact_phone }}"
+            data-contact-email="{{ task.contact_email }}"
+            data-contact-location="{{ task.contact_location }}"
           >
             Contact Client
           </button>
         </div>
       </article>
-
-      <article class="task-dashboard-card surface-card">
+      {% endfor %}
+      {% else %}
+      <article class="task-dashboard-card surface-card task-dashboard-empty">
         <div class="task-dashboard-card-header">
           <div class="task-dashboard-title-wrap">
-            <h2 class="task-dashboard-title">Service Plants</h2>
-            <span class="task-dashboard-status status-pill staff-status-incomplete">Incomplete</span>
+            <h2 class="task-dashboard-title">No Assigned Tasks</h2>
+            <span class="task-dashboard-status status-pill staff-status-incomplete">No Tasks</span>
           </div>
         </div>
-
-        <div class="task-dashboard-meta">
-          <div class="task-dashboard-description">
-            <p class="detail-label">Description</p>
-            <p class="task-dashboard-description-copy">
-              Handle weekly upkeep of the plant life in the client's office space.
-            </p>
-          </div>
-
-          <div class="task-dashboard-detail-list">
-            <p><span class="detail-label">Location:</span> 456 Main Street, San Francisco, CA</p>
-            <p><span class="detail-label">Date/Time:</span> March 7, 2026, 12:00 PM - 3:00 PM</p>
-            <p><span class="detail-label">Client:</span> Hotel Downtown</p>
-          </div>
-        </div>
-
-        <div class="task-dashboard-actions">
-          <button
-            type="button"
-            class="btn management-action-btn btn-soft-neutral"
-            data-bs-toggle="modal"
-            data-bs-target="#taskMaterialsModal"
-            data-task-title="Service Plants"
-            data-task-context="Materials needed for the weekly maintenance visit."
-            data-materials="Leaf Shine::1 bottle|Moisture Meter::1 unit|Premium Potting Mix::1 bag|Microfiber Cloths::6 pieces"
-          >
-            Materials
-          </button>
-          <button
-            type="button"
-            class="btn management-action-btn btn-olive"
-            data-bs-toggle="modal"
-            data-bs-target="#taskContactModal"
-            data-task-title="Service Plants"
-            data-task-service-window="March 7, 2026, 12:00 PM - 3:00 PM"
-            data-company="Hotel Downtown"
-            data-contact-name="Marcus Lee"
-            data-contact-phone="(555) 320-4432"
-            data-contact-email="mlee@hoteldowntown.com"
-            data-contact-location="456 Main Street, San Francisco, CA"
-          >
-            Contact Client
-          </button>
-        </div>
+        <p class="task-dashboard-description-copy">
+          New tasks will appear here once they are assigned to your account.
+        </p>
       </article>
+      {% endif %}
     </section>
   </div>
 
