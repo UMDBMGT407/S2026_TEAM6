@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/used-material-log.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/staff-portal-base.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Document</title>
+  </head>
+  <body>
+    <main class="staff-mobile-layout used-material-log-mobile d-lg-none">
+      <header class="staff-mobile-header">
+        <a href="inventory-dashboard.html" class="staff-mobile-brand">
+          <img src="images/PlantedLogo1.png" alt="Planted Logo" class="staff-mobile-logo" />
+          <span class="staff-mobile-brand-text">Planted Staff</span>
+        </a>
+        <a href="../login-portal/LoginPortal.html" class="staff-mobile-signout">Sign Out</a>
+      </header>
+
+      <nav class="staff-mobile-nav">
+        <a href="staff-scheduling-dashboard.html" class="staff-mobile-nav-link">Scheduling</a>
+        <a href="task-management-dashboard.html" class="staff-mobile-nav-link">Tasks</a>
+        <a href="inventory-dashboard.html" class="staff-mobile-nav-link active">Inventory</a>
+      </nav>
+
+      <section class="staff-mobile-card">
+        <h1 class="staff-mobile-title">Log Materials Used</h1>
+        <p class="staff-mobile-subtitle">Log supplies used</p>
+
+        <div id="dynamic-used-log-rows-mobile" class="staff-mobile-used-rows">
+          <div class="staff-mobile-used-row">
+            <label class="staff-mobile-field" for="used-log-item-mobile-1">
+              <span class="staff-mobile-label">Item</span>
+              <input
+                type="text"
+                id="used-log-item-mobile-1"
+                class="staff-mobile-input used-log-item-input-mobile"
+                placeholder="Search"
+              />
+            </label>
+            <label class="staff-mobile-field" for="used-log-quantity-mobile-1">
+              <span class="staff-mobile-label">Quantity</span>
+              <input
+                type="number"
+                id="used-log-quantity-mobile-1"
+                class="staff-mobile-input used-log-quantity-input-mobile"
+                placeholder="Enter Amount"
+                min="0"
+                step="any"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div class="staff-mobile-action-row">
+          <button type="button" id="remove-used-log-row-btn-mobile" class="staff-mobile-button secondary">
+            -
+          </button>
+          <button type="button" id="add-used-log-row-btn-mobile" class="staff-mobile-button secondary">
+            +
+          </button>
+          <button type="button" id="submit-used-log-btn-mobile" class="staff-mobile-button">
+            Submit Log
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div class="container-fluid staff-grid-wrapper px-0">
+      <div class="row g-0">
+        <div class="col-12">
+    <!-- ===== Used Material Log Structure ===== -->
+    <!-- Sections: root container, navigation/header layers, page content, actions/scripts -->
+    <div class="used-material-log d-none d-lg-block">
+      <!-- Sidebar Navigation -->
+      <div class="sidebar-panel"></div>
+      <div class="sidebar-active-pill"></div>
+      <a href="staff-scheduling-dashboard.html" class="nav-link scheduling">Scheduling</a>
+      <a href="task-management-dashboard.html" class="nav-link tasks">Tasks</a>
+      <a href="inventory-dashboard.html" class="inventory">Inventory</a>
+      <!-- Top Header -->
+      <div class="top-header-panel"></div>
+      <img class="planted-logo-image" src="images/PlantedLogo1.png" />
+      <div class="planted">Planted</div>
+      <div class="staff-portal">Staff Portal</div>
+      <a href="../login-portal/LoginPortal.html" class="sign-out">[→ Sign Out</a>
+      <!-- Page Heading -->
+      <div class="page-title">Log Materials Used</div>
+      <div class="page-subtitle">Log supplies used</div>
+      <!-- Used Materials Form -->
+      <div class="used-log-form-card"></div>
+      <div class="leftover-materials-label">List leftover materials</div>
+      <div class="log-item-label">Item:</div>
+      <div class="log-quantity-label">Quantity:</div>
+      <div class="task-name-label">Task Name</div>
+      <div class="log-item-input-bg-1"></div>
+      <div class="log-quantity-input-bg-1"></div>
+      <input
+        type="text"
+        id="used-log-item-1"
+        class="used-log-item-input row-1"
+        placeholder="Search"
+      />
+      <input
+        type="number"
+        id="used-log-quantity-1"
+        class="used-log-quantity-input row-1"
+        placeholder="Enter Amount"
+        min="0"
+        step="any"
+      />
+      <div class="log-item-label">Item:</div>
+      <div class="log-item-input-bg-1b"></div>
+      <div class="log-quantity-input-bg-1b"></div>
+      <input
+        type="text"
+        id="used-log-item-2"
+        class="used-log-item-input row-2"
+        placeholder="Search"
+      />
+      <input
+        type="number"
+        id="used-log-quantity-2"
+        class="used-log-quantity-input row-2"
+        placeholder="Enter Amount"
+        min="0"
+        step="any"
+      />
+      <div class="log-item-label">Item:</div>
+      <div class="log-item-input-bg-1c"></div>
+      <div class="log-quantity-input-bg-1c"></div>
+      <input
+        type="text"
+        id="used-log-item-3"
+        class="used-log-item-input row-3"
+        placeholder="Search"
+      />
+      <input
+        type="number"
+        id="used-log-quantity-3"
+        class="used-log-quantity-input row-3"
+        placeholder="Enter Amount"
+        min="0"
+        step="any"
+      />
+      <div class="log-quantity-label-2">Quantity:</div>
+      <div class="log-item-label-2">Item:</div>
+      <div class="log-item-input-bg-2"></div>
+      <div class="log-quantity-input-bg-2"></div>
+      <input
+        type="text"
+        id="used-log-item-4"
+        class="used-log-item-input row-4"
+        placeholder="Search"
+      />
+      <input
+        type="number"
+        id="used-log-quantity-4"
+        class="used-log-quantity-input row-4"
+        placeholder="Enter Amount"
+        min="0"
+        step="any"
+      />
+      <div class="log-quantity-label-3">Quantity:</div>
+      <div class="log-item-label-3">Item:</div>
+      <div class="log-item-input-bg-3"></div>
+      <div class="log-quantity-input-bg-3"></div>
+      <div class="log-quantity-label-4">Quantity:</div>
+      <div class="log-item-label-4">Item:</div>
+      <div class="log-item-input-bg-4"></div>
+      <div class="log-quantity-input-bg-4"></div>
+      <!-- Submit Action -->
+      <button type="button" id="submit-used-log-btn" class="submit-log-button"></button>
+      <div class="submit-log-text">Submit Log</div>
+      <!-- Row Add/Remove Controls -->
+      <button type="button" id="remove-used-log-row-btn" class="remove-row-button"></button>
+      <div class="remove-row-icon">−</div>
+      <button type="button" id="add-used-log-row-btn" class="add-row-button"></button>
+      <div class="add-row-icon">+</div>
+      <div id="dynamic-used-log-rows"></div>
+    </div>
+    <script src="./js/staff-material-forms.js"></script>
+          </div>
+      </div>
+    </div>
+      <script src="./js/staff-portal-scale.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+

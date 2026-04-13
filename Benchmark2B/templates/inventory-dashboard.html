@@ -1,0 +1,326 @@
+{% extends "base_staff.html" %}
+{% set active_page = 'inventory' %}
+
+{% block title %}Planted Staff Inventory{% endblock %}
+
+{% block page_css %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/inventory-dashboard.css') }}"
+  />
+{% endblock %}
+
+{% block page_content %}
+  <div class="inventory-dashboard">
+    <div class="staff-page-header">
+      <h1 class="page-title">Inventory</h1>
+      <p class="page-subtitle">Request supplies and keep field inventory accurate.</p>
+    </div>
+
+    <section class="inventory-dashboard-grid">
+      <button
+        type="button"
+        class="inventory-dashboard-card surface-card"
+        data-bs-toggle="modal"
+        data-bs-target="#inventoryRequestModal"
+      >
+        <p class="staff-eyebrow">Inventory</p>
+        <h2 class="inventory-dashboard-card-title">Request Materials</h2>
+        <p class="inventory-dashboard-card-subtitle">
+          Create a supply request for upcoming jobs and inventory needs.
+        </p>
+      </button>
+
+      <button
+        type="button"
+        class="inventory-dashboard-card surface-card"
+        data-bs-toggle="modal"
+        data-bs-target="#inventoryUsageModal"
+      >
+        <p class="staff-eyebrow">Inventory</p>
+        <h2 class="inventory-dashboard-card-title">Log Materials Used</h2>
+        <p class="inventory-dashboard-card-subtitle">
+          Record materials consumed on jobs so stock levels stay up to date.
+        </p>
+      </button>
+    </section>
+  </div>
+
+  <div
+    class="modal fade staff-modal"
+    id="inventoryRequestModal"
+    tabindex="-1"
+    aria-labelledby="inventoryRequestModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="inventoryRequestModalLabel">Request Materials</h2>
+            <p class="staff-modal-subtitle">
+              Submit supply requests for upcoming jobs and planned restocks.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="material-requests">
+            <section class="staff-modal-panel">
+              <div class="staff-card-header">
+                <p class="staff-eyebrow">Request</p>
+                <h3 class="staff-modal-heading">Supply Request</h3>
+                <p class="staff-modal-copy muted">
+                  Add the item, quantity, and any notes so the inventory team can action it.
+                </p>
+              </div>
+
+              <div class="staff-form-card">
+                <div class="staff-form-grid">
+                  <label class="staff-field staff-field-full" for="request-task-select">
+                    <span class="staff-field-label">Related Task (Optional)</span>
+                    <select id="request-task-select" class="staff-select">
+                      <option value="">General Inventory Need</option>
+                    </select>
+                  </label>
+
+                  <label class="staff-field" for="request-item-input">
+                    <span class="staff-field-label">Item</span>
+                    <input
+                      type="text"
+                      id="request-item-input"
+                      class="staff-input"
+                      placeholder="Search"
+                    />
+                  </label>
+
+                  <label class="staff-field" for="request-quantity-input">
+                    <span class="staff-field-label">Quantity</span>
+                    <input
+                      type="number"
+                      id="request-quantity-input"
+                      class="staff-input"
+                      placeholder="Enter amount"
+                      min="0"
+                      step="any"
+                    />
+                  </label>
+
+                  <label class="staff-field staff-field-full" for="request-note-input">
+                    <span class="staff-field-label">Note</span>
+                    <textarea
+                      id="request-note-input"
+                      class="staff-textarea"
+                      placeholder="Add note"
+                    ></textarea>
+                  </label>
+                </div>
+
+                <p id="material-request-status" class="staff-modal-message" aria-live="polite"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            id="submit-material-request"
+            class="btn management-action-btn btn-olive submit-request-button"
+          >
+            Submit Request
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade staff-modal staff-modal-wide"
+    id="inventoryUsageModal"
+    tabindex="-1"
+    aria-labelledby="inventoryUsageModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="inventoryUsageModalLabel">Log Materials Used</h2>
+            <p class="staff-modal-subtitle">
+              Record what was consumed on a job without leaving the inventory dashboard.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="used-material-log">
+            <section class="staff-modal-panel used-log-form-card">
+              <div class="staff-card-header">
+                <p class="staff-eyebrow">Task Name</p>
+                <h3 class="staff-modal-heading">Materials Used</h3>
+                <p class="staff-modal-copy muted">
+                  Record supplies used on completed and in-progress jobs.
+                </p>
+              </div>
+
+              <label class="staff-field staff-field-full" for="used-log-task-select">
+                <span class="staff-field-label">Task</span>
+                <select id="used-log-task-select" class="staff-select">
+                  <option value="">Select Task</option>
+                </select>
+              </label>
+
+              <div class="used-log-table-header staff-table-header">
+                <div>Item</div>
+                <div>Quantity</div>
+              </div>
+
+              <div id="dynamic-used-log-rows" class="used-log-rows staff-table">
+                <div class="used-log-row staff-table-row">
+                  <input
+                    type="text"
+                    id="used-log-item-1"
+                    class="used-log-item-input staff-input"
+                    placeholder="Search"
+                  />
+                  <input
+                    type="number"
+                    id="used-log-quantity-1"
+                    class="used-log-quantity-input staff-input"
+                    placeholder="Enter amount"
+                    min="0"
+                    step="any"
+                  />
+                </div>
+                <div class="used-log-row staff-table-row">
+                  <input
+                    type="text"
+                    id="used-log-item-2"
+                    class="used-log-item-input staff-input"
+                    placeholder="Search"
+                  />
+                  <input
+                    type="number"
+                    id="used-log-quantity-2"
+                    class="used-log-quantity-input staff-input"
+                    placeholder="Enter amount"
+                    min="0"
+                    step="any"
+                  />
+                </div>
+              </div>
+
+              <div class="used-log-actions">
+                <div class="used-log-row-controls">
+                  <button
+                    type="button"
+                    id="remove-used-log-row-btn"
+                    class="row-control-button staff-icon-button"
+                    aria-label="Remove row"
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    id="add-used-log-row-btn"
+                    class="row-control-button staff-icon-button"
+                    aria-label="Add row"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <p id="used-log-status" class="staff-modal-message" aria-live="polite"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            id="submit-used-log-btn"
+            class="btn management-action-btn btn-olive submit-log-button"
+          >
+            Submit Log
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_js %}
+  <script src="{{ url_for('static', filename='javascript/staff-material-forms.js') }}"></script>
+  <script>
+    (function () {
+      if (typeof bootstrap === "undefined") {
+        return;
+      }
+
+      var requestModalElement = document.getElementById("inventoryRequestModal");
+      var usageModalElement = document.getElementById("inventoryUsageModal");
+      var modalParam = new URLSearchParams(window.location.search).get("modal");
+
+      function clearModalQuery() {
+        var currentUrl = new URL(window.location.href);
+        if (!currentUrl.searchParams.has("modal")) {
+          return;
+        }
+
+        currentUrl.searchParams.delete("modal");
+        var nextUrl = currentUrl.pathname;
+        if (currentUrl.searchParams.toString()) {
+          nextUrl += "?" + currentUrl.searchParams.toString();
+        }
+        if (currentUrl.hash) {
+          nextUrl += currentUrl.hash;
+        }
+        window.history.replaceState({}, "", nextUrl);
+      }
+
+      if (requestModalElement) {
+        requestModalElement.addEventListener("hidden.bs.modal", clearModalQuery);
+      }
+
+      if (usageModalElement) {
+        usageModalElement.addEventListener("hidden.bs.modal", clearModalQuery);
+      }
+
+      if (modalParam === "request" && requestModalElement) {
+        bootstrap.Modal.getOrCreateInstance(requestModalElement).show();
+      }
+
+      if (modalParam === "usage" && usageModalElement) {
+        bootstrap.Modal.getOrCreateInstance(usageModalElement).show();
+      }
+    })();
+  </script>
+{% endblock %}
