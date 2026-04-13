@@ -41,15 +41,8 @@
 </div>
 
 <h2 class="services-heading mb-3">Available Services</h2>
-<div class="row g-3">
-  <div class="col-md-6"><button class="service-btn w-100">Plant Installation</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Weekly Maintenance</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Irrigation Setup</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Tree Pruning</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Lawn Care</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Pest Control</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Fertilization</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Consultation</button></div>
+<div class="row g-3" id="servicesContainer">
+  <div class="col-12 text-center text-muted py-5" id="servicesLoadingPlaceholder">Loading services...</div>
 </div>
 
 <div class="mt-4 text-end">
@@ -83,36 +76,94 @@
 
 {% block page_js %}
 <script>
-  document.querySelectorAll('.service-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.service-btn').forEach(function(b) { b.classList.remove('selected-service'); });
+  var selectedService = null;
+  var servicesContainer = document.getElementById('servicesContainer');
+  var servicesLoadingPlaceholder = document.getElementById('servicesLoadingPlaceholder');
+
+  function renderServiceCard(service) {
+    var col = document.createElement('div');
+    col.className = 'col-md-6';
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'service-btn w-100';
+    button.dataset.serviceId = service.service_id;
+    button.dataset.serviceName = service.service_name;
+    button.dataset.price = service.base_price;
+    button.innerHTML = '<div><strong>' + service.service_name + '</strong></div>' +
+                       '<div class="text-muted mt-1">$' + parseFloat(service.base_price).toFixed(2) + '/hr</div>';
+
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.service-btn').forEach(function(btn) {
+        btn.classList.remove('selected-service');
+      });
       this.classList.add('selected-service');
+      selectedService = {
+        service_id: this.dataset.serviceId,
+        service_name: this.dataset.serviceName,
+        price: this.dataset.price
+      };
     });
-  });
+
+    col.appendChild(button);
+    return col;
+  }
+
+  function loadServices() {
+    fetch('{{ url_for('get_services') }}')
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('Failed to load services.');
+        }
+        return response.json();
+      })
+      .then(function(result) {
+        servicesContainer.innerHTML = '';
+        if (!result || result.length === 0) {
+          servicesContainer.innerHTML = '<div class="col-12 text-center text-muted py-5">No services are currently available.</div>';
+          return;
+        }
+        result.forEach(function(service) {
+          servicesContainer.appendChild(renderServiceCard(service));
+        });
+      })
+      .catch(function(error) {
+        servicesContainer.innerHTML = '<div class="col-12 text-center text-danger py-5">Could not load services. Please try again later.</div>';
+        console.error(error);
+      });
+  }
 
   document.getElementById('submit-request').addEventListener('click', function() {
     var month = document.getElementById('selectMonth').value;
     var day = document.getElementById('selectDay').value;
     var year = document.getElementById('selectYear').value;
-    var selected = document.querySelector('.service-btn.selected-service');
 
     if (!month || !day || !year) {
       alert('Please select a full date (Month, Day, and Year).');
       return;
     }
-    if (!selected) {
+    if (!selectedService) {
       alert('Please select a service from the list.');
       return;
     }
 
-    document.getElementById('confirm-service').textContent = selected.textContent.trim();
+    document.getElementById('confirm-service').textContent = selectedService.service_name + ' ($' + parseFloat(selectedService.price).toFixed(2) + '/hr)';
     document.getElementById('confirm-date').textContent = month + ' ' + day + ', ' + year;
 
     var appointments = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
-    appointments.push({ service: selected.textContent.trim(), date: month + ' ' + day + ', ' + year });
+    appointments.push({
+      service: selectedService.service_name,
+      service_id: selectedService.service_id,
+      service_name: selectedService.service_name,
+      price: parseFloat(selectedService.price || 0).toFixed(2),
+      date: month + ' ' + day + ', ' + year
+    });
     localStorage.setItem('plantedAppointments', JSON.stringify(appointments));
 
     new bootstrap.Modal(document.getElementById('confirmModal')).show();
   });
+
+  loadServices();
 </script>
 {% endblock %}
+
