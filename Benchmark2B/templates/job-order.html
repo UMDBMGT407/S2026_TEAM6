@@ -23,10 +23,10 @@
 </div>
 
 <div class="row g-4 mt-2">
-  <div class="col-md-3"><div class="stat-card"><h6>Total Orders</h6><p class="stat-number">6</p></div></div>
-  <div class="col-md-3"><div class="stat-card"><h6>Pending</h6><p class="stat-number">1</p></div></div>
-  <div class="col-md-3"><div class="stat-card"><h6>In Progress</h6><p class="stat-number text-warning">2</p></div></div>
-  <div class="col-md-3"><div class="stat-card"><h6>Completed</h6><p class="stat-number text-green">1</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Total Orders</h6><p id="total-orders-count" class="stat-number">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Pending</h6><p id="pending-orders-count" class="stat-number">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>In Progress</h6><p id="in-progress-count" class="stat-number text-warning">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Completed</h6><p id="completed-count" class="stat-number text-green">0</p></div></div>
 </div>
 
 <div class="management-section">
@@ -42,37 +42,9 @@
 </div>
 
 <div class="management-content-block">
-  <div class="job-card surface-card p-4 mb-3">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-      <div>
-        <h4 class="job-id mb-0">JO-2026-001</h4>
-        <p class="job-type mb-0">Weekly Maintenance</p>
-      </div>
-
-      <div class="d-flex gap-2">
-        <span class="badge bg-success-subtle text-success">Accepted</span>
-        <span class="badge bg-success-subtle text-success">Scheduled</span>
-      </div>
-    </div>
-
-    <p class="job-desc mt-3 mb-2">Regular plant care and watering for office floor 3-5</p>
-
-    <div class="row text-muted small">
-      <div class="col-md-6">
-        <p class="mb-1"><strong>Date:</strong> 2026-03-15 12:00 pm</p>
-        <p class="mb-1"><strong>Client:</strong> Tech Innovations Inc.</p>
-      </div>
-
-      <div class="col-md-6">
-        <p class="mb-1"><strong>Location:</strong> 123 Rainbow Road</p>
-        <p class="mb-1"><strong>Assigned to:</strong> Angelina Hwang</p>
-        <p class="mb-1"><strong>Cost:</strong> $450 est.</p>
-      </div>
-    </div>
-
-    <div class="d-flex gap-2 mt-3">
-      <button class="btn btn-warning btn-sm">Cancel</button>
-      <button class="btn btn-olive btn-sm">Start Job</button>
+  <div id="jobOrdersContainer">
+    <div class="text-center text-muted py-5" id="jobOrdersPlaceholder">
+      Loading job orders...
     </div>
   </div>
 </div>
@@ -80,4 +52,187 @@
 
 {% block vendor_js %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  const jobOrdersContainer = document.getElementById('jobOrdersContainer');
+  const totalOrdersCount = document.getElementById('total-orders-count');
+  const pendingOrdersCount = document.getElementById('pending-orders-count');
+  const inProgressCount = document.getElementById('in-progress-count');
+  const completedCount = document.getElementById('completed-count');
+
+  function getStatusBadge(status) {
+    const normalized = (status || '').toLowerCase();
+    if (!normalized || normalized === 'unassigned') {
+      return '<span class="badge bg-danger-subtle text-danger">Unassigned</span>';
+    }
+    if (normalized === 'completed') {
+      return '<span class="badge bg-success-subtle text-success">Completed</span>';
+    }
+    return '<span class="badge bg-success-subtle text-success">' + status + '</span>';
+  }
+
+  function buildEmployeeDropdown(jobId, employees) {
+    const options = employees.map(emp => {
+      return `
+        <li>
+          <button type="button" class="dropdown-item assign-job-btn" data-job-id="${jobId}" data-employee-id="${emp.employee_id}" data-employee-name="${emp.name}">
+            ${emp.name}
+          </button>
+        </li>`;
+    }).join('');
+
+    return `
+      <div class="dropdown">
+        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          Assign Staff
+        </button>
+        <ul class="dropdown-menu">
+          ${options}
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <button type="button" class="dropdown-item assign-job-btn" data-job-id="${jobId}" data-employee-id="" data-employee-name="">
+              Mark Unassigned
+            </button>
+          </li>
+        </ul>
+      </div>`;
+  }
+
+  function renderJobOrders(jobs, employees) {
+    if (!jobOrdersContainer) return;
+
+    if (!jobs || jobs.length === 0) {
+      jobOrdersContainer.innerHTML = '<div class="text-center text-muted py-5">No job orders found.</div>';
+      if (totalOrdersCount) totalOrdersCount.textContent = '0';
+      if (pendingOrdersCount) pendingOrdersCount.textContent = '0';
+      if (inProgressCount) inProgressCount.textContent = '0';
+      if (completedCount) completedCount.textContent = '0';
+      return;
+    }
+
+    let scheduled = 0;
+    let unassigned = 0;
+
+    let totalOrders = 0;
+    let pending = 0;
+    let inProgress = 0;
+    let completed = 0;
+
+    jobOrdersContainer.innerHTML = jobs.map(job => {
+      totalOrders += 1;
+      const assignedName = job.assigned_name || 'Unassigned';
+      const isAssigned = Boolean(job.assigned_employee_id);
+      if (job.status && job.status.toLowerCase() === 'completed') {
+        completed += 1;
+      } else if (isAssigned) {
+        inProgress += 1;
+      } else {
+        pending += 1;
+      }
+      if (isAssigned) {
+        scheduled += 1;
+      } else {
+        unassigned += 1;
+      }
+
+      return `
+        <div class="job-card surface-card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <h4 class="job-id mb-0">JO-${String(job.id).padStart(5, '0')}</h4>
+              <p class="job-type mb-0">${job.title || 'Service Order'}</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              ${getStatusBadge(job.status)}
+            </div>
+          </div>
+
+          <p class="job-desc mt-3 mb-2">${job.company ? 'Client: ' + job.company : 'Client information unavailable'}</p>
+
+          <div class="row text-muted small">
+            <div class="col-md-6">
+              <p class="mb-1"><strong>Date:</strong> ${job.scheduled_date || 'TBD'} ${job.start_time || ''}</p>
+              <p class="mb-1"><strong>Location:</strong> ${job.location || 'TBD'}</p>
+            </div>
+            <div class="col-md-6">
+              <p class="mb-1"><strong>Assigned to:</strong> <span class="assigned-name">${assignedName}</span></p>
+              <p class="mb-1"><strong>Order ID:</strong> ${job.id}</p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            ${buildEmployeeDropdown(job.id, employees)}
+            <a href="{{ url_for('job_order_page') }}" class="btn btn-olive btn-sm">Details</a>
+          </div>
+        </div>`;
+    }).join('');
+
+    if (totalOrdersCount) totalOrdersCount.textContent = String(totalOrders);
+    if (pendingOrdersCount) pendingOrdersCount.textContent = String(pending);
+    if (inProgressCount) inProgressCount.textContent = String(inProgress);
+    if (completedCount) completedCount.textContent = String(completed);
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Error fetching ${url}: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async function assignJob(jobId, employeeId) {
+    const body = { employee_id: employeeId === '' ? null : employeeId };
+    const response = await fetch(`/jobs/${jobId}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Unable to assign job');
+    }
+    return response.json();
+  }
+
+  document.addEventListener('click', async function(event) {
+    const button = event.target.closest('.assign-job-btn');
+    if (!button) return;
+
+    event.preventDefault();
+    const jobId = button.dataset.jobId;
+    const employeeId = button.dataset.employeeId || '';
+    const employeeName = button.dataset.employeeName || 'Unassigned';
+    const card = button.closest('.job-card');
+    if (!card) return;
+
+    try {
+      await assignJob(jobId, employeeId);
+      const assignedNameEl = card.querySelector('.assigned-name');
+      assignedNameEl.textContent = employeeId ? employeeName : 'Unassigned';
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  });
+
+  async function loadJobOrders() {
+    try {
+      const [jobs, employees] = await Promise.all([
+        fetchJson('/jobs'),
+        fetchJson('/employees')
+      ]);
+      renderJobOrders(jobs, employees);
+    } catch (error) {
+      console.error('Unable to load job orders:', error);
+      if (jobOrdersContainer) {
+        jobOrdersContainer.innerHTML = `<div class="text-center text-danger py-5">Failed to load job orders. ${error.message}</div>`;
+      }
+    }
+  }
+
+  loadJobOrders();
+</script>
 {% endblock %}
