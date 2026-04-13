@@ -44,60 +44,23 @@
 </div>
 
 <div class="management-content-block">
-  <div class="row g-3" id="supplier-list">
-    <div class="col-md-6" data-supplier-card data-supplier-name="Green Thumb Nursery" data-supplier-category="Plant and Tree">
-      <div class="supplier-card surface-card h-100 p-3">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <h5 class="supplier-title mb-1">Green Thumb Nursery</h5>
-            <p class="supplier-subtitle mb-0">Plant and Tree</p>
-          </div>
-          <span class="status-pill status-pill-active">Active</span>
-        </div>
-
-        <div class="supplier-meta mb-3">
-          <span class="me-2"><i class="bi bi-star-fill me-1 text-warning"></i>4.6</span>
-          <span class="me-2">156 Orders</span>
-          <span>Last: 2026-03-02</span>
-        </div>
-
-        <div class="icon-detail-row"><i class="bi bi-telephone-fill"></i><span>(555) 111-2222</span></div>
-        <div class="icon-detail-row"><i class="bi bi-envelope-fill"></i><span>orders@greenthumb.com</span></div>
-        <div class="icon-detail-row mb-3"><i class="bi bi-geo-alt-fill"></i><span>1234 Garden Ave, Plantville, CA</span></div>
-
-        <div class="d-flex gap-3">
-          <button class="btn btn-soft-neutral flex-fill view-orders-btn" type="button" data-supplier="Green Thumb Nursery">View Orders</button>
-          <button class="btn btn-olive flex-fill place-order-btn" type="button" data-supplier="Green Thumb Nursery">Place Order</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6" data-supplier-card data-supplier-name="Soil Solutions" data-supplier-category="Soil and Fertilizers">
-      <div class="supplier-card surface-card h-100 p-3">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <h5 class="supplier-title mb-1">Soil Solutions</h5>
-            <p class="supplier-subtitle mb-0">Soil and Fertilizers</p>
-          </div>
-          <span class="status-pill status-pill-active">Active</span>
-        </div>
-
-        <div class="supplier-meta mb-3">
-          <span class="me-2"><i class="bi bi-star-fill me-1 text-warning"></i>4.8</span>
-          <span class="me-2">202 Orders</span>
-          <span>Last: 2026-02-26</span>
-        </div>
-
-        <div class="icon-detail-row"><i class="bi bi-telephone-fill"></i><span>(555) 222-333</span></div>
-        <div class="icon-detail-row"><i class="bi bi-envelope-fill"></i><span>orders@soilsolutions.com</span></div>
-        <div class="icon-detail-row mb-3"><i class="bi bi-geo-alt-fill"></i><span>5678 Farming Rd, Greenfield, CA</span></div>
-
-        <div class="d-flex gap-3">
-          <button class="btn btn-soft-neutral flex-fill view-orders-btn" type="button" data-supplier="Soil Solutions">View Orders</button>
-          <button class="btn btn-olive flex-fill place-order-btn" type="button" data-supplier="Soil Solutions">Place Order</button>
-        </div>
-      </div>
-    </div>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Supplier Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Total Orders</th>
+          <th>Last Order</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="supplier-table-body">
+        <!-- Suppliers will be loaded dynamically -->
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -112,8 +75,6 @@
         <div class="modal-body">
           <label for="supplier-name-input" class="form-label">Supplier Name</label>
           <input id="supplier-name-input" class="form-control mb-3" required>
-          <label for="supplier-category-input" class="form-label">Category</label>
-          <input id="supplier-category-input" class="form-control mb-3" required>
           <label for="supplier-email-input" class="form-label">Email</label>
           <input id="supplier-email-input" type="email" class="form-control mb-3" required>
           <label for="supplier-phone-input" class="form-label">Phone</label>
@@ -128,44 +89,6 @@
   </div>
 </div>
 
-<div class="modal fade" id="supplierOrdersModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title" id="supplier-orders-title">Supplier Orders</h2>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="mb-0" id="supplier-orders-list"></ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="placeOrderModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form id="place-order-form">
-        <div class="modal-header">
-          <h2 class="modal-title">Place Order</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-2">Supplier: <strong id="place-order-supplier"></strong></p>
-          <label for="order-item-input" class="form-label">Item</label>
-          <input id="order-item-input" class="form-control mb-3" required>
-          <label for="order-quantity-input" class="form-label">Quantity</label>
-          <input id="order-quantity-input" type="number" min="1" class="form-control mb-3" required>
-          <p class="text-success mb-0 d-none" id="place-order-success">Order queued successfully.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-success">Submit Order</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block vendor_js %}
@@ -174,115 +97,156 @@
 
 {% block page_js %}
 <script>
-  var supplierOrders = {
-    'Green Thumb Nursery': ['Monstera Deliciosa x 12', 'Snake Plant x 8', 'Fiddle Leaf Fig x 6'],
-    'Soil Solutions': ['Premium Potting Mix x 25', 'Slow Release Fertilizer x 10', 'Soil Conditioner x 14']
-  };
-
   var supplierSearchForm = document.getElementById('supplier-search-form');
   var supplierSearchInput = document.getElementById('supplier-search-input');
-  var supplierCards = Array.from(document.querySelectorAll('[data-supplier-card]'));
-  var ordersModal = new bootstrap.Modal(document.getElementById('supplierOrdersModal'));
-  var placeOrderModal = new bootstrap.Modal(document.getElementById('placeOrderModal'));
+  var supplierTableBody = document.getElementById('supplier-table-body');
   var addSupplierModal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
-  var supplierList = document.getElementById('supplier-list');
-  var placeOrderSupplier = document.getElementById('place-order-supplier');
-  var placeOrderSuccess = document.getElementById('place-order-success');
 
-  function filterSuppliers() {
-    var query = supplierSearchInput.value.trim().toLowerCase();
-    supplierCards.forEach(function(card) {
-      var name = card.dataset.supplierName.toLowerCase();
-      var category = card.dataset.supplierCategory.toLowerCase();
-      card.style.display = name.includes(query) || category.includes(query) ? '' : 'none';
-    });
+  function renderSupplierRow(supplier) {
+    var row = document.createElement('tr');
+    if (!supplier.is_active) {
+      row.classList.add('table-secondary');
+    }
+
+    var nameCell = document.createElement('td');
+    nameCell.textContent = supplier.supplier_name;
+    row.appendChild(nameCell);
+
+    var emailCell = document.createElement('td');
+    emailCell.textContent = supplier.email || '—';
+    row.appendChild(emailCell);
+
+    var phoneCell = document.createElement('td');
+    phoneCell.textContent = supplier.phone || '—';
+    row.appendChild(phoneCell);
+
+    var ordersCell = document.createElement('td');
+    ordersCell.textContent = supplier.total_orders || 0;
+    row.appendChild(ordersCell);
+
+    var lastOrderCell = document.createElement('td');
+    lastOrderCell.textContent = supplier.last_order_date || '—';
+    row.appendChild(lastOrderCell);
+
+    var statusCell = document.createElement('td');
+    statusCell.innerHTML = supplier.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+    row.appendChild(statusCell);
+
+    var actionsCell = document.createElement('td');
+    if (supplier.is_active) {
+      actionsCell.innerHTML = '<button class="btn btn-sm btn-outline-danger" onclick="removeSupplier(' + supplier.supplier_id + ')">Deactivate</button>';
+    } else {
+      actionsCell.innerHTML = '<button class="btn btn-sm btn-outline-primary" onclick="reactivateSupplier(' + supplier.supplier_id + ')">Reactivate</button>';
+    }
+    row.appendChild(actionsCell);
+
+    return row;
+  }
+
+  function loadSuppliers(search = '') {
+    var url = '{{ url_for("get_suppliers") }}';
+    if (search) url += '?search=' + encodeURIComponent(search);
+
+    fetch(url, { credentials: 'same-origin' })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load suppliers: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        supplierTableBody.innerHTML = '';
+        if (!data.length) {
+          supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No suppliers found.</td></tr>';
+          return;
+        }
+        data.forEach(supplier => {
+          supplierTableBody.appendChild(renderSupplierRow(supplier));
+        });
+        updateStats(data);
+      })
+      .catch(error => {
+        console.error('Error loading suppliers:', error);
+        supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading suppliers. Please check console.</td></tr>';
+      });
+  }
+
+  function updateStats(suppliers) {
+    var total = suppliers.length;
+    var active = suppliers.filter(s => s.is_active).length;
+    var statNumbers = document.querySelectorAll('.stat-number');
+    if (statNumbers.length >= 2) {
+      statNumbers[0].textContent = total;
+      statNumbers[1].textContent = active;
+    }
+  }
+
+  function removeSupplier(supplierId) {
+    if (!confirm('Are you sure you want to deactivate this supplier?')) return;
+
+    fetch('{{ url_for("deactivate_supplier", supplier_id=0) }}'.replace('0', supplierId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      alert(data.message);
+      loadSuppliers();
+    })
+    .catch(error => console.error('Error deactivating supplier:', error));
+  }
+
+  function reactivateSupplier(supplierId) {
+    fetch('{{ url_for("reactivate_supplier", supplier_id=0) }}'.replace('0', supplierId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      alert(data.message);
+      loadSuppliers();
+    })
+    .catch(error => console.error('Error reactivating supplier:', error));
   }
 
   supplierSearchForm.addEventListener('submit', function(event) {
     event.preventDefault();
-    filterSuppliers();
-  });
-
-  supplierSearchInput.addEventListener('input', filterSuppliers);
-
-  document.querySelectorAll('.view-orders-btn').forEach(function(button) {
-    button.addEventListener('click', function() {
-      var supplier = this.dataset.supplier;
-      document.getElementById('supplier-orders-title').textContent = supplier + ' Orders';
-      document.getElementById('supplier-orders-list').innerHTML = (supplierOrders[supplier] || ['No recent orders found.'])
-        .map(function(item) { return '<li>' + item + '</li>'; })
-        .join('');
-      ordersModal.show();
-    });
-  });
-
-  document.querySelectorAll('.place-order-btn').forEach(function(button) {
-    button.addEventListener('click', function() {
-      placeOrderSupplier.textContent = this.dataset.supplier;
-      placeOrderSuccess.classList.add('d-none');
-      document.getElementById('place-order-form').reset();
-      placeOrderModal.show();
-    });
-  });
-
-  document.getElementById('place-order-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    placeOrderSuccess.classList.remove('d-none');
+    loadSuppliers(supplierSearchInput.value.trim());
   });
 
   document.getElementById('add-supplier-form').addEventListener('submit', function(event) {
     event.preventDefault();
-
     var name = document.getElementById('supplier-name-input').value.trim();
-    var category = document.getElementById('supplier-category-input').value.trim();
     var email = document.getElementById('supplier-email-input').value.trim();
-    var phone = document.getElementById('supplier-phone-input').value.trim() || 'No phone listed';
+    var phone = document.getElementById('supplier-phone-input').value.trim();
 
-    var wrapper = document.createElement('div');
-    wrapper.className = 'col-md-6';
-    wrapper.dataset.supplierCard = '';
-    wrapper.dataset.supplierName = name;
-    wrapper.dataset.supplierCategory = category;
-    wrapper.innerHTML = `
-      <div class="supplier-card surface-card h-100 p-3">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <h5 class="supplier-title mb-1">${name}</h5>
-            <p class="supplier-subtitle mb-0">${category}</p>
-          </div>
-          <span class="status-pill status-pill-active">New</span>
-        </div>
-        <div class="supplier-meta mb-3">
-          <span class="me-2"><i class="bi bi-star-fill me-1 text-warning"></i>New</span>
-          <span>Added just now</span>
-        </div>
-        <div class="icon-detail-row"><i class="bi bi-telephone-fill"></i><span>${phone}</span></div>
-        <div class="icon-detail-row mb-3"><i class="bi bi-envelope-fill"></i><span>${email}</span></div>
-        <div class="d-flex gap-3">
-          <button class="btn btn-soft-neutral flex-fill view-orders-btn" type="button" data-supplier="${name}">View Orders</button>
-          <button class="btn btn-olive flex-fill place-order-btn" type="button" data-supplier="${name}">Place Order</button>
-        </div>
-      </div>
-    `;
+    if (!name || !email) {
+      alert('Please fill in Supplier Name and Email.');
+      return;
+    }
 
-    supplierList.prepend(wrapper);
-    supplierCards.unshift(wrapper);
-    supplierOrders[name] = ['No recent orders found.'];
-    addSupplierModal.hide();
-    this.reset();
-
-    wrapper.querySelector('.view-orders-btn').addEventListener('click', function() {
-      document.getElementById('supplier-orders-title').textContent = name + ' Orders';
-      document.getElementById('supplier-orders-list').innerHTML = '<li>No recent orders found.</li>';
-      ordersModal.show();
-    });
-
-    wrapper.querySelector('.place-order-btn').addEventListener('click', function() {
-      placeOrderSupplier.textContent = name;
-      placeOrderSuccess.classList.add('d-none');
-      document.getElementById('place-order-form').reset();
-      placeOrderModal.show();
-    });
+    fetch('{{ url_for("add_supplier") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier_name: name, email: email, phone: phone }),
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message) {
+        alert(data.message);
+        addSupplierModal.hide();
+        document.getElementById('add-supplier-form').reset();
+        loadSuppliers();
+      } else {
+        alert(data.error || 'Error adding supplier');
+      }
+    })
+    .catch(error => console.error('Error adding supplier:', error));
   });
+
+  loadSuppliers();
 </script>
 {% endblock %}
