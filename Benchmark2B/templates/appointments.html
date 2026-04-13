@@ -79,6 +79,7 @@
       </div>
       <div class="modal-body">
         <p><strong>Service:</strong> <span id="appt-modal-service">Weekly Maintenance</span></p>
+        <p><strong>Rate:</strong> <span id="appt-modal-rate">$0.00/hr</span></p>
         <p><strong>Technician:</strong> <span id="appt-modal-technician">Peter Smith</span></p>
         <p><strong>Date:</strong> <span id="appt-modal-date">2026-03-15</span></p>
         <p><strong>Time:</strong> <span id="appt-modal-time">12:00 pm</span></p>
@@ -108,6 +109,7 @@
   var modalDate = document.getElementById('appt-modal-date');
   var modalTime = document.getElementById('appt-modal-time');
   var modalLocation = document.getElementById('appt-modal-location');
+  var modalRate = document.getElementById('appt-modal-rate');
   var modalStatus = document.getElementById('appt-modal-status');
 
   function openAppointmentModal(card) {
@@ -116,9 +118,11 @@
     var date = card.dataset.date || 'TBD';
     var time = card.dataset.time || 'TBD';
     var location = card.dataset.location || 'Pending confirmation';
+    var rate = card.dataset.price ? '$' + parseFloat(card.dataset.price).toFixed(2) + '/hr' : 'TBD';
     var status = card.dataset.status || 'Pending';
 
     modalService.textContent = service;
+    modalRate.textContent = rate;
     modalTechnician.textContent = technician;
     modalDate.textContent = date;
     modalTime.textContent = time;
@@ -146,23 +150,28 @@
   }
 
   savedAppts.forEach(function(appt) {
+    var serviceName = appt.service || appt.service_name || 'Service Request';
     var card = document.createElement('div');
     card.className = 'job-card mb-3';
     card.setAttribute('data-appointment-card', '');
-    card.dataset.service = appt.service;
+    card.dataset.service = serviceName;
     card.dataset.technician = 'Pending assignment';
     card.dataset.date = appt.date;
     card.dataset.time = 'Pending confirmation';
     card.dataset.location = 'Pending confirmation';
+    card.dataset.price = appt.price || '';
     card.dataset.status = 'Pending';
     card.innerHTML =
       '<div class="row align-items-start">' +
         '<div class="col-md-9">' +
           '<p class="detail-label mb-1">Requested Service</p>' +
-          '<h2 class="job-title">' + appt.service + '</h2>' +
+          '<h2 class="job-title">' + serviceName + '</h2>' +
           '<div class="row mt-2">' +
             '<div class="col-md-6">' +
               '<p class="job-detail"><span class="detail-label">Requested Date:</span> ' + appt.date + '</p>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+              '<p class="job-detail"><span class="detail-label">Hourly Rate:</span> ' + (appt.price ? '$' + parseFloat(appt.price).toFixed(2) + '/hr' : 'TBD') + '</p>' +
             '</div>' +
           '</div>' +
           '<div class="d-flex gap-2 mt-3">' +
