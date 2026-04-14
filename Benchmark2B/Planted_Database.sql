@@ -58,7 +58,7 @@ CREATE TABLE clients (
     company_name VARCHAR(255),
     member_since DATETIME,
     account_status VARCHAR(50),
-    FOREIGN KEY (contact_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE client_locations (
@@ -81,7 +81,7 @@ CREATE TABLE employees (
     hire_date DATETIME,
     pay_rate_hourly DECIMAL(10,2),
     address_id INT,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
@@ -114,6 +114,7 @@ CREATE TABLE suppliers (
     total_orders INT DEFAULT 0,
     last_order_date DATE,
     status ENUM('Ordered','Shipped','Delivered'),
+    is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
@@ -172,7 +173,7 @@ CREATE TABLE service_requests (
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (location_id) REFERENCES client_locations(location_id),
     FOREIGN KEY (service_id) REFERENCES services(service_id),
-    FOREIGN KEY (approved_by) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (approved_by) REFERENCES users(user_id)
 );
 
 -- APPOINTMENTS
