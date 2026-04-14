@@ -18,9 +18,9 @@
     <div class="col-md-9 d-flex align-items-center gap-4">
       <div class="profile-avatar" id="profile-avatar">SM</div>
       <div>
-        <div class="profile-name">Sarah Mitchell</div>
-        <div class="profile-email">sarah.mitchell@gmail.com</div>
-        <div class="profile-since">Member since 2024</div>
+        <div class="profile-name" id="profile-name">Loading...</div>
+        <div class="profile-email" id="profile-email-banner">Loading...</div>
+        <div class="profile-since" id="profile-member-since">Member since --</div>
       </div>
     </div>
     <div class="col-md-3 text-end">
@@ -35,11 +35,11 @@
     <div class="col-md-10">
       <div class="profile-section-title">Personal Information</div>
       <div class="row mt-2">
-        <div class="col-md-4"><div class="profile-field-label">FIRST NAME</div><div class="profile-field-value">Sarah</div></div>
-        <div class="col-md-4"><div class="profile-field-label">LAST NAME</div><div class="profile-field-value">Mitchell</div></div>
+        <div class="col-md-4"><div class="profile-field-label">FIRST NAME</div><div class="profile-field-value" id="profile-first-name">--</div></div>
+        <div class="col-md-4"><div class="profile-field-label">LAST NAME</div><div class="profile-field-value" id="profile-last-name">--</div></div>
       </div>
     </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn">Edit</button></div>
+    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="personal">Edit</button></div>
   </div>
 </div>
 
@@ -48,11 +48,11 @@
     <div class="col-md-10">
       <div class="profile-section-title">Contact Details</div>
       <div class="row mt-2">
-        <div class="col-md-4"><div class="profile-field-label">EMAIL ADDRESS</div><div class="profile-field-value">sarah.mitchell@gmail.com</div></div>
-        <div class="col-md-4"><div class="profile-field-label">PHONE NUMBER</div><div class="profile-field-value">+1 (555) 123-4567</div></div>
+        <div class="col-md-4"><div class="profile-field-label">EMAIL ADDRESS</div><div class="profile-field-value" id="profile-email">--</div></div>
+        <div class="col-md-4"><div class="profile-field-label">PHONE NUMBER</div><div class="profile-field-value" id="profile-phone">--</div></div>
       </div>
     </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn">Edit</button></div>
+    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="contact">Edit</button></div>
   </div>
 </div>
 
@@ -61,13 +61,13 @@
     <div class="col-md-10">
       <div class="profile-section-title">Service Address</div>
       <div class="row mt-2">
-        <div class="col-md-5"><div class="profile-field-label">STREET ADDRESS</div><div class="profile-field-value">123 Elm Street</div></div>
-        <div class="col-md-2"><div class="profile-field-label">CITY</div><div class="profile-field-value">Portland</div></div>
-        <div class="col-md-2"><div class="profile-field-label">STATE</div><div class="profile-field-value">OR</div></div>
-        <div class="col-md-2"><div class="profile-field-label">ZIP CODE</div><div class="profile-field-value">97205</div></div>
+        <div class="col-md-5"><div class="profile-field-label">STREET ADDRESS</div><div class="profile-field-value" id="profile-street">--</div></div>
+        <div class="col-md-2"><div class="profile-field-label">CITY</div><div class="profile-field-value" id="profile-city">--</div></div>
+        <div class="col-md-2"><div class="profile-field-label">STATE</div><div class="profile-field-value" id="profile-state">--</div></div>
+        <div class="col-md-2"><div class="profile-field-label">ZIP CODE</div><div class="profile-field-value" id="profile-zip">--</div></div>
       </div>
     </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn">Edit</button></div>
+    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="address">Edit</button></div>
   </div>
 </div>
 {% endblock %}
@@ -78,9 +78,159 @@
 
 {% block page_js %}
 <script>
+  var currentUserId = {{ current_user.id }};
   var uploadPhotoButton = document.getElementById('upload-photo-btn');
   var profilePhotoInput = document.getElementById('profile-photo-input');
   var profileAvatar = document.getElementById('profile-avatar');
+  var profileName = document.getElementById('profile-name');
+  var profileEmailBanner = document.getElementById('profile-email-banner');
+  var profileMemberSince = document.getElementById('profile-member-since');
+  var currentLocationId = null;
+
+  var sectionConfig = {
+    personal: [
+      { id: 'profile-first-name', field: 'first_name' },
+      { id: 'profile-last-name', field: 'last_name' }
+    ],
+    contact: [
+      { id: 'profile-email', field: 'email' },
+      { id: 'profile-phone', field: 'phone' }
+    ],
+    address: [
+      { id: 'profile-street', field: 'street_1' },
+      { id: 'profile-city', field: 'city' },
+      { id: 'profile-state', field: 'state' },
+      { id: 'profile-zip', field: 'zip_code' }
+    ]
+  };
+
+  function setText(id, value) {
+    var element = document.getElementById(id);
+    if (element) {
+      element.textContent = value || '--';
+    }
+  }
+
+  function toYear(dateText) {
+    if (!dateText) {
+      return '--';
+    }
+    var dateValue = new Date(dateText);
+    if (Number.isNaN(dateValue.getTime())) {
+      return '--';
+    }
+    return String(dateValue.getFullYear());
+  }
+
+  function initials(firstName, lastName) {
+    var first = (firstName || '').trim().slice(0, 1).toUpperCase();
+    var last = (lastName || '').trim().slice(0, 1).toUpperCase();
+    return (first + last) || 'CL';
+  }
+
+  function startEditing(sectionName, button) {
+    (sectionConfig[sectionName] || []).forEach(function (item) {
+      var field = document.getElementById(item.id);
+      if (!field) {
+        return;
+      }
+      var currentValue = field.textContent.trim() === '--' ? '' : field.textContent.trim();
+      field.innerHTML = '<input type="text" class="profile-input" value="' + currentValue.replace(/"/g, '&quot;') + '" />';
+    });
+    button.textContent = 'Save';
+    button.dataset.editing = 'true';
+  }
+
+  async function saveSection(sectionName, button) {
+    var payload = {};
+    (sectionConfig[sectionName] || []).forEach(function (item) {
+      var field = document.getElementById(item.id);
+      if (!field) {
+        return;
+      }
+      var input = field.querySelector('input');
+      payload[item.field] = input ? input.value.trim() : field.textContent.trim();
+    });
+
+    if (sectionName === 'address') {
+      if (!payload.street_1 || !payload.city || !payload.state || !payload.zip_code) {
+        alert('Please fill out street, city, state, and zip code.');
+        return;
+      }
+      if (currentLocationId) {
+        payload.location_id = currentLocationId;
+      }
+    }
+
+    button.disabled = true;
+    try {
+      var endpoint = sectionName === 'address'
+        ? '/client/me/location'
+        : '/user/' + String(currentUserId);
+
+      var response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Unable to save changes.');
+      }
+
+      await loadProfile();
+      button.textContent = 'Edit';
+      button.dataset.editing = 'false';
+    } catch (error) {
+      alert(error.message || 'Unable to save profile changes.');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      var responses = await Promise.all([
+        fetch('/user/' + String(currentUserId)),
+        fetch('/client/me')
+      ]);
+
+      var userResponse = responses[0];
+      var clientResponse = responses[1];
+      var userData = await userResponse.json();
+      var clientData = await clientResponse.json();
+
+      if (!userResponse.ok) {
+        throw new Error(userData.error || 'Unable to load user profile.');
+      }
+      if (!clientResponse.ok) {
+        throw new Error(clientData.error || 'Unable to load client profile.');
+      }
+
+      setText('profile-first-name', userData.first_name);
+      setText('profile-last-name', userData.last_name);
+      setText('profile-email', userData.email);
+      setText('profile-phone', userData.phone);
+
+      var fullName = [userData.first_name, userData.last_name].filter(Boolean).join(' ');
+      profileName.textContent = fullName || 'Client User';
+      profileEmailBanner.textContent = userData.email || '--';
+      profileMemberSince.textContent = 'Member since ' + toYear(clientData.member_since || userData.created_at);
+      profileAvatar.textContent = initials(userData.first_name, userData.last_name);
+
+      var primaryLocation = (clientData.locations || [])[0] || {};
+      currentLocationId = primaryLocation.location_id || null;
+      setText('profile-street', primaryLocation.street_1);
+      setText('profile-city', primaryLocation.city);
+      setText('profile-state', primaryLocation.state);
+      setText('profile-zip', primaryLocation.zip_code);
+    } catch (error) {
+      profileName.textContent = 'Unable to load profile';
+      profileEmailBanner.textContent = error.message || 'Please refresh and try again.';
+    }
+  }
 
   uploadPhotoButton.addEventListener('click', function() {
     profilePhotoInput.click();
@@ -99,21 +249,21 @@
     reader.readAsDataURL(file);
   });
 
-  document.querySelectorAll('.profile-card').forEach(function(card) {
-    var editBtn = card.querySelector('.profile-edit-btn');
-    editBtn.addEventListener('click', function() {
-      var saving = this.textContent.trim() === 'Save';
-      card.querySelectorAll('.profile-field-value').forEach(function(field) {
-        if (saving) {
-          var input = field.querySelector('input');
-          if (input) field.textContent = input.value;
-        } else {
-          var val = field.textContent.trim();
-          field.innerHTML = '<input type="text" class="profile-input" value="' + val + '" />';
-        }
-      });
-      this.textContent = saving ? 'Edit' : 'Save';
+  document.querySelectorAll('.profile-edit-btn[data-edit-section]').forEach(function(button) {
+    button.addEventListener('click', function () {
+      var sectionName = button.dataset.editSection;
+      if (!sectionName) {
+        return;
+      }
+
+      if (button.dataset.editing === 'true') {
+        saveSection(sectionName, button);
+      } else {
+        startEditing(sectionName, button);
+      }
     });
   });
+
+  loadProfile();
 </script>
 {% endblock %}
