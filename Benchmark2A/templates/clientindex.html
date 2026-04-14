@@ -8,8 +8,9 @@
 {% endblock %}
 
 {% block page_content %}
+{% set greeting_name = (current_user.name.split(' ')[0] if current_user and current_user.name else 'Client') %}
 <div class="mb-4">
-  <h1 class="welcome-title">Welcome back,</h1>
+  <h1 class="welcome-title">Welcome back, {{ greeting_name }}</h1>
   <p class="welcome-subtitle">Here&#39;s what&#39;s happening with your plant management services</p>
 </div>
 
@@ -17,29 +18,29 @@
   <div class="col-md-3">
     <div class="stat-card text-center p-4" data-href="{{ url_for('invoices_page') }}">
       <div class="stat-label">Account Balance</div>
-      <div class="stat-number">$0.00</div>
-      <div class="stat-sub">All invoices paid</div>
+      <div class="stat-number" id="overview-balance-value">$0.00</div>
+      <div class="stat-sub" id="overview-balance-sub">Loading...</div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="stat-card text-center p-4" data-href="{{ url_for('service_request_page') }}">
-      <div class="stat-label">Active Request</div>
-      <div class="stat-number">2</div>
-      <div class="stat-sub">March 12, 2026</div>
+      <div class="stat-label">Active Requests</div>
+      <div class="stat-number" id="overview-requests-value">0</div>
+      <div class="stat-sub" id="overview-requests-sub">Loading...</div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="stat-card text-center p-4" data-href="{{ url_for('appointments_page') }}">
       <div class="stat-label">Next Service</div>
-      <div class="stat-number">6 days</div>
-      <div class="stat-sub">March 12, 2026</div>
+      <div class="stat-number" id="overview-next-value">--</div>
+      <div class="stat-sub" id="overview-next-sub">Loading...</div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="stat-card text-center p-4">
-      <div class="stat-label">Total Plants</div>
-      <div class="stat-number">42</div>
-      <div class="stat-sub">Across 3 locations</div>
+      <div class="stat-label">Service Locations</div>
+      <div class="stat-number" id="overview-locations-value">0</div>
+      <div class="stat-sub" id="overview-locations-sub">Loading...</div>
     </div>
   </div>
 </div>
@@ -64,18 +65,132 @@
 
 {% block page_js %}
 <script>
+  function parseDateOnly(dateText) {
+    if (!dateText) {
+      return null;
+    }
+    var dateValue = new Date(dateText + 'T00:00:00');
+    return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+
+  function formatCurrency(value) {
+    return '$' + (Number(value) || 0).toFixed(2);
+  }
+
+  function formatDateLabel(dateText) {
+    var dateValue = parseDateOnly(dateText);
+    if (!dateValue) {
+      return 'Date pending';
+    }
+    return dateValue.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function daysUntil(dateText) {
+    var target = parseDateOnly(dateText);
+    if (!target) {
+      return null;
+    }
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var diffMs = target.getTime() - today.getTime();
+    return Math.round(diffMs / 86400000);
+  }
+
+  async function fetchJson(url) {
+    var response = await fetch(url);
+    var payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || ('Request failed: ' + response.status));
+    }
+    return payload;
+  }
+
+  function setText(id, value) {
+    var element = document.getElementById(id);
+    if (element) {
+      element.textContent = value;
+    }
+  }
+
+  async function loadOverviewData() {
+    try {
+      var results = await Promise.all([
+        fetchJson('/invoices'),
+        fetchJson('/service-requests'),
+        fetchJson('/appointments'),
+        fetchJson('/client/me')
+      ]);
+
+      var invoices = Array.isArray(results[0]) ? results[0] : [];
+      var requests = Array.isArray(results[1]) ? results[1] : [];
+      var appointments = Array.isArray(results[2]) ? results[2] : [];
+      var clientProfile = results[3] || {};
+
+      var outstanding = invoices
+        .filter(function (invoice) {
+          return String(invoice.status || '').toLowerCase() !== 'paid';
+        })
+        .reduce(function (sum, invoice) {
+          return sum + (Number(invoice.total_amount) || 0);
+        }, 0);
+
+      setText('overview-balance-value', formatCurrency(outstanding));
+      setText('overview-balance-sub', outstanding > 0 ? 'Outstanding balance due' : 'All invoices paid');
+
+      var activeRequests = requests.filter(function (requestItem) {
+        var status = String(requestItem.status || '').toLowerCase();
+        return status !== 'completed' && status !== 'cancelled' && status !== 'rejected';
+      });
+      setText('overview-requests-value', String(activeRequests.length));
+      if (activeRequests.length) {
+        var newestRequest = activeRequests[0];
+        setText('overview-requests-sub', formatDateLabel(newestRequest.requested_date || newestRequest.created_at));
+      } else {
+        setText('overview-requests-sub', 'No open requests');
+      }
+
+      var upcomingAppointments = appointments
+        .filter(function (appointment) {
+          var status = String(appointment.status || '').toLowerCase();
+          var when = parseDateOnly(appointment.appointment_date);
+          return when && when.getTime() >= new Date(new Date().toDateString()).getTime() && status !== 'cancelled' && status !== 'completed';
+        })
+        .sort(function (a, b) {
+          return parseDateOnly(a.appointment_date) - parseDateOnly(b.appointment_date);
+        });
+
+      if (upcomingAppointments.length) {
+        var nextAppointment = upcomingAppointments[0];
+        var remaining = daysUntil(nextAppointment.appointment_date);
+        var remainingLabel = remaining === 0 ? 'Today' : (remaining + ' day' + (remaining === 1 ? '' : 's'));
+        setText('overview-next-value', remainingLabel);
+        setText('overview-next-sub', formatDateLabel(nextAppointment.appointment_date));
+      } else {
+        setText('overview-next-value', '--');
+        setText('overview-next-sub', 'No upcoming appointments');
+      }
+
+      var locations = (clientProfile.locations || []).length;
+      setText('overview-locations-value', String(locations));
+      setText('overview-locations-sub', locations ? ('Across ' + locations + ' location' + (locations === 1 ? '' : 's')) : 'No locations on file');
+    } catch (error) {
+      setText('overview-balance-sub', error.message || 'Unable to load overview data');
+      setText('overview-requests-sub', 'Unable to load requests');
+      setText('overview-next-sub', 'Unable to load appointments');
+      setText('overview-locations-sub', 'Unable to load locations');
+    }
+  }
+
   document.querySelectorAll('.stat-card[data-href]').forEach(function(card) {
     card.addEventListener('click', function() {
       window.location.href = this.dataset.href;
     });
   });
 
-  var storedBalance = localStorage.getItem('plantedBalance');
-  if (storedBalance !== null) {
-    var balanceCard = document.querySelector('[data-href="{{ url_for("invoices_page") }}"]');
-    balanceCard.querySelector('.stat-number').textContent = '$' + parseFloat(storedBalance).toFixed(2);
-    balanceCard.querySelector('.stat-sub').textContent =
-      parseFloat(storedBalance) === 0 ? 'All invoices paid' : 'Outstanding balance due';
-  }
+  loadOverviewData();
 </script>
 {% endblock %}

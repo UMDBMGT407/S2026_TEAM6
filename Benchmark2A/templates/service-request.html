@@ -14,42 +14,30 @@
 </div>
 
 <div class="date-picker-bar mb-4">
-  <h2 class="date-picker-title mb-3">Select a Date</h2>
+  <h2 class="date-picker-title mb-3">Request Details</h2>
   <div class="row g-3">
     <div class="col-md-4">
-      <label for="selectMonth" class="form-label picker-label">Month</label>
-      <select id="selectMonth" class="form-select picker-select">
-        <option value="">-- Month --</option>
-        <option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option>
+      <label for="requestedDate" class="form-label picker-label">Requested Date</label>
+      <input id="requestedDate" class="form-select picker-select" type="date" />
+    </div>
+    <div class="col-md-4">
+      <label for="locationSelect" class="form-label picker-label">Location</label>
+      <select id="locationSelect" class="form-select picker-select">
+        <option value="">Loading locations...</option>
       </select>
     </div>
     <div class="col-md-4">
-      <label for="selectDay" class="form-label picker-label">Day</label>
-      <select id="selectDay" class="form-select picker-select">
-        <option value="">-- Day --</option>
-        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option>
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label for="selectYear" class="form-label picker-label">Year</label>
-      <select id="selectYear" class="form-select picker-select">
-        <option value="">-- Year --</option>
-        <option>2026</option><option>2027</option><option>2028</option>
-      </select>
+      <label for="requestNotes" class="form-label picker-label">Notes (Optional)</label>
+      <input id="requestNotes" class="form-select picker-select" type="text" placeholder="Any service notes" />
     </div>
   </div>
 </div>
 
 <h2 class="services-heading mb-3">Available Services</h2>
-<div class="row g-3">
-  <div class="col-md-6"><button class="service-btn w-100">Plant Installation</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Weekly Maintenance</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Irrigation Setup</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Tree Pruning</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Lawn Care</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Pest Control</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Fertilization</button></div>
-  <div class="col-md-6"><button class="service-btn w-100">Consultation</button></div>
+<div class="row g-3" id="serviceButtonsContainer">
+  <div class="col-md-12">
+    <div class="job-card">Loading services...</div>
+  </div>
 </div>
 
 <div class="mt-4 text-end">
@@ -67,6 +55,7 @@
         <p>Your request has been received. A specialist will contact you shortly.</p>
         <p><strong>Service:</strong> <span id="confirm-service"></span></p>
         <p><strong>Date:</strong> <span id="confirm-date"></span></p>
+        <p><strong>Location:</strong> <span id="confirm-location"></span></p>
       </div>
       <div class="modal-footer">
         <a href="{{ url_for('appointments_page') }}" class="book-appt-btn btn-modal-secondary">View Appointments</a>
@@ -83,36 +72,153 @@
 
 {% block page_js %}
 <script>
-  document.querySelectorAll('.service-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.service-btn').forEach(function(b) { b.classList.remove('selected-service'); });
-      this.classList.add('selected-service');
+  var selectedService = null;
+  var selectedServiceName = '';
+  var selectLocation = document.getElementById('locationSelect');
+  var requestedDate = document.getElementById('requestedDate');
+  var requestNotes = document.getElementById('requestNotes');
+  var submitButton = document.getElementById('submit-request');
+  var servicesContainer = document.getElementById('serviceButtonsContainer');
+
+  function makeServiceButton(service) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'col-md-6';
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'service-btn w-100';
+    button.textContent = service.service_name || ('Service #' + String(service.service_id));
+    button.dataset.serviceId = String(service.service_id);
+
+    button.addEventListener('click', function () {
+      document.querySelectorAll('.service-btn').forEach(function (item) {
+        item.classList.remove('selected-service');
+      });
+      button.classList.add('selected-service');
+      selectedService = service.service_id;
+      selectedServiceName = button.textContent.trim();
     });
-  });
 
-  document.getElementById('submit-request').addEventListener('click', function() {
-    var month = document.getElementById('selectMonth').value;
-    var day = document.getElementById('selectDay').value;
-    var year = document.getElementById('selectYear').value;
-    var selected = document.querySelector('.service-btn.selected-service');
+    wrapper.appendChild(button);
+    return wrapper;
+  }
 
-    if (!month || !day || !year) {
-      alert('Please select a full date (Month, Day, and Year).');
+  async function fetchJson(url) {
+    var response = await fetch(url);
+    var payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || ('Request failed: ' + response.status));
+    }
+    return payload;
+  }
+
+  function setDefaultDate() {
+    var now = new Date();
+    now.setDate(now.getDate() + 1);
+    requestedDate.value = now.toISOString().slice(0, 10);
+    requestedDate.min = now.toISOString().slice(0, 10);
+  }
+
+  async function loadFormData() {
+    try {
+      setDefaultDate();
+
+      var results = await Promise.all([
+        fetchJson('/services'),
+        fetchJson('/client/me')
+      ]);
+
+      var services = Array.isArray(results[0]) ? results[0] : [];
+      var profile = results[1] || {};
+      var locations = profile.locations || [];
+
+      servicesContainer.innerHTML = '';
+      if (!services.length) {
+        servicesContainer.innerHTML = '<div class="col-md-12"><div class="job-card">No services are configured yet.</div></div>';
+      } else {
+        services.forEach(function (service) {
+          servicesContainer.appendChild(makeServiceButton(service));
+        });
+      }
+
+      selectLocation.innerHTML = '';
+      if (!locations.length) {
+        selectLocation.innerHTML = '<option value="">No locations on file</option>';
+      } else {
+        selectLocation.innerHTML = '<option value="">Select a location</option>';
+        locations.forEach(function (location) {
+          var option = document.createElement('option');
+          option.value = String(location.location_id);
+          option.textContent = (location.location_name || 'Location') + ' - ' +
+            [location.street_1, location.city, location.state].filter(Boolean).join(', ');
+          selectLocation.appendChild(option);
+        });
+      }
+    } catch (error) {
+      servicesContainer.innerHTML = '<div class="col-md-12"><div class="job-card">' + (error.message || 'Unable to load form data.') + '</div></div>';
+      selectLocation.innerHTML = '<option value="">Unable to load locations</option>';
+    }
+  }
+
+  submitButton.addEventListener('click', async function () {
+    var locationId = selectLocation.value;
+    var dateValue = requestedDate.value;
+
+    if (!locationId) {
+      alert('Please select a location.');
       return;
     }
-    if (!selected) {
+    if (!dateValue) {
+      alert('Please choose a requested date.');
+      return;
+    }
+    if (!selectedService) {
       alert('Please select a service from the list.');
       return;
     }
 
-    document.getElementById('confirm-service').textContent = selected.textContent.trim();
-    document.getElementById('confirm-date').textContent = month + ' ' + day + ', ' + year;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
 
-    var appointments = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
-    appointments.push({ service: selected.textContent.trim(), date: month + ' ' + day + ', ' + year });
-    localStorage.setItem('plantedAppointments', JSON.stringify(appointments));
+    try {
+      var response = await fetch('/service-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          location_id: Number(locationId),
+          service_id: Number(selectedService),
+          requested_date: dateValue,
+          requested_notes: (requestNotes.value || '').trim()
+        })
+      });
 
-    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+      var payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to submit service request.');
+      }
+
+      var selectedLocationLabel = selectLocation.options[selectLocation.selectedIndex].textContent;
+      document.getElementById('confirm-service').textContent = selectedServiceName;
+      document.getElementById('confirm-date').textContent = dateValue;
+      document.getElementById('confirm-location').textContent = selectedLocationLabel;
+      new bootstrap.Modal(document.getElementById('confirmModal')).show();
+
+      requestNotes.value = '';
+      selectedService = null;
+      selectedServiceName = '';
+      document.querySelectorAll('.service-btn').forEach(function (item) {
+        item.classList.remove('selected-service');
+      });
+    } catch (error) {
+      alert(error.message || 'Unable to submit request right now.');
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Request Service';
+    }
   });
+
+  loadFormData();
 </script>
 {% endblock %}

@@ -14,64 +14,27 @@
 </div>
 
 <div class="row mb-4">
-  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Outstanding Balance</div><div class="stat-number" id="inv-balance">$245.00</div></div></div>
-  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Paid (All Time)</div><div class="stat-number">$500</div></div></div>
-  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Invoices</div><div class="stat-number">6</div></div></div>
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Outstanding Balance</div><div class="stat-number" id="inv-balance">$0.00</div></div></div>
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Paid (All Time)</div><div class="stat-number" id="inv-paid-total">$0.00</div></div></div>
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Invoices</div><div class="stat-number" id="inv-total-count">0</div></div></div>
 </div>
 
-<div class="overdue-alert d-flex align-items-center justify-content-between mb-4">
+<div class="overdue-alert d-flex align-items-center justify-content-between mb-4" id="overdue-alert">
   <div>
-    <div class="overdue-alert-title">You have 1 overdue invoice.</div>
-    <div class="overdue-alert-sub">Please settle your balance to avoid any service interruptions</div>
+    <div class="overdue-alert-title" id="overdue-alert-title">No overdue invoices.</div>
+    <div class="overdue-alert-sub" id="overdue-alert-sub">You're all caught up.</div>
   </div>
-  <button class="pay-now-btn">Pay Now</button>
+  <button class="pay-now-btn" id="overdue-focus-btn" type="button">View Overdue</button>
 </div>
 
 <div class="invoice-tabs mb-3">
-  <button class="inv-tab active-tab" data-filter="all">All (3)</button>
-  <button class="inv-tab" data-filter="due">Due (1)</button>
-  <button class="inv-tab" data-filter="overdue">Overdue (1)</button>
-  <button class="inv-tab" data-filter="paid">Paid (1)</button>
+  <button class="inv-tab active-tab" data-filter="all" id="tab-all">All (0)</button>
+  <button class="inv-tab" data-filter="due" id="tab-due">Due (0)</button>
+  <button class="inv-tab" data-filter="overdue" id="tab-overdue">Overdue (0)</button>
+  <button class="inv-tab" data-filter="paid" id="tab-paid">Paid (0)</button>
 </div>
 
-<div class="invoice-row mb-3" data-status="due">
-  <div class="row align-items-center">
-    <div class="col-md-7">
-      <div class="inv-number">INV-2026-088</div>
-      <div class="inv-service">Pest &amp; Disease Inspection</div>
-      <div class="inv-dates">Due Mar 20, 2026 &middot; Issued Mar 6, 2026</div>
-    </div>
-    <div class="col-md-2 text-center"><span class="inv-status status-due">&#x25CF; Due</span></div>
-    <div class="col-md-2 text-center"><div class="inv-amount">$125</div><div class="inv-currency">AUD incl. GST</div></div>
-    <div class="col-md-1 text-end"><button class="inv-pay-btn">Pay</button></div>
-  </div>
-</div>
-
-<div class="invoice-row mb-3" data-status="overdue">
-  <div class="row align-items-center">
-    <div class="col-md-7">
-      <div class="inv-number">INV-2026-007</div>
-      <div class="inv-service">New Plant Consultation</div>
-      <div class="inv-dates">Due Feb 14, 2026 &middot; Issued Feb 1, 2026</div>
-    </div>
-    <div class="col-md-2 text-center"><span class="inv-status status-overdue">&#x25CF; Overdue</span></div>
-    <div class="col-md-2 text-center"><div class="inv-amount">$72</div><div class="inv-currency">AUD incl. GST</div></div>
-    <div class="col-md-1 text-end"><button class="inv-pay-btn">Pay</button></div>
-  </div>
-</div>
-
-<div class="invoice-row mb-3" data-status="paid">
-  <div class="row align-items-center">
-    <div class="col-md-7">
-      <div class="inv-number">INV-2026-006</div>
-      <div class="inv-service">Plant Maintenance</div>
-      <div class="inv-dates">Due Mar 20, 2026 &middot; Issued Mar 6, 2026</div>
-    </div>
-    <div class="col-md-2 text-center"><span class="inv-status status-paid">&#x25CF; Paid</span></div>
-    <div class="col-md-2 text-center"><div class="inv-amount">$250</div><div class="inv-currency">AUD incl. GST</div></div>
-    <div class="col-md-1 text-end"><button class="inv-pay-btn" disabled>Paid</button></div>
-  </div>
-</div>
+<div id="invoice-rows"></div>
 {% endblock %}
 
 {% block vendor_js %}
@@ -80,67 +43,158 @@
 
 {% block page_js %}
 <script>
-  function syncBalance() {
-    var total = 0;
-    document.querySelectorAll('.invoice-row').forEach(function(row) {
-      if (row.dataset.status !== 'paid') {
-        var amt = parseFloat(row.querySelector('.inv-amount').textContent.replace('$', '')) || 0;
-        total += amt;
-      }
-    });
-    document.getElementById('inv-balance').textContent = '$' + total.toFixed(2);
-    localStorage.setItem('plantedBalance', total.toFixed(2));
+  var invoiceRows = document.getElementById('invoice-rows');
+  var tabButtons = document.querySelectorAll('.inv-tab');
+
+  function toCurrency(value) {
+    return '$' + (Number(value) || 0).toFixed(2);
   }
 
-  syncBalance();
-
-  document.querySelectorAll('.inv-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      document.querySelectorAll('.inv-tab').forEach(function(t) { t.classList.remove('active-tab'); });
-      this.classList.add('active-tab');
-      var filter = this.dataset.filter;
-      document.querySelectorAll('.invoice-row').forEach(function(row) {
-        row.style.display = (filter === 'all' || row.dataset.status === filter) ? '' : 'none';
-      });
-    });
-  });
-
-  document.querySelectorAll('.inv-pay-btn:not([disabled])').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var row = this.closest('.invoice-row');
-      var service = row.querySelector('.inv-service').textContent;
-      var amount = row.querySelector('.inv-amount').textContent;
-      if (confirm('Pay ' + amount + ' for "' + service + '"?')) {
-        var badge = row.querySelector('.inv-status');
-        badge.className = 'inv-status status-paid';
-        badge.innerHTML = '&#x25CF; Paid';
-        row.dataset.status = 'paid';
-        this.textContent = 'Paid';
-        this.disabled = true;
-        syncBalance();
-        if (!document.querySelector('.invoice-row[data-status="overdue"]')) {
-          document.querySelector('.overdue-alert').classList.add('d-none');
-        }
-      }
-    });
-  });
-
-  document.querySelector('.pay-now-btn').addEventListener('click', function() {
-    var overdueRow = document.querySelector('.invoice-row[data-status="overdue"]');
-    if (!overdueRow) return;
-    var service = overdueRow.querySelector('.inv-service').textContent;
-    var amount = overdueRow.querySelector('.inv-amount').textContent;
-    if (confirm('Pay ' + amount + ' for "' + service + '"?')) {
-      var badge = overdueRow.querySelector('.inv-status');
-      badge.className = 'inv-status status-paid';
-      badge.innerHTML = '&#x25CF; Paid';
-      overdueRow.dataset.status = 'paid';
-      var payBtn = overdueRow.querySelector('.inv-pay-btn');
-      payBtn.textContent = 'Paid';
-      payBtn.disabled = true;
-      syncBalance();
-      document.querySelector('.overdue-alert').classList.add('d-none');
+  function toDateLabel(dateText) {
+    if (!dateText) {
+      return 'N/A';
     }
+    var dateValue = new Date(dateText + 'T00:00:00');
+    if (Number.isNaN(dateValue.getTime())) {
+      return dateText;
+    }
+    return dateValue.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function classifyInvoice(invoice) {
+    var status = String(invoice.status || '').toLowerCase();
+    if (status === 'paid') {
+      return 'paid';
+    }
+
+    var dueDate = invoice.due_date ? new Date(invoice.due_date + 'T00:00:00') : null;
+    var today = new Date(new Date().toDateString());
+    if (status === 'overdue' || (dueDate && dueDate < today)) {
+      return 'overdue';
+    }
+    return 'due';
+  }
+
+  function statusClass(filterValue) {
+    if (filterValue === 'paid') {
+      return 'status-paid';
+    }
+    if (filterValue === 'overdue') {
+      return 'status-overdue';
+    }
+    return 'status-due';
+  }
+
+  function statusText(filterValue) {
+    if (filterValue === 'paid') {
+      return 'Paid';
+    }
+    if (filterValue === 'overdue') {
+      return 'Overdue';
+    }
+    return 'Due';
+  }
+
+  function applyFilter(filterName) {
+    document.querySelectorAll('.invoice-row').forEach(function (row) {
+      row.style.display = (filterName === 'all' || row.dataset.status === filterName) ? '' : 'none';
+    });
+  }
+
+  function renderInvoiceRow(invoice, filterValue) {
+    var row = document.createElement('div');
+    row.className = 'invoice-row mb-3';
+    row.dataset.status = filterValue;
+
+    row.innerHTML =
+      '<div class="row align-items-center">' +
+        '<div class="col-md-7">' +
+          '<div class="inv-number">' + (invoice.invoice_number || ('Invoice #' + String(invoice.invoice_id))) + '</div>' +
+          '<div class="inv-service">' + (invoice.company_name || 'Planted Service') + '</div>' +
+          '<div class="inv-dates">Due ' + toDateLabel(invoice.due_date) + ' &middot; Issued ' + toDateLabel(invoice.issue_date) + '</div>' +
+        '</div>' +
+        '<div class="col-md-2 text-center"><span class="inv-status ' + statusClass(filterValue) + '">&#x25CF; ' + statusText(filterValue) + '</span></div>' +
+        '<div class="col-md-2 text-center"><div class="inv-amount">' + toCurrency(invoice.total_amount) + '</div><div class="inv-currency">AUD incl. GST</div></div>' +
+        '<div class="col-md-1 text-end"><button class="inv-pay-btn" type="button">View</button></div>' +
+      '</div>';
+
+    row.querySelector('.inv-pay-btn').addEventListener('click', function () {
+      alert('Invoice ' + (invoice.invoice_number || invoice.invoice_id) + '\nStatus: ' + statusText(filterValue) + '\nAmount: ' + toCurrency(invoice.total_amount));
+    });
+
+    return row;
+  }
+
+  async function loadInvoices() {
+    try {
+      var response = await fetch('/invoices');
+      var invoices = await response.json();
+      if (!response.ok) {
+        throw new Error(invoices.error || 'Unable to load invoices.');
+      }
+
+      invoices = Array.isArray(invoices) ? invoices : [];
+      var counts = { all: invoices.length, due: 0, overdue: 0, paid: 0 };
+      var totals = { outstanding: 0, paid: 0 };
+
+      invoiceRows.innerHTML = '';
+      invoices.forEach(function (invoice) {
+        var filterValue = classifyInvoice(invoice);
+        counts[filterValue] += 1;
+        if (filterValue === 'paid') {
+          totals.paid += Number(invoice.total_amount) || 0;
+        } else {
+          totals.outstanding += Number(invoice.total_amount) || 0;
+        }
+        invoiceRows.appendChild(renderInvoiceRow(invoice, filterValue));
+      });
+
+      if (!invoices.length) {
+        invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">No invoices found.</div></div></div>';
+      }
+
+      document.getElementById('inv-balance').textContent = toCurrency(totals.outstanding);
+      document.getElementById('inv-paid-total').textContent = toCurrency(totals.paid);
+      document.getElementById('inv-total-count').textContent = String(counts.all);
+
+      document.getElementById('tab-all').textContent = 'All (' + counts.all + ')';
+      document.getElementById('tab-due').textContent = 'Due (' + counts.due + ')';
+      document.getElementById('tab-overdue').textContent = 'Overdue (' + counts.overdue + ')';
+      document.getElementById('tab-paid').textContent = 'Paid (' + counts.paid + ')';
+
+      var overdueAlert = document.getElementById('overdue-alert');
+      var overdueTitle = document.getElementById('overdue-alert-title');
+      var overdueSub = document.getElementById('overdue-alert-sub');
+      if (counts.overdue > 0) {
+        overdueAlert.classList.remove('d-none');
+        overdueTitle.textContent = 'You have ' + counts.overdue + ' overdue invoice' + (counts.overdue === 1 ? '' : 's') + '.';
+        overdueSub.textContent = 'Please settle overdue balances to avoid service interruptions.';
+      } else {
+        overdueAlert.classList.add('d-none');
+      }
+
+      applyFilter('all');
+    } catch (error) {
+      invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">' + (error.message || 'Unable to load invoices.') + '</div></div></div>';
+    }
+  }
+
+  tabButtons.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabButtons.forEach(function (item) { item.classList.remove('active-tab'); });
+      tab.classList.add('active-tab');
+      applyFilter(tab.dataset.filter);
+    });
   });
+
+  document.getElementById('overdue-focus-btn').addEventListener('click', function () {
+    document.getElementById('tab-overdue').click();
+  });
+
+  loadInvoices();
 </script>
 {% endblock %}
