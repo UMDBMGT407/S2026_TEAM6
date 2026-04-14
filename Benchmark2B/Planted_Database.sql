@@ -58,7 +58,8 @@ CREATE TABLE clients (
     company_name VARCHAR(255),
     member_since DATETIME,
     account_status VARCHAR(50),
-    FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
+    FOREIGN KEY (contact_user_id) REFERENCES users(user_id),
+    FOREIGN KEY (member_since) REFERENCES users(created_at)
 );
 
 CREATE TABLE client_locations (
