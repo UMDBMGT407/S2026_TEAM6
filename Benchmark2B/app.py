@@ -30,6 +30,39 @@ app.config['MYSQL_DB'] = 'user_management'
 mysql = MySQL(app)
 SCHEMA_PATH = os.path.join(base_dir, 'Planted_Database.sql')
 
+# --- Ensure suppliers table has is_active ---
+def ensure_suppliers_table():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        # Check if table exists
+        cur.execute("SHOW TABLES LIKE 'suppliers'")
+        if not cur.fetchone():
+            # Create the table
+            cur.execute("""
+                CREATE TABLE suppliers (
+                    supplier_id INT PRIMARY KEY AUTO_INCREMENT,
+                    supplier_name VARCHAR(255) NOT NULL,
+                    phone VARCHAR(30),
+                    email VARCHAR(255),
+                    address_id INT,
+                    total_orders INT DEFAULT 0,
+                    last_order_date DATE,
+                    status ENUM('Ordered','Shipped','Delivered'),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    FOREIGN KEY (address_id) REFERENCES addresses(address_id)
+                )
+            """)
+        else:
+            # Add column if not exists
+            try:
+                cur.execute("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+            except:
+                pass  # Column exists
+        mysql.connection.commit()
+        cur.close()
+
+ensure_suppliers_table()
+
 # --- Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -315,18 +348,21 @@ def index_page():
 
 @app.route('/appointments.html')
 @login_required
+@role_required('Client')
 def appointments_page():
     return render_template('appointments.html')
 
 
 @app.route('/service-request.html')
 @login_required
+@role_required('Client')
 def service_request_page():
     return render_template('service-request.html')
 
 
 @app.route('/invoices.html')
 @login_required
+@role_required('Client')
 def invoices_page():
     return render_template('invoices.html')
 
@@ -379,50 +415,65 @@ def job_order_page():
     return render_template('job-order.html')
 
 
+@app.route('/services.html')
+@login_required
+@role_required('Management')
+def services_page():
+    return render_template('services.html')
+
+
 @app.route('/staff-scheduling-dashboard.html')
 @login_required
+@role_required('Staff')
 def staff_scheduling_dashboard_page():
     return render_template('staff-scheduling-dashboard.html')
 
 
 @app.route('/task-management-dashboard.html')
 @login_required
+@role_required('Staff')
 def task_management_dashboard_page():
     return render_template('task-management-dashboard.html')
 
 
 @app.route('/inventory-dashboard.html')
 @login_required
+@role_required('Staff')
 def inventory_dashboard_page():
     return render_template('inventory-dashboard.html')
 
 
 @app.route('/availability-entry.html')
 @login_required
+@role_required('Staff')
 def availability_entry_page():
     return redirect(url_for('staff_scheduling_dashboard_page', modal='availability'))
 
 
 @app.route('/material-requests.html')
 @login_required
+@role_required('Staff')
 def material_requests_page():
     return redirect(url_for('inventory_dashboard_page', modal='request'))
 
 
 @app.route('/used-material-log.html')
 @login_required
+@role_required('Staff')
 def used_material_log_page():
     return redirect(url_for('inventory_dashboard_page', modal='usage'))
 
 
 @app.route('/job-materials.html')
 @login_required
+@role_required('Staff')
 def job_materials_page():
     return redirect(url_for('task_management_dashboard_page', modal='materials'))
 
 
 @app.route('/contact-client.html')
 @login_required
+@role_required('Staff')
 def contact_client_page():
     return redirect(url_for('task_management_dashboard_page', modal='contact'))
 
@@ -459,8 +510,8 @@ def add_user():
         cur = mysql.connection.cursor()
 
         sql = """
-            INSERT INTO users (first_name, last_name, email, password, role, phone)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO users (first_name, last_name, email, password, role, phone, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE)
         """
         cur.execute(sql, (first_name, last_name, email, password, role, phone))
         
@@ -497,7 +548,8 @@ def get_users():
         SELECT user_id,
                CONCAT(first_name, ' ', last_name) AS name,
                email,
-               role
+               role,
+               is_active
         FROM users
         ORDER BY user_id
         """
@@ -512,7 +564,8 @@ def get_users():
         user_data = {
             'id': user[0],
             'name': user[1],
-            'role': user[3]
+            'role': user[3],
+            'is_active': bool(user[4])
         }
 
         if is_admin():
@@ -530,12 +583,28 @@ def get_users():
 def delete_user(id):
     cur = mysql.connection.cursor()
 
-    cur.execute("DELETE FROM users WHERE user_id = %s", [id])
+    # Soft-delete: mark the user inactive instead of deleting the row
+    cur.execute("UPDATE users SET is_active = FALSE WHERE user_id = %s", (id,))
 
     mysql.connection.commit()
     cur.close()
 
-    return jsonify(message="User deleted successfully")
+    return jsonify(message="User marked inactive successfully")
+
+
+@app.route('/user/<int:id>/reactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def reactivate_user(id):
+    cur = mysql.connection.cursor()
+
+    # Reactivate the user account
+    cur.execute("UPDATE users SET is_active = TRUE WHERE user_id = %s", (id,))
+
+    mysql.connection.commit()
+    cur.close()
+
+    return jsonify(message="User reactivated successfully")
 
 
 # --- Get Employees (Staff only) ---
@@ -544,21 +613,37 @@ def delete_user(id):
 @role_required('Management')
 def get_employees():
     cur = mysql.connection.cursor()
+    # Optional search filter
+    search = request.args.get('search', '').strip()
 
-    cur.execute(
-        """
+    base_sql = """
      SELECT u.user_id,
          CONCAT(u.first_name, ' ', u.last_name) AS name,
          u.email,
+         u.is_active,
          u.phone,
          u.role,
-         e.employee_id
+         e.employee_id,
+         e.employee_code,
+         e.job_title,
+         e.employment_status,
+         e.hire_date,
+         e.pay_rate_hourly
      FROM users u
      LEFT JOIN employees e ON e.user_id = u.user_id
-     WHERE u.role = 'Staff'
-     ORDER BY u.user_id
-        """
-    )
+     WHERE u.role = 'Staff' AND e.employee_id IS NOT NULL
+    """
+
+    params = []
+    if search:
+        # match against name or email
+        base_sql += " AND (CONCAT(u.first_name, ' ', u.last_name) LIKE %s OR u.email LIKE %s)"
+        like_term = f"%{search}%"
+        params.extend([like_term, like_term])
+
+    base_sql += " ORDER BY u.user_id"
+
+    cur.execute(base_sql, tuple(params))
     employees = cur.fetchall()
     cur.close()
 
@@ -568,12 +653,272 @@ def get_employees():
             'id': emp[0],
             'name': emp[1],
             'email': emp[2],
-            'phone': emp[3],
-            'role': emp[4],
-            'employee_id': emp[5]
+            'is_active': bool(emp[3]),
+            'phone': emp[4],
+            'role': emp[5],
+            'employee_id': emp[6],
+            'employee_code': emp[7],
+            'job_title': emp[8],
+            'employment_status': emp[9],
+            'hire_date': emp[10].isoformat() if emp[10] is not None else None,
+            'pay_rate_hourly': float(emp[11]) if emp[11] is not None else None
         })
 
     return jsonify(employee_list)
+
+
+# --- Services API ---
+@app.route('/services', methods=['GET'])
+@login_required
+def get_services():
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "SELECT service_id, service_name, description, base_price FROM services ORDER BY service_name"
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    services = []
+    for row in rows:
+        services.append({
+            'service_id': row[0],
+            'service_name': row[1],
+            'description': row[2],
+            'base_price': float(row[3]) if row[3] is not None else 0.0
+        })
+
+    return jsonify(services)
+
+
+@app.route('/services', methods=['POST'])
+@login_required
+@role_required('Management')
+def add_service():
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    service_name = (data.get('service_name') or '').strip()
+    description = data.get('description', '').strip()
+    base_price = data.get('base_price')
+
+    if not service_name or base_price in (None, ''):
+        return jsonify(error='service_name and base_price are required'), 400
+
+    try:
+        base_price = float(base_price)
+    except ValueError:
+        return jsonify(error='base_price must be a number'), 400
+
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "INSERT INTO services (service_name, description, base_price) VALUES (%s, %s, %s)",
+        (service_name, description, base_price)
+    )
+    mysql.connection.commit()
+    service_id = cur.lastrowid
+    cur.close()
+
+    return jsonify(message='Service added successfully', service_id=service_id), 201
+
+
+# --- Suppliers API ---
+@app.route('/suppliers', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_suppliers():
+    cur = mysql.connection.cursor()
+    search = request.args.get('search', '').strip()
+
+    base_sql = """
+        SELECT supplier_id, supplier_name, phone, email, total_orders, last_order_date, is_active
+        FROM suppliers
+    """
+
+    params = []
+    if search:
+        base_sql += " WHERE supplier_name LIKE %s OR email LIKE %s"
+        like_term = f"%{search}%"
+        params.extend([like_term, like_term])
+
+    base_sql += " ORDER BY supplier_name"
+
+    cur.execute(base_sql, tuple(params))
+    suppliers = cur.fetchall()
+    cur.close()
+
+    supplier_list = []
+    for sup in suppliers:
+        supplier_list.append({
+            'supplier_id': sup[0],
+            'supplier_name': sup[1],
+            'phone': sup[2],
+            'email': sup[3],
+            'total_orders': sup[4],
+            'last_order_date': sup[5].isoformat() if sup[5] is not None else None,
+            'is_active': bool(sup[6])
+        })
+
+    return jsonify(supplier_list)
+
+
+@app.route('/suppliers/<int:supplier_id>/deactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def deactivate_supplier(supplier_id):
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE suppliers SET is_active = FALSE WHERE supplier_id = %s", (supplier_id,))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Supplier deactivated successfully')
+
+
+@app.route('/suppliers/<int:supplier_id>/reactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def reactivate_supplier(supplier_id):
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE suppliers SET is_active = TRUE WHERE supplier_id = %s", (supplier_id,))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Supplier reactivated successfully')
+
+
+@app.route('/suppliers', methods=['POST'])
+@login_required
+@role_required('Management')
+def add_supplier():
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    supplier_name = (data.get('supplier_name') or '').strip()
+    phone = data.get('phone', '').strip()
+    email = data.get('email', '').strip()
+
+    if not supplier_name or not email:
+        return jsonify(error='supplier_name and email are required'), 400
+
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "INSERT INTO suppliers (supplier_name, phone, email) VALUES (%s, %s, %s)",
+        (supplier_name, phone, email)
+    )
+    mysql.connection.commit()
+    supplier_id = cur.lastrowid
+    cur.close()
+
+    return jsonify(message='Supplier added successfully', supplier_id=supplier_id), 201
+
+
+# --- Jobs API (Management) ---
+@app.route('/jobs', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_jobs():
+    cur = mysql.connection.cursor()
+
+    cur.execute(
+        """
+        SELECT jo.job_order_id,
+               jo.title,
+               c.company_name,
+               jo.scheduled_date,
+               jo.start_time,
+               jo.end_time,
+               addr.street_1,
+               addr.city,
+               addr.state,
+               jo.location_id,
+               jo.assigned_employee_id,
+               u.first_name,
+               u.last_name,
+               jo.status
+        FROM job_orders jo
+        LEFT JOIN clients c ON jo.client_id = c.client_id
+        LEFT JOIN client_locations cl ON jo.location_id = cl.location_id
+        LEFT JOIN addresses addr ON cl.address_id = addr.address_id
+        LEFT JOIN employees e ON jo.assigned_employee_id = e.employee_id
+        LEFT JOIN users u ON e.user_id = u.user_id
+        ORDER BY jo.scheduled_date IS NULL, jo.scheduled_date, jo.start_time
+        """
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    jobs = []
+    for r in rows:
+        job_id = r[0]
+        title = r[1]
+        company = r[2]
+        scheduled_date = r[3].isoformat() if r[3] is not None else None
+        start_time = r[4].strftime('%H:%M') if r[4] is not None else None
+        end_time = r[5].strftime('%H:%M') if r[5] is not None else None
+        street = r[6]
+        city = r[7]
+        state = r[8]
+        location = None
+        if street:
+            location = street
+            if city:
+                location += ', ' + city
+            if state:
+                location += ', ' + state
+        assigned_employee_id = r[10]
+        assigned_name = None
+        if r[11] and r[12]:
+            assigned_name = f"{r[11]} {r[12]}"
+        status = r[13]
+
+        jobs.append({
+            'id': job_id,
+            'title': title,
+            'company': company,
+            'scheduled_date': scheduled_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'location': location,
+            'assigned_employee_id': assigned_employee_id,
+            'assigned_name': assigned_name,
+            'status': status
+        })
+
+    return jsonify(jobs)
+
+
+@app.route('/jobs/<int:job_id>/assign', methods=['POST'])
+@login_required
+@role_required('Management')
+def assign_job(job_id):
+    data = None
+    try:
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+    except Exception:
+        return jsonify(error='Invalid request body'), 400
+
+    employee_id = data.get('employee_id')
+    # allow null/unassign
+    if employee_id in ('', None):
+        assigned_val = None
+    else:
+        try:
+            assigned_val = int(employee_id)
+        except Exception:
+            return jsonify(error='employee_id must be integer or null'), 400
+
+    cur = mysql.connection.cursor()
+    if assigned_val is None:
+        cur.execute("UPDATE job_orders SET assigned_employee_id = NULL, status = %s WHERE job_order_id = %s", ('Unassigned', job_id))
+    else:
+        cur.execute("UPDATE job_orders SET assigned_employee_id = %s, status = %s WHERE job_order_id = %s", (assigned_val, 'Scheduled', job_id))
+
+    mysql.connection.commit()
+    cur.close()
+
+    return jsonify(message='Assignment updated')
 
 
 # ========================
@@ -912,10 +1257,15 @@ def run_schema_file():
     cur.close()
 
 
-@app.route('/init-db')
+@app.route('/init-db', methods=['POST'])
+@login_required
+@role_required('Management')
 def init_db():
-    run_schema_file()
-    return "Database initialized from Planted_Database.sql"
+    try:
+        run_schema_file()
+        return jsonify(message="Database initialized from Planted_Database.sql"), 200
+    except Exception as e:
+        return jsonify(error=f"Database initialization failed: {str(e)}"), 500
 
 
 @app.cli.command('init-db')
@@ -930,5 +1280,8 @@ def init_db_command():
 # ========================
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=True, host='127.0.0.1', port=port)
+
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='127.0.0.1', port=port)
