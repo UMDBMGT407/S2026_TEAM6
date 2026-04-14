@@ -372,3 +372,122 @@ INSERT INTO users (
     1
 );
 
+-- DUMMY DATA
+
+
+-- USERS
+INSERT INTO users (user_id, role, email, password, first_name, last_name, phone) VALUES
+(1, 'Management', 'admin@dcplants.com', 'hash', 'Angela', 'Reed', '202-555-0101'),
+(2, 'Staff', 'jason@dcplants.com', 'hash', 'Jason', 'Miller', '202-555-0102'),
+(3, 'Staff', 'maria@dcplants.com', 'hash', 'Maria', 'Lopez', '202-555-0103'),
+(4, 'Client', 'facilities@capitolco.com', 'hash', 'David', 'Kim', '202-555-0201'),
+(5, 'Client', 'admin@dupontlaw.com', 'hash', 'Rachel', 'Green', '202-555-0202');
+
+-- ADDRESSES
+INSERT INTO addresses (address_id, street_1, city, state, zip_code) VALUES
+(1, '1200 G St NW', 'Washington', 'DC', '20005'),
+(2, '2000 M St NW', 'Washington', 'DC', '20036'),
+(3, '1500 K St NW', 'Washington', 'DC', '20005'),
+(4, '7700 Old Georgetown Rd', 'Bethesda', 'MD', '20814'),
+(5, '2200 Crystal Dr', 'Arlington', 'VA', '22202'),
+(6, '900 7th St NW', 'Washington', 'DC', '20001');
+
+-- CLIENTS
+INSERT INTO clients (client_id, contact_user_id, company_name, member_since, account_status) VALUES
+(1, 4, 'Capitol CoWorking', '2023-01-15', 'Active'),
+(2, 5, 'Dupont Legal Group', '2024-03-10', 'Active');
+
+-- CLIENT LOCATIONS
+INSERT INTO client_locations (location_id, client_id, address_id, location_name) VALUES
+(1, 1, 1, 'Capitol HQ'),
+(2, 1, 3, 'Capitol Annex'),
+(3, 2, 2, 'Dupont Office');
+
+-- EMPLOYEES
+INSERT INTO employees (employee_id, user_id, employee_code, job_title, employment_status, hire_date, pay_rate_hourly, address_id) VALUES
+(1, 2, 'EMP001', 'Plant Technician', 'Active', '2022-06-01', 22.50, 4),
+(2, 3, 'EMP002', 'Senior Horticulturist', 'Active', '2021-02-15', 28.00, 5);
+
+-- EMPLOYEE SKILLS
+INSERT INTO employee_skills (employee_id, skill_name) VALUES
+(1, 'Indoor Plant Care'),
+(1, 'Watering Systems'),
+(2, 'Plant Diagnosis'),
+(2, 'Design & Installation');
+
+-- SUPPLIERS
+INSERT INTO suppliers (supplier_id, supplier_name, phone, email, address_id, status) VALUES
+(1, 'GreenGrow Nursery', '301-555-1111', 'sales@greengrow.com', 4, 'Delivered'),
+(2, 'Urban Plant Supply', '703-555-2222', 'info@urbanplants.com', 5, 'Delivered');
+
+-- PLANT MASTER
+INSERT INTO plant_master (plant_id, common_name, scientific_name, light_level, watering_frequency) VALUES
+(1, 'Snake Plant', 'Sansevieria trifasciata', 'Low', 'Biweekly'),
+(2, 'Fiddle Leaf Fig', 'Ficus lyrata', 'Bright', 'Weekly'),
+(3, 'Pothos', 'Epipremnum aureum', 'Low-Medium', 'Weekly');
+
+-- INVENTORY
+INSERT INTO inventory_items (item_id, item_name, item_type, plant_id, supplier_id, sku, unit_price, quantity_on_hand, reorder_level, unit_label) VALUES
+(1, 'Snake Plant 10in', 'Plant', 1, 1, 'SP-10', 25.00, 50, 10, 'each'),
+(2, 'Fiddle Leaf Fig 12in', 'Plant', 2, 1, 'FLF-12', 60.00, 20, 5, 'each'),
+(3, 'Potting Soil Bag', 'Supply', NULL, 2, 'SOIL-01', 8.50, 100, 20, 'bag');
+
+-- SERVICES
+INSERT INTO services (service_id, service_name, description, base_price) VALUES
+(1, 'Plant Maintenance', 'Routine watering and care', 150.00),
+(2, 'Plant Installation', 'New plant installation', 500.00),
+(3, 'Plant Replacement', 'Replace unhealthy plants', 200.00);
+
+-- SERVICE REQUESTS
+INSERT INTO service_requests (service_request_id, client_id, location_id, service_id, requested_date, status, approved_by) VALUES
+(1, 1, 1, 1, '2026-04-10', 'Approved', 1);
+
+-- APPOINTMENTS
+INSERT INTO appointments (appointment_id, client_id, location_id, service_id, service_request_id, assigned_employee_id, appointment_date, start_time, end_time, status) VALUES
+(1, 1, 1, 1, 1, 1, '2026-04-15', '09:00:00', '11:00:00', 'Scheduled');
+
+-- JOB ORDERS
+INSERT INTO job_orders (job_order_id, job_order_code, client_id, location_id, service_id, appointment_id, assigned_employee_id, title, scheduled_date, status, priority) VALUES
+(1, 'JOB-DC-001', 1, 1, 1, 1, 1, 'Weekly Plant Maintenance', '2026-04-15', 'Open', 'Medium');
+
+-- TASKS
+INSERT INTO tasks (task_id, job_order_id, assigned_employee_id, task_name, status) VALUES
+(1, 1, 1, 'Water Plants', 'Pending'),
+(2, 1, 1, 'Inspect Leaves', 'Pending');
+
+-- TASK MATERIALS
+INSERT INTO task_materials (task_id, item_id, required_quantity) VALUES
+(1, 3, 2.00);
+
+-- INVOICES
+INSERT INTO invoices (invoice_id, invoice_number, client_id, job_order_id, issue_date, due_date, subtotal, tax_amount, total_amount, status) VALUES
+(1, 'INV-DC-001', 1, 1, '2026-04-15', '2026-04-30', 150.00, 9.00, 159.00, 'Pending');
+
+-- INVOICE ITEMS
+INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total) VALUES
+(1, 'Plant Maintenance Service', 1, 150.00, 150.00);
+
+-- PAYMENTS
+INSERT INTO payments (invoice_id, payment_date, amount, payment_method) VALUES
+(1, '2026-04-16', 159.00, 'Credit Card');
+
+-- PAYROLL
+INSERT INTO payroll_periods (payroll_period_id, period_start, period_end, payment_date) VALUES
+(1, '2026-04-01', '2026-04-15', '2026-04-20');
+
+INSERT INTO payroll_records (payroll_period_id, employee_id, regular_hours, pay_rate, gross_pay, net_pay, payment_method) VALUES
+(1, 1, 80, 22.50, 1800.00, 1500.00, 'Direct Deposit');
+
+-- MATERIAL REQUESTS
+INSERT INTO material_requests (material_request_id, request_code, employee_id, task_id, status) VALUES
+(1, 'MR-001', 1, 1, 'Approved');
+
+INSERT INTO material_request_items (material_request_id, item_id, quantity_requested) VALUES
+(1, 3, 5.00);
+
+-- MATERIAL USAGE
+INSERT INTO material_usage_logs (usage_log_id, task_id, employee_id) VALUES
+(1, 1, 1);
+
+INSERT INTO material_usage_items (usage_log_id, item_id, quantity_used) VALUES
+(1, 3, 2.00);
