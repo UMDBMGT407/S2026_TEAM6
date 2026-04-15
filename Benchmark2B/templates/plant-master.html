@@ -43,53 +43,23 @@
 
 <div class="management-content-block">
   <div class="row g-4" id="plant-card-list">
-    <div class="col-md-4" data-plant-card data-plant-name="Monstera Deliciosa">
+    {% for p in plants %}
+    <div class="col-md-4" data-plant-card data-plant-name="{{ p.common_name }}">
       <div class="plant-card surface-card">
         <div class="d-flex align-items-center mb-3">
           <div class="plant-icon"><i class="bi bi-tree"></i></div>
           <div>
-            <div class="plant-title">Monstera Deliciosa</div>
-            <div class="plant-sub">Monstera deliciosa</div>
+            <div class="plant-title">{{ p.common_name }}</div>
+            <div class="plant-sub">{{ p.scientific_name }}</div>
           </div>
         </div>
-        <div class="info-row"><i class="bi bi-sun text-warning"></i>Bright Indirect Light</div>
-        <div class="info-row"><i class="bi bi-droplet text-primary"></i>Weekly</div>
-        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>65-85??F (18-29??C)</div>
-        <div class="info-row"><i class="bi bi-wind text-info"></i>Humidity: 60-80%</div>
+        <div class="info-row"><i class="bi bi-sun text-warning"></i>{{ p.light_level }}</div>
+        <div class="info-row"><i class="bi bi-droplet text-primary"></i>{{ p.watering_frequency }}</div>
+        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>{{ p.temperature_range }}</div>
+        <div class="info-row"><i class="bi bi-wind text-info"></i>{{ p.humidity_range }}</div>
       </div>
     </div>
-
-    <div class="col-md-4" data-plant-card data-plant-name="Golden Pothos">
-      <div class="plant-card surface-card">
-        <div class="d-flex align-items-center mb-3">
-          <div class="plant-icon"><i class="bi bi-tree"></i></div>
-          <div>
-            <div class="plant-title">Golden Pothos</div>
-            <div class="plant-sub">Epipremnum aureum</div>
-          </div>
-        </div>
-        <div class="info-row"><i class="bi bi-sun text-warning"></i>Low to Bright Indirect Light</div>
-        <div class="info-row"><i class="bi bi-droplet text-primary"></i>Every 1-2 Weeks</div>
-        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>65-85??F (18-29??C)</div>
-        <div class="info-row"><i class="bi bi-wind text-info"></i>Humidity: 40-60%</div>
-      </div>
-    </div>
-
-    <div class="col-md-4" data-plant-card data-plant-name="Snake Plant">
-      <div class="plant-card surface-card">
-        <div class="d-flex align-items-center mb-3">
-          <div class="plant-icon"><i class="bi bi-tree"></i></div>
-          <div>
-            <div class="plant-title">Snake Plant</div>
-            <div class="plant-sub">Dracaena trifasciata</div>
-          </div>
-        </div>
-        <div class="info-row"><i class="bi bi-sun text-warning"></i>Low to Bright Indirect Light</div>
-        <div class="info-row"><i class="bi bi-droplet text-primary"></i>Every 2-4 Weeks</div>
-        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>60-85??F (16-29??C)</div>
-        <div class="info-row"><i class="bi bi-wind text-info"></i>Humidity: 30-50%</div>
-      </div>
-    </div>
+    {% endfor %}
   </div>
 </div>
 
@@ -200,36 +170,55 @@
     if (!commonName || !scientificName) {
       return;
     }
-
-    var wrapper = document.createElement('div');
-    wrapper.className = 'col-md-4';
-    wrapper.dataset.plantCard = '';
-    wrapper.dataset.plantName = commonName;
-    wrapper.innerHTML = `
-      <div class="plant-card surface-card">
-        <div class="d-flex align-items-center mb-3">
-          <div class="plant-icon"><i class="bi bi-tree"></i></div>
-          <div>
-            <div class="plant-title">${commonName}</div>
-            <div class="plant-sub">${scientificName}</div>
+    // Persist to server
+    fetch('/api/plant_master', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        common_name: commonName,
+        scientific_name: scientificName,
+        light_level: sunlight,
+        watering_frequency: water,
+        temperature_range: temperature,
+        humidity_range: humidity
+      })
+    }).then(function(res) {
+      if (!res.ok) throw res;
+      return res.json();
+    }).then(function(data) {
+      var plant = data.plant || {};
+      var wrapper = document.createElement('div');
+      wrapper.className = 'col-md-4';
+      wrapper.dataset.plantCard = '';
+      wrapper.dataset.plantName = plant.common_name || commonName;
+      wrapper.innerHTML = `
+        <div class="plant-card surface-card">
+          <div class="d-flex align-items-center mb-3">
+            <div class="plant-icon"><i class="bi bi-tree"></i></div>
+            <div>
+              <div class="plant-title">${plant.common_name || commonName}</div>
+              <div class="plant-sub">${plant.scientific_name || scientificName}</div>
+            </div>
           </div>
+          <div class="info-row"><i class="bi bi-sun text-warning"></i>${plant.light_level || sunlight}</div>
+          <div class="info-row"><i class="bi bi-droplet text-primary"></i>${plant.watering_frequency || water}</div>
+          <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>${plant.temperature_range || temperature}</div>
+          <div class="info-row"><i class="bi bi-wind text-info"></i>${plant.humidity_range || humidity}</div>
         </div>
-        <div class="info-row"><i class="bi bi-sun text-warning"></i>${sunlight}</div>
-        <div class="info-row"><i class="bi bi-droplet text-primary"></i>${water}</div>
-        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>${temperature}</div>
-        <div class="info-row"><i class="bi bi-wind text-info"></i>${humidity}</div>
-      </div>
-    `;
-
-    plantCardList.prepend(wrapper);
-    plantCards.unshift(wrapper);
-    plantModal.hide();
-    document.getElementById('plant-name-input').value = '';
-    document.getElementById('plant-scientific-name-input').value = '';
-    document.getElementById('plant-sunlight-input').selectedIndex = 0;
-    document.getElementById('plant-water-input').selectedIndex = 0;
-    document.getElementById('plant-temperature-input').selectedIndex = 0;
-    document.getElementById('plant-humidity-input').selectedIndex = 0;
+      `;
+      plantCardList.prepend(wrapper);
+      plantCards.unshift(wrapper);
+      plantModal.hide();
+      document.getElementById('plant-name-input').value = '';
+      document.getElementById('plant-scientific-name-input').value = '';
+      document.getElementById('plant-sunlight-input').selectedIndex = 0;
+      document.getElementById('plant-water-input').selectedIndex = 0;
+      document.getElementById('plant-temperature-input').selectedIndex = 0;
+      document.getElementById('plant-humidity-input').selectedIndex = 0;
+    }).catch(function(err){
+      console.error('Failed to save plant', err);
+    });
   });
 </script>
 {% endblock %}
