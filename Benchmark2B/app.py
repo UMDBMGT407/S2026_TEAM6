@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import datetime, timedelta
 import os
+import random
 import click
 
 # =======================
@@ -24,7 +25,7 @@ app.config['SECRET_KEY'] = 'secret-key-change-this'
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Kkim8889.'
+app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
 app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
@@ -62,11 +63,55 @@ def ensure_suppliers_table():
         cur.close()
 
 ensure_suppliers_table()
+def ensure_client_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("ALTER TABLE client_locations ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+        except:
+            pass
+        try:
+            cur.execute("ALTER TABLE clients ADD CONSTRAINT uq_clients_contact_user UNIQUE (contact_user_id)")
+        except:
+            pass
+        try:
+            cur.execute("UPDATE client_locations SET is_active = TRUE WHERE is_active IS NULL")
+        except:
+            pass
+        mysql.connection.commit()
+        cur.close()
+
+ensure_client_schema()
+
+
+def ensure_services_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("ALTER TABLE services ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+        except:
+            pass
+        try:
+            cur.execute("UPDATE services SET is_active = TRUE WHERE is_active IS NULL")
+        except:
+            pass
+        mysql.connection.commit()
+        cur.close()
+
+
+ensure_services_schema()
 
 # --- Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+
+@login_manager.unauthorized_handler
+def handle_unauthorized():
+    if request.path.startswith('/api/') or request.path.startswith('/availability'):
+        return jsonify(error="Unauthorized - please log in"), 401
+    return redirect(url_for('login'))
 
 # ========================
 # USER CLASS
@@ -125,7 +170,7 @@ def role_required(*roles):
         def decorated_view(*args, **kwargs):
             if not current_user.is_authenticated:
                 # Return JSON for API requests, HTML abort for regular requests
-                if request.path.startswith('/availability'):
+                if request.path.startswith('/availability') or request.path.startswith('/api/'):
                     return jsonify(error="Unauthorized - not logged in"), 401
                 return redirect(url_for('login'))
             
@@ -136,7 +181,7 @@ def role_required(*roles):
             
             if not (is_management or has_required_role):
                 # Return JSON for API requests, HTML abort for regular requests
-                if request.path.startswith('/availability'):
+                if request.path.startswith('/availability') or request.path.startswith('/api/'):
                     return jsonify(error=f"Forbidden: {user_role} role cannot access this"), 403
                 return redirect_for_role(user_role)
             
@@ -154,9 +199,274 @@ def api_login_required(fn):
         return fn(*args, **kwargs)
     return decorated_view
 
-# ========================
-# ROUTES
-# ========================
+def ensure_client_record(cur, user_id, company_name=None):
+    cur.execute(
+        """
+        SELECT client_id FROM clients WHERE contact_user_id = %s LIMIT 1
+        """,
+        (user_id,)
+    )
+    existing = cur.fetchone()
+    if existing:
+        return existing[0]
+    
+    if not company_name:
+        cur.execute(
+            """
+            SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+        name_row = cur.fetchone()
+        company_name = name_row[0] if name_row and name_row[0] else f"Client {user_id}"
+
+    cur.execute(
+        """
+        INSERT INTO clients (contact_user_id, company_name, member_since, account_status)
+        VALUES (%s, %s, NOW(), %s)
+        """,
+        (user_id, company_name, 'Active')
+    )
+    return cur.lastrowid
+
+
+def generate_job_order_code(cur):
+    """Generate a collision-safe job order code."""
+    while True:
+        code = f"JO-{datetime.utcnow().strftime('%Y%m%d')}-{random.randint(10000, 99999)}"
+        cur.execute(
+            "SELECT 1 FROM job_orders WHERE job_order_code = %s LIMIT 1",
+            (code,)
+        )
+        if not cur.fetchone():
+            return code
+
+
+def parse_iso_date(value):
+    if not value:
+        return None
+    if hasattr(value, 'year') and hasattr(value, 'month') and hasattr(value, 'day'):
+        return value
+    try:
+        return datetime.strptime(str(value), '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def parse_time_value(value):
+    if not value:
+        return None
+    if hasattr(value, 'hour') and hasattr(value, 'minute'):
+        return value
+    text = str(value).strip()
+    for fmt in ('%H:%M', '%H:%M:%S'):
+        try:
+            return datetime.strptime(text, fmt).time()
+        except Exception:
+            continue
+    return None
+
+
+def format_time_hhmm(value):
+    if not value:
+        return None
+    if hasattr(value, 'strftime'):
+        return value.strftime('%H:%M')
+    parsed = parse_time_value(value)
+    return parsed.strftime('%H:%M') if parsed else None
+
+
+def weekday_to_db_day_of_week(target_date):
+    # Python: Monday=0..Sunday=6 -> DB: Sunday=0, Monday=1..Saturday=6
+    return (target_date.weekday() + 1) % 7
+
+
+def normalize_job_status(status):
+    return str(status or '').strip().lower()
+
+
+def check_employee_assignment_eligibility(cur, employee_id, scheduled_date, start_time, end_time, exclude_job_id=None):
+    """
+    Validate if an employee can be assigned for a specific date/time.
+    Rules:
+    1) Employee must be active Staff.
+    2) Employee availability must include the full requested window.
+    3) Employee must not have an overlapping non-completed/non-cancelled job.
+    """
+    result = {
+        'is_available': False,
+        'reason': None,
+        'employee_id': employee_id,
+        'employee_name': None,
+        'availability_from': None,
+        'availability_to': None,
+        'conflict_job_id': None,
+        'conflict_job_title': None
+    }
+
+    parsed_date = parse_iso_date(scheduled_date)
+    parsed_start = parse_time_value(start_time)
+    parsed_end = parse_time_value(end_time)
+
+    if not parsed_date:
+        result['reason'] = 'scheduled_date is required and must be YYYY-MM-DD'
+        return result
+    if not parsed_start or not parsed_end:
+        result['reason'] = 'start_time and end_time are required and must be HH:MM'
+        return result
+    if parsed_end <= parsed_start:
+        result['reason'] = 'end_time must be later than start_time'
+        return result
+
+    cur.execute(
+        """
+        SELECT e.employee_id,
+               CONCAT(u.first_name, ' ', u.last_name) AS employee_name
+        FROM employees e
+        JOIN users u ON u.user_id = e.user_id
+        WHERE e.employee_id = %s
+          AND u.role = 'Staff'
+          AND u.is_active = TRUE
+        LIMIT 1
+        """,
+        (employee_id,)
+    )
+    employee_row = cur.fetchone()
+    if not employee_row:
+        result['reason'] = 'Employee not found or not active Staff'
+        return result
+    result['employee_name'] = employee_row[1]
+
+    week_start = parsed_date - timedelta(days=parsed_date.weekday())
+    db_day = weekday_to_db_day_of_week(parsed_date)
+    cur.execute(
+        """
+        SELECT available_from,
+               available_to,
+               COALESCE(is_available, TRUE) AS is_available
+        FROM employee_availability
+        WHERE employee_id = %s
+          AND week_start_date = %s
+          AND day_of_week = %s
+        LIMIT 1
+        """,
+        (employee_id, week_start, db_day)
+    )
+    availability_row = cur.fetchone()
+    if not availability_row:
+        # Fallback to the most recently saved week for this weekday.
+        cur.execute(
+            """
+            SELECT available_from,
+                   available_to,
+                   COALESCE(is_available, TRUE) AS is_available
+            FROM employee_availability
+            WHERE employee_id = %s
+              AND day_of_week = %s
+            ORDER BY week_start_date DESC
+            LIMIT 1
+            """,
+            (employee_id, db_day)
+        )
+        availability_row = cur.fetchone()
+    if not availability_row:
+        result['reason'] = 'Employee has no availability set for that date'
+        return result
+
+    available_from = parse_time_value(availability_row[0])
+    available_to = parse_time_value(availability_row[1])
+    is_available_flag = bool(availability_row[2]) if availability_row[2] is not None else False
+
+    result['availability_from'] = format_time_hhmm(available_from)
+    result['availability_to'] = format_time_hhmm(available_to)
+
+    if not is_available_flag or not available_from or not available_to:
+        result['reason'] = 'Employee is marked unavailable for that date'
+        return result
+
+    if parsed_start < available_from or parsed_end > available_to:
+        result['reason'] = (
+            f"Employee availability is {format_time_hhmm(available_from)}-{format_time_hhmm(available_to)}"
+        )
+        return result
+
+    conflict_sql = """
+        SELECT jo.job_order_id,
+               jo.title
+        FROM job_orders jo
+        WHERE jo.assigned_employee_id = %s
+          AND jo.scheduled_date = %s
+          AND jo.start_time IS NOT NULL
+          AND jo.end_time IS NOT NULL
+          AND LOWER(COALESCE(jo.status, '')) NOT IN ('completed', 'cancelled', 'canceled')
+          AND (%s < jo.end_time AND %s > jo.start_time)
+    """
+    conflict_params = [employee_id, parsed_date, parsed_start, parsed_end]
+    if exclude_job_id is not None:
+        conflict_sql += " AND jo.job_order_id <> %s"
+        conflict_params.append(exclude_job_id)
+    conflict_sql += " ORDER BY jo.start_time LIMIT 1"
+
+    cur.execute(conflict_sql, tuple(conflict_params))
+    conflict_row = cur.fetchone()
+    if conflict_row:
+        result['conflict_job_id'] = conflict_row[0]
+        result['conflict_job_title'] = conflict_row[1] or 'Existing job'
+        result['reason'] = f"Employee already has overlapping job #{conflict_row[0]}"
+        return result
+
+    result['is_available'] = True
+    result['reason'] = None
+    return result
+
+
+def list_available_employees_for_window(cur, scheduled_date, start_time, end_time, exclude_job_id=None):
+    cur.execute(
+        """
+        SELECT e.employee_id,
+               u.user_id,
+               CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+               u.email,
+               u.phone,
+               e.job_title
+        FROM employees e
+        JOIN users u ON u.user_id = e.user_id
+        WHERE u.role = 'Staff'
+          AND u.is_active = TRUE
+        ORDER BY u.first_name, u.last_name
+        """
+    )
+    rows = cur.fetchall()
+
+    available = []
+    unavailable = []
+    for row in rows:
+        employee_id = row[0]
+        eligibility = check_employee_assignment_eligibility(
+            cur,
+            employee_id,
+            scheduled_date,
+            start_time,
+            end_time,
+            exclude_job_id=exclude_job_id
+        )
+        employee_payload = {
+            'employee_id': employee_id,
+            'user_id': row[1],
+            'name': row[2] or '',
+            'email': row[3] or '',
+            'phone': row[4] or '',
+            'job_title': row[5] or '',
+            'availability_from': eligibility.get('availability_from'),
+            'availability_to': eligibility.get('availability_to'),
+            'reason': eligibility.get('reason')
+        }
+        if eligibility.get('is_available'):
+            available.append(employee_payload)
+        else:
+            unavailable.append(employee_payload)
+
+    return available, unavailable
 
 # --- Login Page ---
 @app.route('/')
@@ -241,10 +551,20 @@ def create_account_post():
         """,
         ('Client', email, hashed_password, first_name, last_name)
     )
-    mysql.connection.commit()
 
     user_id = cur.lastrowid
     user_name = f"{first_name} {last_name}"
+
+    # Auto-create client profiles for downstream workflows.
+    cur.execute(
+        """
+        INSERT INTO clients (contact_user_id, company_name, member_since, account_status)
+        VALUES (%s, %s, NOW(), %s)
+        """,
+        (user_id, user_name, 'Active')
+    )
+
+    mysql.connection.commit()
     cur.close()
 
     login_user(User(user_id, user_name, email, hashed_password, 'Client'))
@@ -528,7 +848,16 @@ def add_user():
                 """,
                 (user_id, employee_code, 'Staff')
             )
-
+        elif role == 'Client':
+            default_company_name = f"{first_name} {last_name}"
+            cur.execute(
+                """
+                INSERT INTO clients (contact_user_id, company_name, member_since, account_status)
+                VALUES (%s, %s, NOW(), %s)
+                """,
+                (user_id, default_company_name, 'Active')
+            )
+            
         mysql.connection.commit()
         cur.close()
 
@@ -613,8 +942,11 @@ def reactivate_user(id):
 @role_required('Management')
 def get_employees():
     cur = mysql.connection.cursor()
-    # Optional search filter
+    # Optional filters
     search = request.args.get('search', '').strip()
+    status = request.args.get('status', 'active').strip().lower()
+    if status not in ('active', 'inactive', 'all'):
+        status = 'active'
 
     base_sql = """
      SELECT u.user_id,
@@ -635,6 +967,11 @@ def get_employees():
     """
 
     params = []
+    if status == 'active':
+        base_sql += " AND u.is_active = TRUE"
+    elif status == 'inactive':
+        base_sql += " AND u.is_active = FALSE"
+
     if search:
         # match against name or email
         base_sql += " AND (CONCAT(u.first_name, ' ', u.last_name) LIKE %s OR u.email LIKE %s)"
@@ -671,10 +1008,33 @@ def get_employees():
 @app.route('/services', methods=['GET'])
 @login_required
 def get_services():
+    search = request.args.get('search', '').strip()
+    include_inactive = request.args.get('include_inactive', '').strip().lower() == 'true'
+
+    show_all = current_user.role == 'Management' and include_inactive
+
+    base_sql = """
+        SELECT service_id, service_name, description, base_price, COALESCE(is_active, TRUE) AS is_active
+        FROM services
+    """
+    params = []
+
+    where_clauses = []
+    if not show_all:
+        where_clauses.append("COALESCE(is_active, TRUE) = TRUE")
+
+    if search:
+        where_clauses.append("(service_name LIKE %s OR description LIKE %s)")
+        like_term = f"%{search}%"
+        params.extend([like_term, like_term])
+
+    if where_clauses:
+        base_sql += " WHERE " + " AND ".join(where_clauses)
+
+    base_sql += " ORDER BY service_name"
+
     cur = mysql.connection.cursor()
-    cur.execute(
-        "SELECT service_id, service_name, description, base_price FROM services ORDER BY service_name"
-    )
+    cur.execute(base_sql, tuple(params))
     rows = cur.fetchall()
     cur.close()
 
@@ -684,7 +1044,8 @@ def get_services():
             'service_id': row[0],
             'service_name': row[1],
             'description': row[2],
-            'base_price': float(row[3]) if row[3] is not None else 0.0
+            'base_price': float(row[3]) if row[3] is not None else 0.0,
+            'is_active': bool(row[4])
         })
 
     return jsonify(services)
@@ -711,8 +1072,13 @@ def add_service():
         return jsonify(error='base_price must be a number'), 400
 
     cur = mysql.connection.cursor()
+    cur.execute("SELECT service_id FROM services WHERE service_name = %s LIMIT 1", (service_name,))
+    if cur.fetchone():
+        cur.close()
+        return jsonify(error='A service with that name already exists'), 400
+
     cur.execute(
-        "INSERT INTO services (service_name, description, base_price) VALUES (%s, %s, %s)",
+        "INSERT INTO services (service_name, description, base_price, is_active) VALUES (%s, %s, %s, TRUE)",
         (service_name, description, base_price)
     )
     mysql.connection.commit()
@@ -720,6 +1086,95 @@ def add_service():
     cur.close()
 
     return jsonify(message='Service added successfully', service_id=service_id), 201
+
+
+@app.route('/services/<int:service_id>', methods=['PUT'])
+@login_required
+@role_required('Management')
+def update_service(service_id):
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    service_name = (data.get('service_name') or '').strip()
+    description = (data.get('description') or '').strip()
+    base_price = data.get('base_price')
+
+    if not service_name or base_price in (None, ''):
+        return jsonify(error='service_name and base_price are required'), 400
+
+    try:
+        base_price = float(base_price)
+    except ValueError:
+        return jsonify(error='base_price must be a number'), 400
+
+    cur = mysql.connection.cursor()
+    cur.execute(
+        """
+        SELECT service_id
+        FROM services
+        WHERE service_name = %s AND service_id <> %s
+        LIMIT 1
+        """,
+        (service_name, service_id)
+    )
+    if cur.fetchone():
+        cur.close()
+        return jsonify(error='Another service already uses that name'), 400
+
+    cur.execute(
+        """
+        UPDATE services
+        SET service_name = %s,
+            description = %s,
+            base_price = %s
+        WHERE service_id = %s
+        """,
+        (service_name, description, base_price, service_id)
+    )
+    if cur.rowcount == 0:
+        cur.close()
+        return jsonify(error='Service not found'), 404
+
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Service updated successfully')
+
+
+@app.route('/services/<int:service_id>/deactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def deactivate_service(service_id):
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "UPDATE services SET is_active = FALSE WHERE service_id = %s",
+        (service_id,)
+    )
+    if cur.rowcount == 0:
+        cur.close()
+        return jsonify(error='Service not found'), 404
+
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Service deactivated successfully')
+
+
+@app.route('/services/<int:service_id>/reactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def reactivate_service(service_id):
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "UPDATE services SET is_active = TRUE WHERE service_id = %s",
+        (service_id,)
+    )
+    if cur.rowcount == 0:
+        cur.close()
+        return jsonify(error='Service not found'), 404
+
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Service reactivated successfully')
 
 
 # --- Suppliers API ---
@@ -821,6 +1276,7 @@ def get_jobs():
     cur.execute(
         """
         SELECT jo.job_order_id,
+               jo.job_order_code,
                jo.title,
                c.company_name,
                jo.scheduled_date,
@@ -833,7 +1289,10 @@ def get_jobs():
                jo.assigned_employee_id,
                u.first_name,
                u.last_name,
-               jo.status
+               jo.status,
+               jo.service_request_id,
+               jo.priority,
+               jo.created_at
         FROM job_orders jo
         LEFT JOIN clients c ON jo.client_id = c.client_id
         LEFT JOIN client_locations cl ON jo.location_id = cl.location_id
@@ -849,14 +1308,15 @@ def get_jobs():
     jobs = []
     for r in rows:
         job_id = r[0]
-        title = r[1]
-        company = r[2]
-        scheduled_date = r[3].isoformat() if r[3] is not None else None
-        start_time = r[4].strftime('%H:%M') if r[4] is not None else None
-        end_time = r[5].strftime('%H:%M') if r[5] is not None else None
-        street = r[6]
-        city = r[7]
-        state = r[8]
+        job_order_code = r[1]
+        title = r[2]
+        company = r[3]
+        scheduled_date = r[4].isoformat() if r[4] is not None else None
+        start_time = format_time_hhmm(r[5]) if r[5] is not None else None
+        end_time = format_time_hhmm(r[6]) if r[6] is not None else None
+        street = r[7]
+        city = r[8]
+        state = r[9]
         location = None
         if street:
             location = street
@@ -864,14 +1324,18 @@ def get_jobs():
                 location += ', ' + city
             if state:
                 location += ', ' + state
-        assigned_employee_id = r[10]
+        assigned_employee_id = r[11]
         assigned_name = None
-        if r[11] and r[12]:
-            assigned_name = f"{r[11]} {r[12]}"
-        status = r[13]
+        if r[12] and r[13]:
+            assigned_name = f"{r[12]} {r[13]}"
+        status = r[14]
+        service_request_id = r[15]
+        priority = r[16] or 'Normal'
+        approved_at = r[17].isoformat() if r[17] is not None else None
 
         jobs.append({
             'id': job_id,
+            'job_order_code': job_order_code,
             'title': title,
             'company': company,
             'scheduled_date': scheduled_date,
@@ -880,10 +1344,204 @@ def get_jobs():
             'location': location,
             'assigned_employee_id': assigned_employee_id,
             'assigned_name': assigned_name,
-            'status': status
+            'status': status,
+            'service_request_id': service_request_id,
+            'priority': priority,
+            'approved_at': approved_at
         })
 
     return jsonify(jobs)
+
+
+@app.route('/api/management/available-employees', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_available_employees_api():
+    scheduled_date_raw = (request.args.get('scheduled_date') or '').strip()
+    start_time_raw = (request.args.get('start_time') or '').strip()
+    end_time_raw = (request.args.get('end_time') or '').strip()
+    exclude_job_id_raw = (request.args.get('exclude_job_id') or '').strip()
+
+    scheduled_date = parse_iso_date(scheduled_date_raw)
+    start_time = parse_time_value(start_time_raw)
+    end_time = parse_time_value(end_time_raw)
+
+    if not scheduled_date:
+        return jsonify(error='scheduled_date is required (YYYY-MM-DD)'), 400
+    if not start_time or not end_time:
+        return jsonify(error='start_time and end_time are required (HH:MM)'), 400
+    if end_time <= start_time:
+        return jsonify(error='end_time must be later than start_time'), 400
+
+    exclude_job_id = None
+    if exclude_job_id_raw:
+        try:
+            exclude_job_id = int(exclude_job_id_raw)
+        except Exception:
+            return jsonify(error='exclude_job_id must be an integer when provided'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        available, unavailable = list_available_employees_for_window(
+            cur,
+            scheduled_date,
+            start_time,
+            end_time,
+            exclude_job_id=exclude_job_id
+        )
+        cur.close()
+
+        return jsonify({
+            'scheduled_date': scheduled_date.isoformat(),
+            'start_time': format_time_hhmm(start_time),
+            'end_time': format_time_hhmm(end_time),
+            'available': available,
+            'unavailable': unavailable
+        })
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load available employees: {str(e)}'), 500
+
+
+@app.route('/api/management/available-employees/suggestions', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_available_employee_suggestions_api():
+    scheduled_date_raw = (request.args.get('scheduled_date') or '').strip()
+    scheduled_date = parse_iso_date(scheduled_date_raw)
+    if not scheduled_date:
+        return jsonify(error='scheduled_date is required (YYYY-MM-DD)'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+
+        suggestions = []
+        for hour in range(8, 22):
+            start_value = f"{hour:02d}:00"
+            end_value = f"{hour + 1:02d}:00"
+            available, unavailable = list_available_employees_for_window(
+                cur,
+                scheduled_date,
+                start_value,
+                end_value
+            )
+            if available:
+                suggestions.append({
+                    'start_time': start_value,
+                    'end_time': end_value,
+                    'available_count': len(available),
+                    'available': available
+                })
+                if len(suggestions) >= 5:
+                    break
+
+        no_availability_reasons = []
+        if not suggestions:
+            _, unavailable = list_available_employees_for_window(
+                cur,
+                scheduled_date,
+                '12:00',
+                '13:00'
+            )
+            no_availability_reasons = unavailable
+
+        cur.close()
+
+        return jsonify({
+            'scheduled_date': scheduled_date.isoformat(),
+            'suggestions': suggestions,
+            'no_availability_reasons': no_availability_reasons
+        })
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load employee suggestions: {str(e)}'), 500
+
+
+@app.route('/api/management/employees/<int:employee_id>/assignable-jobs', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_assignable_jobs_for_employee_api(employee_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT e.employee_id
+            FROM employees e
+            JOIN users u ON u.user_id = e.user_id
+            WHERE e.employee_id = %s
+              AND u.role = 'Staff'
+              AND u.is_active = TRUE
+            LIMIT 1
+            """,
+            (employee_id,)
+        )
+        if not cur.fetchone():
+            cur.close()
+            return jsonify(error='Employee not found or inactive'), 404
+
+        cur.execute(
+            """
+            SELECT jo.job_order_id,
+                   jo.job_order_code,
+                   jo.title,
+                   c.company_name,
+                   jo.scheduled_date,
+                   jo.start_time,
+                   jo.end_time,
+                   jo.assigned_employee_id,
+                   assign_u.first_name,
+                   assign_u.last_name,
+                   jo.status
+            FROM job_orders jo
+            LEFT JOIN clients c ON c.client_id = jo.client_id
+            LEFT JOIN employees assign_e ON assign_e.employee_id = jo.assigned_employee_id
+            LEFT JOIN users assign_u ON assign_u.user_id = assign_e.user_id
+            WHERE jo.scheduled_date IS NOT NULL
+              AND jo.start_time IS NOT NULL
+              AND jo.end_time IS NOT NULL
+              AND LOWER(COALESCE(jo.status, '')) NOT IN ('completed', 'cancelled', 'canceled')
+            ORDER BY jo.scheduled_date, jo.start_time
+            """
+        )
+        rows = cur.fetchall()
+
+        jobs = []
+        for row in rows:
+            job_id = row[0]
+            assigned_name = None
+            if row[8] and row[9]:
+                assigned_name = f"{row[8]} {row[9]}"
+            eligibility = check_employee_assignment_eligibility(
+                cur,
+                employee_id,
+                row[4],
+                row[5],
+                row[6],
+                exclude_job_id=job_id
+            )
+            jobs.append({
+                'job_id': job_id,
+                'job_order_code': row[1],
+                'title': row[2] or '',
+                'company': row[3] or '',
+                'scheduled_date': row[4].isoformat() if row[4] else None,
+                'start_time': format_time_hhmm(row[5]),
+                'end_time': format_time_hhmm(row[6]),
+                'assigned_employee_id': row[7],
+                'assigned_name': assigned_name,
+                'status': row[10] or '',
+                'can_assign': bool(eligibility.get('is_available')),
+                'reason': eligibility.get('reason')
+            })
+
+        cur.close()
+        return jsonify(jobs)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load assignable jobs: {str(e)}'), 500
 
 
 @app.route('/jobs/<int:job_id>/assign', methods=['POST'])
@@ -910,16 +1568,1020 @@ def assign_job(job_id):
             return jsonify(error='employee_id must be integer or null'), 400
 
     cur = mysql.connection.cursor()
-    if assigned_val is None:
-        cur.execute("UPDATE job_orders SET assigned_employee_id = NULL, status = %s WHERE job_order_id = %s", ('Unassigned', job_id))
-    else:
-        cur.execute("UPDATE job_orders SET assigned_employee_id = %s, status = %s WHERE job_order_id = %s", (assigned_val, 'Scheduled', job_id))
+    try:
+        cur.execute(
+            """
+            SELECT job_order_id,
+                   scheduled_date,
+                   start_time,
+                   end_time
+            FROM job_orders
+            WHERE job_order_id = %s
+            LIMIT 1
+            """,
+            (job_id,)
+        )
+        job_row = cur.fetchone()
+        if not job_row:
+            cur.close()
+            return jsonify(error='Job not found'), 404
 
-    mysql.connection.commit()
-    cur.close()
+        if assigned_val is None:
+            cur.execute(
+                "UPDATE job_orders SET assigned_employee_id = NULL, status = %s WHERE job_order_id = %s",
+                ('Unassigned', job_id)
+            )
+            mysql.connection.commit()
+            cur.close()
+            return jsonify(message='Assignment removed')
 
-    return jsonify(message='Assignment updated')
+        scheduled_date = parse_iso_date(job_row[1])
+        start_time = parse_time_value(job_row[2])
+        end_time = parse_time_value(job_row[3])
+        if not scheduled_date or not start_time or not end_time:
+            cur.close()
+            return jsonify(error='Job must have scheduled_date, start_time, and end_time before assignment'), 400
 
+        eligibility = check_employee_assignment_eligibility(
+            cur,
+            assigned_val,
+            scheduled_date,
+            start_time,
+            end_time,
+            exclude_job_id=job_id
+        )
+        if not eligibility.get('is_available'):
+            cur.close()
+            return jsonify(error=eligibility.get('reason') or 'Employee is not available for this time window'), 400
+
+        cur.execute(
+            """
+            UPDATE job_orders
+            SET assigned_employee_id = %s,
+                status = %s
+            WHERE job_order_id = %s
+            """,
+            (assigned_val, 'Scheduled', job_id)
+        )
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(
+            message='Assignment updated',
+            employee_id=assigned_val,
+            employee_name=eligibility.get('employee_name')
+        )
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to update assignment: {str(e)}'), 500
+
+# ========================
+# CLIENT PROFILE + LOCATION API
+# ========================
+
+@app.route('/api/client/profile', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_profile_api():
+    try:
+        cur = mysql.connection.cursor()
+        created_client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT u.user_id,
+                   u.first_name,
+                   u.last_name,
+                   u.email,
+                   u.phone,
+                   c.client_id,
+                   c.company_name,
+                   c.member_since,
+                   c.account_status
+            FROM users u
+            LEFT JOIN clients c ON c.contact_user_id = u.user_id
+            WHERE u.user_id = %s
+            LIMIT 1
+            """,
+            (current_user.id,)
+        )
+        row = cur.fetchone()
+        mysql.connection.commit()
+        cur.close()
+
+        if not row:
+            return jsonify(error='Client profile not found'), 404
+
+        return jsonify({
+            'user_id': row[0],
+            'first_name': row[1] or '',
+            'last_name': row[2] or '',
+            'email': row[3] or '',
+            'phone': row[4] or '',
+            'client_id': row[5] or created_client_id,
+            'company_name': row[6] or '',
+            'member_since': row[7].isoformat() if row[7] else None,
+            'account_status': row[8] or 'Active'
+        })
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load profile: {str(e)}'), 500
+
+
+@app.route('/api/client/profile', methods=['PUT'])
+@login_required
+@role_required('Client')
+def update_client_profile_api():
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    first_name = (data.get('first_name') or '').strip()
+    last_name = (data.get('last_name') or '').strip()
+    phone = (data.get('phone') or '').strip()
+    company_name = (data.get('company_name') or '').strip()
+
+    if not first_name or not last_name:
+        return jsonify(error='first_name and last_name are required'), 400
+    if not company_name:
+        return jsonify(error='company_name is required'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id, company_name)
+
+        cur.execute(
+            """
+            UPDATE users
+            SET first_name = %s,
+                last_name = %s,
+                phone = %s
+            WHERE user_id = %s
+            """,
+            (first_name, last_name, phone, current_user.id)
+        )
+
+        cur.execute(
+            """
+            UPDATE clients
+            SET company_name = %s
+            WHERE client_id = %s
+            """,
+            (company_name, client_id)
+        )
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Profile updated successfully')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to update profile: {str(e)}'), 500
+
+
+@app.route('/api/client/locations', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_locations_api():
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT cl.location_id,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code,
+                   COALESCE(cl.is_active, TRUE) AS is_active
+            FROM client_locations cl
+            JOIN addresses a ON a.address_id = cl.address_id
+            WHERE cl.client_id = %s
+              AND COALESCE(cl.is_active, TRUE) = TRUE
+            ORDER BY cl.location_id DESC
+            """,
+            (client_id,)
+        )
+        rows = cur.fetchall()
+        mysql.connection.commit()
+        cur.close()
+
+        locations = []
+        for row in rows:
+            locations.append({
+                'location_id': row[0],
+                'location_name': row[1] or '',
+                'street_1': row[2] or '',
+                'city': row[3] or '',
+                'state': row[4] or '',
+                'zip_code': row[5] or '',
+                'is_active': bool(row[6])
+            })
+
+        return jsonify(locations)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load locations: {str(e)}'), 500
+
+
+@app.route('/api/client/locations', methods=['POST'])
+@login_required
+@role_required('Client')
+def add_client_location_api():
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    location_name = (data.get('location_name') or '').strip()
+    street_1 = (data.get('street_1') or '').strip()
+    city = (data.get('city') or '').strip()
+    state = (data.get('state') or '').strip()
+    zip_code = (data.get('zip_code') or '').strip()
+
+    if not location_name or not street_1 or not city or not state or not zip_code:
+        return jsonify(error='location_name, street_1, city, state, zip_code are required'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            INSERT INTO addresses (street_1, city, state, zip_code)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (street_1, city, state, zip_code)
+        )
+        address_id = cur.lastrowid
+
+        cur.execute(
+            """
+            INSERT INTO client_locations (client_id, address_id, location_name, is_active)
+            VALUES (%s, %s, %s, TRUE)
+            """,
+            (client_id, address_id, location_name)
+        )
+        location_id = cur.lastrowid
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Location added successfully', location_id=location_id), 201
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to add location: {str(e)}'), 500
+
+
+@app.route('/api/client/locations/<int:location_id>', methods=['PUT'])
+@login_required
+@role_required('Client')
+def update_client_location_api(location_id):
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    location_name = (data.get('location_name') or '').strip()
+    street_1 = (data.get('street_1') or '').strip()
+    city = (data.get('city') or '').strip()
+    state = (data.get('state') or '').strip()
+    zip_code = (data.get('zip_code') or '').strip()
+
+    if not location_name or not street_1 or not city or not state or not zip_code:
+        return jsonify(error='location_name, street_1, city, state, zip_code are required'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT address_id
+            FROM client_locations
+            WHERE location_id = %s
+              AND client_id = %s
+              AND COALESCE(is_active, TRUE) = TRUE
+            LIMIT 1
+            """,
+            (location_id, client_id)
+        )
+        found = cur.fetchone()
+        if not found:
+            cur.close()
+            return jsonify(error='Location not found'), 404
+
+        address_id = found[0]
+
+        cur.execute(
+            """
+            UPDATE addresses
+            SET street_1 = %s,
+                city = %s,
+                state = %s,
+                zip_code = %s
+            WHERE address_id = %s
+            """,
+            (street_1, city, state, zip_code, address_id)
+        )
+
+        cur.execute(
+            """
+            UPDATE client_locations
+            SET location_name = %s
+            WHERE location_id = %s
+            """,
+            (location_name, location_id)
+        )
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Location updated successfully')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to update location: {str(e)}'), 500
+
+
+@app.route('/api/client/locations/<int:location_id>', methods=['DELETE'])
+@login_required
+@role_required('Client')
+def delete_client_location_api(location_id):
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            UPDATE client_locations
+            SET is_active = FALSE
+            WHERE location_id = %s
+              AND client_id = %s
+            """,
+            (location_id, client_id)
+        )
+        if cur.rowcount == 0:
+            cur.close()
+            return jsonify(error='Location not found'), 404
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Location removed successfully')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to remove location: {str(e)}'), 500
+
+
+@app.route('/api/client/service-requests', methods=['POST'])
+@login_required
+@role_required('Client')
+def create_client_service_request_api():
+    if not request.is_json:
+        return jsonify(error='Request must be JSON'), 400
+
+    data = request.get_json()
+    service_id_raw = data.get('service_id')
+    location_id_raw = data.get('location_id')
+    requested_date_raw = (data.get('requested_date') or '').strip()
+    requested_notes = (data.get('requested_notes') or '').strip()
+
+    if service_id_raw in (None, ''):
+        return jsonify(error='service_id is required'), 400
+    if location_id_raw in (None, ''):
+        return jsonify(error='location_id is required'), 400
+    if not requested_date_raw:
+        return jsonify(error='requested_date is required (YYYY-MM-DD)'), 400
+
+    try:
+        service_id = int(service_id_raw)
+        location_id = int(location_id_raw)
+    except Exception:
+        return jsonify(error='service_id and location_id must be integers'), 400
+
+    try:
+        requested_date = datetime.strptime(requested_date_raw, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify(error='requested_date must be YYYY-MM-DD'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT cl.location_id,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code
+            FROM client_locations cl
+            JOIN addresses a ON a.address_id = cl.address_id
+            WHERE cl.location_id = %s
+              AND cl.client_id = %s
+              AND COALESCE(cl.is_active, TRUE) = TRUE
+            LIMIT 1
+            """,
+            (location_id, client_id)
+        )
+        location_row = cur.fetchone()
+        if not location_row:
+            cur.close()
+            return jsonify(error='Selected location was not found for your account'), 404
+
+        cur.execute(
+            """
+            SELECT service_id, service_name, base_price
+            FROM services
+            WHERE service_id = %s
+              AND COALESCE(is_active, TRUE) = TRUE
+            LIMIT 1
+            """,
+            (service_id,)
+        )
+        service_row = cur.fetchone()
+        if not service_row:
+            cur.close()
+            return jsonify(error='Selected service is not available'), 404
+
+        cur.execute(
+            """
+            INSERT INTO service_requests (client_id, location_id, service_id, requested_date, requested_notes, status)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (client_id, location_id, service_id, requested_date, requested_notes, 'Pending')
+        )
+        service_request_id = cur.lastrowid
+
+        mysql.connection.commit()
+        cur.close()
+
+        full_location = location_row[2] or ''
+        if location_row[3]:
+            full_location += ', ' + location_row[3]
+        if location_row[4]:
+            full_location += ', ' + location_row[4]
+        if location_row[5]:
+            full_location += ' ' + location_row[5]
+
+        return jsonify(
+            message='Service request submitted successfully',
+            service_request_id=service_request_id,
+            status='Pending',
+            client_id=client_id,
+            service_id=service_id,
+            service_name=service_row[1],
+            base_price=float(service_row[2]) if service_row[2] is not None else 0.0,
+            location_id=location_id,
+            location_name=location_row[1] or '',
+            location_address=full_location.strip(),
+            requested_date=requested_date.isoformat(),
+            requested_notes=requested_notes
+        ), 201
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to submit service request: {str(e)}'), 500
+
+
+@app.route('/api/client/service-requests', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_service_requests_api():
+    status = request.args.get('status', 'all').strip().lower()
+    if status not in ('pending', 'approved', 'rejected', 'all'):
+        return jsonify(error='status must be one of pending, approved, rejected, all'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        base_sql = """
+            SELECT sr.service_request_id,
+                   sr.requested_date,
+                   sr.requested_notes,
+                   COALESCE(sr.status, 'Pending') AS status,
+                   sr.created_at,
+                   sr.service_id,
+                   s.service_name,
+                   s.base_price,
+                   sr.location_id,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code
+            FROM service_requests sr
+            JOIN services s ON s.service_id = sr.service_id
+            JOIN client_locations cl ON cl.location_id = sr.location_id
+            JOIN addresses a ON a.address_id = cl.address_id
+            WHERE sr.client_id = %s
+        """
+        params = [client_id]
+
+        if status != 'all':
+            base_sql += " AND LOWER(COALESCE(sr.status, 'Pending')) = %s"
+            params.append(status)
+
+        base_sql += " ORDER BY sr.created_at DESC, sr.service_request_id DESC"
+
+        cur.execute(base_sql, tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+
+        requests_out = []
+        for row in rows:
+            location_address = row[10] or ''
+            if row[11]:
+                location_address += ', ' + row[11]
+            if row[12]:
+                location_address += ', ' + row[12]
+            if row[13]:
+                location_address += ' ' + row[13]
+
+            requests_out.append({
+                'service_request_id': row[0],
+                'requested_date': row[1].isoformat() if row[1] else None,
+                'requested_notes': row[2] or '',
+                'status': row[3] or 'Pending',
+                'created_at': row[4].isoformat() if row[4] else None,
+                'service_id': row[5],
+                'service_name': row[6] or '',
+                'base_price': float(row[7]) if row[7] is not None else 0.0,
+                'location_id': row[8],
+                'location_name': row[9] or '',
+                'location_address': location_address.strip()
+            })
+
+        return jsonify(requests_out)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load service requests: {str(e)}'), 500
+
+
+@app.route('/api/management/service-requests', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_management_service_requests_api():
+    status = request.args.get('status', 'pending').strip().lower()
+    search = request.args.get('search', '').strip()
+
+    if status not in ('pending', 'approved', 'rejected', 'all'):
+        return jsonify(error='status must be one of pending, approved, rejected, all'), 400
+
+    base_sql = """
+        SELECT sr.service_request_id,
+               sr.client_id,
+               c.company_name,
+               u.first_name,
+               u.last_name,
+               u.email,
+               u.phone,
+               sr.location_id,
+               cl.location_name,
+               a.street_1,
+               a.city,
+               a.state,
+               a.zip_code,
+               sr.service_id,
+               s.service_name,
+               s.base_price,
+               sr.requested_date,
+               sr.requested_notes,
+               COALESCE(sr.status, 'Pending') AS status,
+               sr.created_at,
+               approver.first_name,
+               approver.last_name
+        FROM service_requests sr
+        JOIN clients c ON c.client_id = sr.client_id
+        LEFT JOIN users u ON u.user_id = c.contact_user_id
+        JOIN client_locations cl ON cl.location_id = sr.location_id
+        JOIN addresses a ON a.address_id = cl.address_id
+        JOIN services s ON s.service_id = sr.service_id
+        LEFT JOIN users approver ON approver.user_id = sr.approved_by
+    """
+
+    where_clauses = []
+    params = []
+
+    if status != 'all':
+        where_clauses.append("LOWER(COALESCE(sr.status, 'Pending')) = %s")
+        params.append(status)
+
+    if search:
+        where_clauses.append(
+            """
+            (
+                c.company_name LIKE %s
+                OR s.service_name LIKE %s
+                OR cl.location_name LIKE %s
+                OR CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) LIKE %s
+            )
+            """
+        )
+        like_term = f"%{search}%"
+        params.extend([like_term, like_term, like_term, like_term])
+
+    if where_clauses:
+        base_sql += " WHERE " + " AND ".join(where_clauses)
+
+    base_sql += """
+        ORDER BY
+            (LOWER(COALESCE(sr.status, 'Pending')) <> 'pending'),
+            sr.created_at DESC,
+            sr.service_request_id DESC
+    """
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(base_sql, tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+
+        requests_out = []
+        for row in rows:
+            contact_name = ((row[3] or '') + ' ' + (row[4] or '')).strip()
+            approved_by_name = ((row[20] or '') + ' ' + (row[21] or '')).strip()
+
+            location_address = row[9] or ''
+            if row[10]:
+                location_address += ', ' + row[10]
+            if row[11]:
+                location_address += ', ' + row[11]
+            if row[12]:
+                location_address += ' ' + row[12]
+
+            requests_out.append({
+                'service_request_id': row[0],
+                'client_id': row[1],
+                'company_name': row[2] or '',
+                'contact_name': contact_name,
+                'contact_email': row[5] or '',
+                'contact_phone': row[6] or '',
+                'location_id': row[7],
+                'location_name': row[8] or '',
+                'location_address': location_address.strip(),
+                'service_id': row[13],
+                'service_name': row[14] or '',
+                'base_price': float(row[15]) if row[15] is not None else 0.0,
+                'requested_date': row[16].isoformat() if row[16] else None,
+                'requested_notes': row[17] or '',
+                'status': row[18] or 'Pending',
+                'created_at': row[19].isoformat() if row[19] else None,
+                'approved_by_name': approved_by_name
+            })
+
+        return jsonify(requests_out)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load management service requests: {str(e)}'), 500
+
+
+@app.route('/api/management/service-requests/<int:service_request_id>/approve', methods=['POST'])
+@login_required
+@role_required('Management')
+def approve_management_service_request_api(service_request_id):
+    payload = request.get_json(silent=True) or {}
+    employee_id_raw = payload.get('employee_id')
+    requested_schedule = (payload.get('scheduled_date') or '').strip()
+    requested_start = (payload.get('start_time') or '').strip()
+    requested_end = (payload.get('end_time') or '').strip()
+    priority = (payload.get('priority') or 'Normal').strip() or 'Normal'
+    override_description = (payload.get('job_description') or '').strip()
+
+    if employee_id_raw in (None, ''):
+        return jsonify(error='employee_id is required'), 400
+    try:
+        employee_id = int(employee_id_raw)
+    except Exception:
+        return jsonify(error='employee_id must be an integer'), 400
+
+    parsed_start = parse_time_value(requested_start)
+    parsed_end = parse_time_value(requested_end)
+    if not parsed_start or not parsed_end:
+        return jsonify(error='start_time and end_time are required and must be HH:MM'), 400
+    if parsed_end <= parsed_start:
+        return jsonify(error='end_time must be later than start_time'), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT sr.service_request_id,
+                   sr.client_id,
+                   sr.location_id,
+                   sr.service_id,
+                   sr.requested_date,
+                   sr.requested_notes,
+                   COALESCE(sr.status, 'Pending') AS status,
+                   s.service_name,
+                   s.description,
+                   s.base_price,
+                   c.company_name
+            FROM service_requests sr
+            JOIN services s ON s.service_id = sr.service_id
+            JOIN clients c ON c.client_id = sr.client_id
+            WHERE sr.service_request_id = %s
+            LIMIT 1
+            """,
+            (service_request_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Service request not found'), 404
+
+        current_status = (row[6] or 'Pending').strip().lower()
+        if current_status != 'pending':
+            cur.close()
+            return jsonify(error=f'Service request is already {row[6]}'), 400
+
+        scheduled_date = parse_iso_date(row[4])
+        if not scheduled_date:
+            cur.close()
+            return jsonify(error='Request cannot be approved because requested date is missing'), 400
+
+        if requested_schedule and requested_schedule != scheduled_date.isoformat():
+            cur.close()
+            return jsonify(error='Management cannot change the requested service date during approval'), 400
+
+        eligibility = check_employee_assignment_eligibility(
+            cur,
+            employee_id,
+            scheduled_date,
+            parsed_start,
+            parsed_end
+        )
+        if not eligibility.get('is_available'):
+            cur.close()
+            return jsonify(error=eligibility.get('reason') or 'Selected employee is not available'), 400
+
+        description = (
+            override_description
+            or row[5]
+            or row[8]
+            or f"Service request submitted by {row[10] or 'client'}"
+        )
+        estimated_cost = float(row[9]) if row[9] is not None else 0.0
+        title = row[7] or 'Service Request'
+        job_order_code = generate_job_order_code(cur)
+
+        cur.execute(
+            """
+            INSERT INTO job_orders (
+                job_order_code,
+                client_id,
+                location_id,
+                service_id,
+                service_request_id,
+                assigned_employee_id,
+                title,
+                description,
+                scheduled_date,
+                start_time,
+                end_time,
+                estimated_cost,
+                status,
+                priority
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                job_order_code,
+                row[1],
+                row[2],
+                row[3],
+                row[0],
+                employee_id,
+                title,
+                description,
+                scheduled_date,
+                parsed_start,
+                parsed_end,
+                estimated_cost,
+                'Scheduled',
+                priority
+            )
+        )
+        job_order_id = cur.lastrowid
+
+        cur.execute(
+            """
+            UPDATE service_requests
+            SET status = %s,
+                approved_by = %s
+            WHERE service_request_id = %s
+            """,
+            ('Approved', current_user.id, service_request_id)
+        )
+
+        mysql.connection.commit()
+        cur.close()
+
+        return jsonify(
+            message='Service request approved and job order created',
+            service_request_id=service_request_id,
+            job_order_id=job_order_id,
+            job_order_code=job_order_code,
+            status='Approved',
+            employee_id=employee_id,
+            employee_name=eligibility.get('employee_name')
+        )
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to approve service request: {str(e)}'), 500
+
+
+@app.route('/api/management/service-requests/<int:service_request_id>/reject', methods=['POST'])
+@login_required
+@role_required('Management')
+def reject_management_service_request_api(service_request_id):
+    payload = request.get_json(silent=True) or {}
+    reason = (payload.get('reason') or '').strip()
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT service_request_id,
+                   requested_notes,
+                   COALESCE(status, 'Pending') AS status
+            FROM service_requests
+            WHERE service_request_id = %s
+            LIMIT 1
+            """,
+            (service_request_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Service request not found'), 404
+
+        current_status = (row[2] or 'Pending').strip().lower()
+        if current_status != 'pending':
+            cur.close()
+            return jsonify(error=f'Service request is already {row[2]}'), 400
+
+        if reason:
+            existing_notes = row[1] or ''
+            merged_notes = existing_notes
+            if merged_notes:
+                merged_notes += "\n\n"
+            merged_notes += f"[Rejected] {reason}"
+            cur.execute(
+                """
+                UPDATE service_requests
+                SET status = %s,
+                    approved_by = %s,
+                    requested_notes = %s
+                WHERE service_request_id = %s
+                """,
+                ('Rejected', current_user.id, merged_notes, service_request_id)
+            )
+        else:
+            cur.execute(
+                """
+                UPDATE service_requests
+                SET status = %s,
+                    approved_by = %s
+                WHERE service_request_id = %s
+                """,
+                ('Rejected', current_user.id, service_request_id)
+            )
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(
+            message='Service request rejected',
+            service_request_id=service_request_id,
+            status='Rejected'
+        )
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to reject service request: {str(e)}'), 500
+
+
+@app.route('/api/clients', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_clients_api():
+    search = request.args.get('search', '').strip()
+
+    base_sql = """
+        SELECT c.client_id,
+               c.company_name,
+               c.account_status,
+               c.member_since,
+               u.first_name,
+               u.last_name,
+               u.email,
+               u.phone,
+               SUM(
+                   CASE
+                       WHEN cl.location_id IS NOT NULL AND COALESCE(cl.is_active, TRUE) = TRUE THEN 1
+                       ELSE 0
+                   END
+               ) AS active_locations
+        FROM clients c
+        LEFT JOIN users u ON u.user_id = c.contact_user_id
+        LEFT JOIN client_locations cl ON cl.client_id = c.client_id
+    """
+
+    params = []
+    if search:
+        base_sql += """
+            WHERE c.company_name LIKE %s
+               OR CONCAT(u.first_name, ' ', u.last_name) LIKE %s
+               OR u.email LIKE %s
+        """
+        like_term = f"%{search}%"
+        params.extend([like_term, like_term, like_term])
+
+    base_sql += """
+        GROUP BY c.client_id, c.company_name, c.account_status, c.member_since,
+                 u.first_name, u.last_name, u.email, u.phone
+        ORDER BY c.client_id DESC
+    """
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(base_sql, tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+
+        clients = []
+        for row in rows:
+            clients.append({
+                'client_id': row[0],
+                'company_name': row[1] or '',
+                'account_status': row[2] or 'Active',
+                'member_since': row[3].isoformat() if row[3] else None,
+                'contact_name': ((row[4] or '') + ' ' + (row[5] or '')).strip(),
+                'contact_email': row[6] or '',
+                'contact_phone': row[7] or '',
+                'active_locations': int(row[8] or 0)
+            })
+
+        return jsonify(clients)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load clients: {str(e)}'), 500
+
+
+@app.route('/api/clients/<int:client_id>/locations', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_client_locations_for_management_api(client_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT cl.location_id,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code,
+                   COALESCE(cl.is_active, TRUE) AS is_active
+            FROM client_locations cl
+            JOIN addresses a ON a.address_id = cl.address_id
+            WHERE cl.client_id = %s
+            ORDER BY cl.location_id DESC
+            """,
+            (client_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+
+        locations = []
+        for row in rows:
+            locations.append({
+                'location_id': row[0],
+                'location_name': row[1] or '',
+                'street_1': row[2] or '',
+                'city': row[3] or '',
+                'state': row[4] or '',
+                'zip_code': row[5] or '',
+                'is_active': bool(row[6])
+            })
+
+        return jsonify(locations)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load client locations: {str(e)}'), 500
 
 # ========================
 # AVAILABILITY ENDPOINTS
@@ -1283,5 +2945,3 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='127.0.0.1', port=port)
 
-    port = int(os.environ.get('PORT', 5001))
-    app.run(debug=True, host='127.0.0.1', port=port)
