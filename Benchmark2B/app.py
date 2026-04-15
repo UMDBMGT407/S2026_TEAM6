@@ -1358,10 +1358,99 @@ def get_management_material_usage():
 
 
 @app.route('/plant-master.html')
+cur = mysql.connection.cursor()
+    try:
+        cur.execute("""
+            SELECT plant_id, common_name, scientific_name, light_level,
+                   watering_frequency, temperature_range, humidity_range,
+                   photo_url, notes
+            FROM plant_master
+            WHERE is_active = TRUE
+            ORDER BY common_name
+        """)
+        rows = cur.fetchall()
+        plants = []
+        for r in rows:
+            plants.append({
+                'plant_id': r[0],
+                'common_name': r[1],
+                'scientific_name': r[2] or '',
+                'light_level': r[3] or '',
+                'watering_frequency': r[4] or '',
+                'temperature_range': r[5] or '',
+                'humidity_range': r[6] or '',
+                'photo_url': r[7] or '',
+                'notes': r[8] or ''
+            })
+    finally:
+        cur.close()
+    return render_template('plant-master.html', plants=plants)
+
+
+
+@app.route('/api/plant_master', methods=['GET', 'POST'])
 @login_required
 @role_required('Management')
-def plant_master_page():
-    return render_template('plant-master.html')
+def api_plant_master():
+    cur = mysql.connection.cursor()
+    if request.method == 'GET':
+        try:
+            cur.execute("SELECT plant_id, common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes FROM plant_master WHERE is_active = TRUE ORDER BY common_name")
+            rows = cur.fetchall()
+            plants = []
+            for r in rows:
+                plants.append({
+                    'plant_id': r[0],
+                    'common_name': r[1],
+                    'scientific_name': r[2] or '',
+                    'light_level': r[3] or '',
+                    'watering_frequency': r[4] or '',
+                    'temperature_range': r[5] or '',
+                    'humidity_range': r[6] or '',
+                    'photo_url': r[7] or '',
+                    'notes': r[8] or ''
+                })
+            return jsonify(plants=plants)
+        finally:
+            cur.close()
+
+    # POST: create a new plant
+    data = request.get_json() or {}
+    common_name = (data.get('common_name') or '').strip()
+    if not common_name:
+        cur.close()
+        return jsonify(error='common_name is required'), 400
+
+    scientific_name = data.get('scientific_name') or None
+    light_level = data.get('light_level') or None
+    watering_frequency = data.get('watering_frequency') or None
+    temperature_range = data.get('temperature_range') or None
+    humidity_range = data.get('humidity_range') or None
+    photo_url = data.get('photo_url') or None
+    notes = data.get('notes') or None
+
+    try:
+        cur.execute("""
+            INSERT INTO plant_master
+                (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+        """, (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes))
+        mysql.connection.commit()
+        plant_id = cur.lastrowid if hasattr(cur, 'lastrowid') else None
+        plant = {
+            'plant_id': plant_id,
+            'common_name': common_name,
+            'scientific_name': scientific_name or '',
+            'light_level': light_level or '',
+            'watering_frequency': watering_frequency or '',
+            'temperature_range': temperature_range or '',
+            'humidity_range': humidity_range or '',
+            'photo_url': photo_url or '',
+            'notes': notes or ''
+        }
+        return jsonify(plant=plant), 201
+    finally:
+        cur.close()
 
 
 @app.route('/job-order.html')
