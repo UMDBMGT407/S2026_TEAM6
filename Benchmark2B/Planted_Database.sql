@@ -132,8 +132,8 @@ CREATE TABLE plant_master (
     temperature_range VARCHAR(100),
     humidity_range VARCHAR(100),
     photo_url TEXT,
-    notes TEXT
-    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- INVENTORY
