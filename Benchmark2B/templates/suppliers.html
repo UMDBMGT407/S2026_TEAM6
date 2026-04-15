@@ -26,9 +26,9 @@
 </div>
 
 <div class="row g-4 mt-2">
-  <div class="col-md-4"><div class="stat-card"><h6>Total Suppliers</h6><p class="stat-number">6</p></div></div>
-  <div class="col-md-4"><div class="stat-card"><h6>Active Suppliers</h6><p class="stat-number">5</p></div></div>
-  <div class="col-md-4"><div class="stat-card"><h6>Total Orders</h6><p class="stat-number">378</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Suppliers</h6><p class="stat-number" id="stat-total-suppliers">—</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Active Suppliers</h6><p class="stat-number text-green" id="stat-active-suppliers">—</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Orders</h6><p class="stat-number" id="stat-total-orders">—</p></div></div>
 </div>
 
 <div class="management-section">
@@ -174,11 +174,10 @@
   function updateStats(suppliers) {
     var total = suppliers.length;
     var active = suppliers.filter(s => s.is_active).length;
-    var statNumbers = document.querySelectorAll('.stat-number');
-    if (statNumbers.length >= 2) {
-      statNumbers[0].textContent = total;
-      statNumbers[1].textContent = active;
-    }
+    var totalOrders = suppliers.reduce((sum, s) => sum + (s.total_orders || 0), 0);
+    document.getElementById('stat-total-suppliers').textContent = total;
+    document.getElementById('stat-active-suppliers').textContent = active;
+    document.getElementById('stat-total-orders').textContent = totalOrders;
   }
 
   function removeSupplier(supplierId) {

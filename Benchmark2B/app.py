@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'secret-key-change-this'
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
+app.config['MYSQL_PASSWORD'] = '20031031'
 app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
@@ -730,6 +730,106 @@ def inventory_page():
     return render_template('inventory.html')
 
 
+@app.route('/api/inventory', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_inventory():
+    search = request.args.get('search', '').strip()
+    cur = mysql.connection.cursor()
+    sql = """
+        SELECT i.item_id, i.item_name, i.item_type, i.sku,
+               i.unit_price, i.quantity_on_hand, i.reorder_level,
+               i.unit_label, i.is_active,
+               s.supplier_name, s.supplier_id
+        FROM inventory_items i
+        LEFT JOIN suppliers s ON s.supplier_id = i.supplier_id
+        WHERE i.is_active = TRUE
+    """
+    params = []
+    if search:
+        sql += " AND i.item_name LIKE %s"
+        params.append(f'%{search}%')
+    sql += " ORDER BY i.item_name"
+    cur.execute(sql, tuple(params))
+    rows = cur.fetchall()
+    cur.close()
+    return jsonify([{
+        'item_id': r[0],
+        'item_name': r[1],
+        'item_type': r[2],
+        'sku': r[3],
+        'unit_price': float(r[4]) if r[4] is not None else None,
+        'quantity_on_hand': float(r[5]) if r[5] is not None else 0,
+        'reorder_level': float(r[6]) if r[6] is not None else 0,
+        'unit_label': r[7] or 'units',
+        'is_active': bool(r[8]),
+        'supplier_name': r[9],
+        'supplier_id': r[10],
+    } for r in rows])
+
+
+@app.route('/api/inventory', methods=['POST'])
+@login_required
+@role_required('Management')
+def add_inventory_item():
+    data = request.get_json() or {}
+    item_name = (data.get('item_name') or '').strip()
+    if not item_name:
+        return jsonify(error='Item name is required'), 400
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        INSERT INTO inventory_items
+            (item_name, item_type, supplier_id, sku, unit_price,
+             quantity_on_hand, reorder_level, unit_label, is_active)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+    """, (
+        item_name,
+        data.get('item_type') or None,
+        data.get('supplier_id') or None,
+        data.get('sku') or None,
+        data.get('unit_price') or None,
+        data.get('quantity_on_hand') or 0,
+        data.get('reorder_level') or 0,
+        data.get('unit_label') or 'units',
+    ))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Item added successfully'), 201
+
+
+@app.route('/api/inventory/<int:item_id>/stock', methods=['PATCH'])
+@login_required
+@role_required('Management')
+def adjust_inventory_stock(item_id):
+    data = request.get_json() or {}
+    qty = data.get('quantity_on_hand')
+    if qty is None or float(qty) < 0:
+        return jsonify(error='Valid quantity required'), 400
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE inventory_items SET quantity_on_hand = %s WHERE item_id = %s", (float(qty), item_id))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Stock updated')
+
+
+@app.route('/api/inventory/<int:item_id>/reorder', methods=['POST'])
+@login_required
+@role_required('Management')
+def reorder_inventory_item(item_id):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT reorder_level FROM inventory_items WHERE item_id = %s", (item_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        return jsonify(error='Item not found'), 404
+    reorder_level = float(row[0]) if row[0] else 0
+    new_qty = reorder_level + 20
+    cur.execute("UPDATE inventory_items SET quantity_on_hand = %s WHERE item_id = %s", (new_qty, item_id))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify(message='Reorder placed', new_quantity=new_qty)
+
+
 @app.route('/plant-master.html')
 @login_required
 @role_required('Management')
@@ -762,7 +862,96 @@ def staff_scheduling_dashboard_page():
 @login_required
 @role_required('Staff')
 def task_management_dashboard_page():
-    return render_template('task-management-dashboard.html')
+    tasks = []
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT employee_id FROM employees WHERE user_id = %s", (current_user.id,))
+        emp_row = cur.fetchone()
+        if emp_row:
+            employee_id = emp_row[0]
+            cur.execute("""
+                SELECT t.task_id,
+                       t.task_name,
+                       t.description,
+                       t.status,
+                       jo.scheduled_date,
+                       jo.start_time,
+                       jo.end_time,
+                       cl.company_name,
+                       CONCAT(u.first_name, ' ', u.last_name) AS contact_name,
+                       u.phone AS contact_phone,
+                       u.email AS contact_email,
+                       CONCAT(a.street_address, ', ', a.city, ', ', a.state, ' ', a.zip_code) AS location
+                FROM tasks t
+                JOIN job_orders jo ON jo.job_order_id = t.job_order_id
+                LEFT JOIN clients cl ON cl.client_id = jo.client_id
+                LEFT JOIN users u ON u.user_id = cl.contact_user_id
+                LEFT JOIN client_locations cloc ON cloc.location_id = jo.location_id
+                LEFT JOIN addresses a ON a.address_id = cloc.address_id
+                WHERE t.assigned_employee_id = %s
+                ORDER BY jo.scheduled_date DESC, t.task_id DESC
+            """, (employee_id,))
+            rows = cur.fetchall()
+            for r in rows:
+                task_id, task_name, description, status, sched_date, start_t, end_t, company, contact_name, contact_phone, contact_email, location = r
+                # Build status class/label
+                status_map = {
+                    'Scheduled': ('staff-status-scheduled', 'Scheduled'),
+                    'In Progress': ('staff-status-in-progress', 'In Progress'),
+                    'Completed': ('staff-status-complete', 'Completed'),
+                    'Cancelled': ('staff-status-cancelled', 'Cancelled'),
+                }
+                status_class, status_label = status_map.get(status, ('staff-status-incomplete', status or 'Pending'))
+                # Build service window string
+                if sched_date:
+                    date_str = sched_date.strftime('%B %-d, %Y') if hasattr(sched_date, 'strftime') else str(sched_date)
+                    if start_t and end_t:
+                        def fmt_time(t):
+                            if hasattr(t, 'seconds'):
+                                total = int(t.seconds)
+                                h, m = divmod(total // 60, 60)
+                            else:
+                                parts = str(t).split(':')
+                                h, m = int(parts[0]), int(parts[1])
+                            period = 'AM' if h < 12 else 'PM'
+                            h12 = h % 12 or 12
+                            return f'{h12}:{m:02d} {period}'
+                        service_window = f'{date_str}, {fmt_time(start_t)} - {fmt_time(end_t)}'
+                    else:
+                        service_window = date_str
+                else:
+                    service_window = 'TBD'
+                # Fetch materials
+                cur.execute("""
+                    SELECT ii.item_name, tm.required_quantity, ii.unit_label
+                    FROM task_materials tm
+                    JOIN inventory_items ii ON ii.item_id = tm.item_id
+                    WHERE tm.task_id = %s
+                """, (task_id,))
+                mat_rows = cur.fetchall()
+                materials_encoded = '|'.join(
+                    f'{m[0]}::{m[1]} {m[2] or "units"}' for m in mat_rows
+                )
+                tasks.append({
+                    'title': task_name or 'Untitled Task',
+                    'description': description or '',
+                    'status': status or '',
+                    'status_class': status_class,
+                    'status_label': status_label,
+                    'service_window': service_window,
+                    'location': location or 'TBD',
+                    'client_company': company or 'Unknown Client',
+                    'contact_name': contact_name or '',
+                    'contact_phone': contact_phone or '',
+                    'contact_email': contact_email or '',
+                    'contact_location': location or '',
+                    'task_context': description or '',
+                    'materials_encoded': materials_encoded,
+                })
+        cur.close()
+    except Exception as e:
+        print(f'Error loading tasks for dashboard: {e}')
+    return render_template('task-management-dashboard.html', tasks=tasks)
 
 
 @app.route('/inventory-dashboard.html')
@@ -1011,6 +1200,36 @@ def get_employees():
         })
 
     return jsonify(employee_list)
+
+
+@app.route('/api/management/employee-stats', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_employee_stats():
+    cur = mysql.connection.cursor()
+    today = datetime.now().date()
+
+    # Total active employees
+    cur.execute("""
+        SELECT COUNT(*) FROM users u
+        JOIN employees e ON e.user_id = u.user_id
+        WHERE u.role = 'Staff' AND u.is_active = TRUE
+    """)
+    total = cur.fetchone()[0]
+
+    # On active job today
+    cur.execute("""
+        SELECT COUNT(DISTINCT e.employee_id)
+        FROM employees e
+        JOIN users u ON u.user_id = e.user_id
+        JOIN job_orders jo ON jo.assigned_employee_id = e.employee_id
+        WHERE u.is_active = TRUE AND jo.scheduled_date = %s
+    """, (today,))
+    on_job = cur.fetchone()[0]
+
+    cur.close()
+    available = max(0, total - on_job)
+    return jsonify({'total': total, 'available': available, 'on_job': on_job})
 
 
 # --- Services API ---
@@ -2917,6 +3136,270 @@ def get_employee_availability(employee_id):
         if 'cur' in locals():
             cur.close()
         return jsonify(error=f"Server error: {str(e)}"), 500
+
+
+# ========================
+# STAFF API ENDPOINTS
+# ========================
+
+@app.route('/staff/schedule/events', methods=['GET'])
+@api_login_required
+def staff_schedule_events():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT employee_id FROM employees WHERE user_id = %s", (current_user.id,))
+        emp_row = cur.fetchone()
+        if not emp_row:
+            cur.close()
+            return jsonify(events=[])
+        employee_id = emp_row[0]
+
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        sql = """
+            SELECT jo.job_order_id,
+                   jo.title,
+                   jo.scheduled_date,
+                   jo.start_time,
+                   jo.end_time,
+                   jo.status
+            FROM job_orders jo
+            WHERE jo.assigned_employee_id = %s
+        """
+        params = [employee_id]
+        if start_date:
+            sql += " AND jo.scheduled_date >= %s"
+            params.append(start_date)
+        if end_date:
+            sql += " AND jo.scheduled_date <= %s"
+            params.append(end_date)
+        sql += " ORDER BY jo.scheduled_date, jo.start_time"
+
+        cur.execute(sql, tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+
+        events = []
+        for row in rows:
+            _, title, sched_date, start_t, end_t, status = row
+            if not sched_date:
+                continue
+            date_str = sched_date.isoformat() if hasattr(sched_date, 'isoformat') else str(sched_date)
+
+            def time_to_str(t):
+                if t is None:
+                    return None
+                if hasattr(t, 'seconds'):
+                    total = int(t.seconds)
+                    h, m, s = total // 3600, (total % 3600) // 60, total % 60
+                    return f'{h:02d}:{m:02d}:{s:02d}'
+                return str(t)
+
+            start_str = date_str + 'T' + time_to_str(start_t) if start_t else date_str
+            end_str = date_str + 'T' + time_to_str(end_t) if end_t else None
+
+            event = {
+                'title': title or 'Job Order',
+                'start': start_str,
+                'extendedProps': {'type': 'order', 'status': status or 'Scheduled'}
+            }
+            if end_str:
+                event['end'] = end_str
+            events.append(event)
+
+        return jsonify(events=events)
+    except Exception as e:
+        print(f'Error in staff_schedule_events: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/skills/my', methods=['GET'])
+@api_login_required
+def get_my_skills():
+    try:
+        cur = mysql.connection.cursor()
+        employee_id = ensure_employee_record(cur, current_user.id)
+        mysql.connection.commit()
+        cur.execute("SELECT skill_name FROM employee_skills WHERE employee_id = %s ORDER BY skill_id", (employee_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return jsonify(skills=[r[0] for r in rows])
+    except Exception as e:
+        print(f'Error in get_my_skills: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/skills/my', methods=['PUT'])
+@api_login_required
+def save_my_skills():
+    try:
+        data = request.get_json() or {}
+        skills = [s.strip() for s in (data.get('skills') or []) if isinstance(s, str) and s.strip()]
+        cur = mysql.connection.cursor()
+        employee_id = ensure_employee_record(cur, current_user.id)
+        cur.execute("DELETE FROM employee_skills WHERE employee_id = %s", (employee_id,))
+        for skill in skills:
+            cur.execute("INSERT INTO employee_skills (employee_id, skill_name) VALUES (%s, %s)", (employee_id, skill))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(skills=skills)
+    except Exception as e:
+        print(f'Error in save_my_skills: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/tasks/options', methods=['GET'])
+@api_login_required
+def staff_task_options():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT employee_id FROM employees WHERE user_id = %s", (current_user.id,))
+        emp_row = cur.fetchone()
+        if not emp_row:
+            cur.close()
+            return jsonify(tasks=[])
+        employee_id = emp_row[0]
+        cur.execute("""
+            SELECT t.task_id, t.task_name, jo.scheduled_date
+            FROM tasks t
+            JOIN job_orders jo ON jo.job_order_id = t.job_order_id
+            WHERE t.assigned_employee_id = %s
+            ORDER BY jo.scheduled_date DESC, t.task_id DESC
+        """, (employee_id,))
+        rows = cur.fetchall()
+        cur.close()
+        tasks = []
+        for task_id, task_name, sched_date in rows:
+            label = task_name or f'Task #{task_id}'
+            if sched_date:
+                date_s = sched_date.strftime('%-m/%-d/%y') if hasattr(sched_date, 'strftime') else str(sched_date)
+                label = f'{label} ({date_s})'
+            tasks.append({'id': task_id, 'label': label})
+        return jsonify(tasks=tasks)
+    except Exception as e:
+        print(f'Error in staff_task_options: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/material-requests', methods=['POST'])
+@api_login_required
+def submit_material_request():
+    try:
+        data = request.get_json() or {}
+        item_name = (data.get('item') or '').strip()
+        quantity = data.get('quantity')
+        note = (data.get('note') or '').strip()
+        task_id = data.get('task_id') or None
+
+        if not item_name:
+            return jsonify(error='Item name is required'), 400
+        if quantity is None or float(quantity) <= 0:
+            return jsonify(error='Quantity must be greater than zero'), 400
+
+        cur = mysql.connection.cursor()
+        employee_id = ensure_employee_record(cur, current_user.id)
+        mysql.connection.commit()
+
+        if task_id:
+            cur.execute("SELECT task_id FROM tasks WHERE task_id = %s", (int(task_id),))
+            if not cur.fetchone():
+                task_id = None
+
+        # Generate unique request code
+        request_code = f"MR-{datetime.now().strftime('%Y%m%d%H%M%S')}-{employee_id}"
+
+        full_note = f'Item: {item_name}, Qty: {quantity}' + (f'. {note}' if note else '')
+
+        cur.execute("""
+            INSERT INTO material_requests (request_code, employee_id, task_id, note, status, created_at)
+            VALUES (%s, %s, %s, %s, 'Pending', NOW())
+        """, (request_code, employee_id, task_id, full_note))
+        request_id = cur.lastrowid
+
+        # Try to link to inventory item if name matches
+        cur.execute("SELECT item_id FROM inventory_items WHERE item_name = %s AND is_active = TRUE LIMIT 1", (item_name,))
+        inv_row = cur.fetchone()
+        if inv_row:
+            cur.execute("""
+                INSERT INTO material_request_items (material_request_id, item_id, quantity_requested)
+                VALUES (%s, %s, %s)
+            """, (request_id, inv_row[0], float(quantity)))
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Request submitted successfully', request_code=request_code), 201
+    except Exception as e:
+        print(f'Error in submit_material_request: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/material-usage', methods=['POST'])
+@api_login_required
+def submit_material_usage():
+    try:
+        data = request.get_json() or {}
+        task_id = data.get('task_id')
+        items = data.get('items') or []
+
+        if not task_id:
+            return jsonify(error='Task ID is required'), 400
+        if not items:
+            return jsonify(error='At least one item is required'), 400
+
+        cur = mysql.connection.cursor()
+        employee_id = ensure_employee_record(cur, current_user.id)
+        mysql.connection.commit()
+
+        cur.execute("SELECT task_id FROM tasks WHERE task_id = %s", (int(task_id),))
+        if not cur.fetchone():
+            cur.close()
+            return jsonify(error='Task not found'), 404
+
+        cur.execute("""
+            INSERT INTO material_usage_logs (task_id, employee_id, logged_at)
+            VALUES (%s, %s, NOW())
+        """, (int(task_id), employee_id))
+        log_id = cur.lastrowid
+
+        for entry in items:
+            item_name = (entry.get('item') or '').strip()
+            quantity = entry.get('quantity')
+            if not item_name or not quantity:
+                continue
+            cur.execute("SELECT item_id FROM inventory_items WHERE item_name = %s AND is_active = TRUE LIMIT 1", (item_name,))
+            inv_row = cur.fetchone()
+            if inv_row:
+                item_id = inv_row[0]
+                cur.execute("""
+                    INSERT INTO material_usage_items (usage_log_id, item_id, quantity_used)
+                    VALUES (%s, %s, %s)
+                """, (log_id, item_id, float(quantity)))
+                # Deduct from inventory
+                cur.execute("""
+                    UPDATE inventory_items
+                    SET quantity_on_hand = GREATEST(0, quantity_on_hand - %s)
+                    WHERE item_id = %s
+                """, (float(quantity), item_id))
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Usage log submitted successfully'), 201
+    except Exception as e:
+        print(f'Error in submit_material_usage: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
 
 
 # ========================

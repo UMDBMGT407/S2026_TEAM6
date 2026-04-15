@@ -303,6 +303,12 @@
   color: var(--color-dark);
 }
 
+@media (max-width: 480px) {
+  .card .d-flex.flex-wrap .btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .availability-grid {
     grid-template-columns: 55px repeat(7, minmax(42px, 1fr));

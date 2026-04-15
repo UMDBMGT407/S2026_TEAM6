@@ -132,7 +132,7 @@
             <section class="staff-modal-panel availability-entry-shell">
               <div class="staff-card-header">
                 <p class="staff-eyebrow">Week Of</p>
-                <h3 class="availability-card-title">March 9 - March 15, 2026</h3>
+                <h3 class="availability-card-title" id="availability-week-label">This Week</h3>
                 <p class="availability-card-subtitle">
                   Choose a start and end time for each day, or mark the entire day unavailable.
                 </p>
@@ -142,7 +142,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Monday</h4>
-                    <p class="availability-day-date">3/9</p>
+                    <p class="availability-day-date" id="avail-date-monday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -161,7 +161,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Tuesday</h4>
-                    <p class="availability-day-date">3/10</p>
+                    <p class="availability-day-date" id="avail-date-tuesday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -180,7 +180,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Wednesday</h4>
-                    <p class="availability-day-date">3/11</p>
+                    <p class="availability-day-date" id="avail-date-wednesday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -199,7 +199,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Thursday</h4>
-                    <p class="availability-day-date">3/12</p>
+                    <p class="availability-day-date" id="avail-date-thursday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -218,7 +218,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Friday</h4>
-                    <p class="availability-day-date">3/13</p>
+                    <p class="availability-day-date" id="avail-date-friday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -237,7 +237,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Saturday</h4>
-                    <p class="availability-day-date">3/14</p>
+                    <p class="availability-day-date" id="avail-date-saturday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -256,7 +256,7 @@
                 <div class="availability-day-row">
                   <div class="availability-day-meta">
                     <h4 class="availability-day-name">Sunday</h4>
-                    <p class="availability-day-date">3/15</p>
+                    <p class="availability-day-date" id="avail-date-sunday"></p>
                   </div>
                   <label class="availability-time-field">
                     <span class="availability-time-label">From</span>
@@ -957,6 +957,17 @@
       availabilityModalElement.addEventListener("show.bs.modal", function () {
         setMessage("", "");
         setupAvailabilityForm();
+        // Update week label
+        var weekLabel = document.getElementById("availability-week-label");
+        if (weekLabel) {
+          var ws = getWeekStartDate();
+          var start = new Date(ws + "T00:00:00");
+          var end = new Date(start);
+          end.setDate(start.getDate() + 6);
+          var fmt = { month: "short", day: "numeric", year: "numeric" };
+          weekLabel.textContent = start.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+            " - " + end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        }
       });
 
       availabilityModalElement.addEventListener("hidden.bs.modal", function () {

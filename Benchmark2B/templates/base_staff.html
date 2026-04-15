@@ -45,8 +45,8 @@
       </nav>
 
       <div class="container-fluid px-0 portal-shell-container">
-        <div class="portal-shell">
-          <nav class="sidebar portal-sidebar portal-sidebar-nav">
+        <div class="row g-0 portal-shell">
+          <nav class="col-12 col-lg-3 col-xl-auto sidebar portal-sidebar portal-sidebar-nav">
             <ul class="nav flex-column portal-nav-list">
               <li class="nav-item">
                 <a href="{{ url_for('staff_scheduling_dashboard_page') }}" class="nav-link sidebar-link{% if active_page == 'scheduling' %} active-link{% endif %}">
@@ -66,7 +66,7 @@
             </ul>
           </nav>
 
-          <main class="main-content portal-main staff-main-content">
+          <main class="col-12 col-lg main-content portal-main staff-main-content">
             <div class="portal-main-inner">
               {% block page_content %}{% endblock %}
             </div>

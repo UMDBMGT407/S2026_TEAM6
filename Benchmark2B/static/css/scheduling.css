@@ -1,3 +1,22 @@
+.stat-filter-btn {
+  background: none;
+  border: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.stat-filter-btn:hover {
+  border-color: var(--color-interactive-border);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+.stat-filter-btn.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(127, 135, 80, 0.18);
+}
+
 .job-card {
   background: var(--color-light-bg-tertiary);
   border-radius: 24px;

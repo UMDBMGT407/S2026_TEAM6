@@ -34,24 +34,24 @@
           </div>
 
           <div class="row g-4 mt-2">
-            <div class="col-md-4">
-              <div class="stat-card">
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
                 <h6>Total Employees</h6>
-                <p class="stat-number">15</p>
+                <p class="stat-number" id="stat-total">—</p>
               </div>
             </div>
 
-            <div class="col-md-4">
-              <div class="stat-card">
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
                 <h6>Available Now</h6>
-                <p class="stat-number">8</p>
+                <p class="stat-number text-green" id="stat-available">—</p>
               </div>
             </div>
 
-            <div class="col-md-4">
-              <div class="stat-card">
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
                 <h6>On Active Job</h6>
-                <p class="stat-number">6</p>
+                <p class="stat-number text-red" id="stat-on-job">—</p>
               </div>
             </div>
           </div>
@@ -78,9 +78,9 @@
               </div>
             </form>
             <div class="d-flex gap-2 mt-3" id="employeeStatusFilters">
-              <button type="button" class="btn btn-sm btn-success employee-filter-btn" data-status="active">Active</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="active">Active</button>
               <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="inactive">Inactive</button>
-              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="all">All</button>
+              <button type="button" class="btn btn-sm btn-success employee-filter-btn" data-status="all">All</button>
             </div>
           </div>
 
@@ -641,7 +641,7 @@
 
 {% block page_js %}
 <script>
-  let currentEmployeeStatusFilter = 'active';
+  let currentEmployeeStatusFilter = 'all';
   let currentEmployeeSearch = '';
   let selectedEmployeeId = null;
   let assignmentEmployeeId = null;
@@ -691,8 +691,20 @@
     return params.toString();
   }
 
+  async function loadEmployeeStats() {
+    try {
+      const res = await fetch('/api/management/employee-stats');
+      const data = await res.json();
+      document.getElementById('stat-total').textContent = data.total ?? '—';
+      document.getElementById('stat-available').textContent = data.available ?? '—';
+      document.getElementById('stat-on-job').textContent = data.on_job ?? '—';
+    } catch (e) {
+      console.error('Error loading employee stats:', e);
+    }
+  }
+
   async function refreshEmployeeViews() {
-    await Promise.all([loadEmployees(), loadEmployeeCards()]);
+    await Promise.all([loadEmployees(), loadEmployeeCards(), loadEmployeeStats()]);
   }
 
   // Load employees when modal is shown
@@ -885,8 +897,8 @@
                 <small class="employee-info-line">${emp.email || 'No email'}</small>
               </div>
 
-              <div class="d-flex justify-content-center gap-2 mt-3">
-                <button class="btn btn-outline-dark view-availability-btn"
+              <div class="d-grid gap-2 mt-3">
+                <button class="btn btn-sm btn-outline-dark view-availability-btn"
                   data-employee-id="${emp.employee_id || emp.id}"
                   data-employee-name="${emp.name}"
                   data-bs-toggle="modal"
@@ -895,7 +907,7 @@
                 </button>
                 ${
                   emp.is_active && emp.role === 'Staff' && emp.employee_id
-                    ? `<button class="btn btn-outline-success assign-task-btn"
+                    ? `<button class="btn btn-sm btn-outline-success assign-task-btn"
                         data-employee-id="${emp.employee_id}"
                         data-employee-name="${encodeURIComponent(emp.name || '')}">
                         Assign/Reassign Task
@@ -904,8 +916,8 @@
                 }
                 ${
                   emp.is_active
-                    ? `<button class="btn btn-outline-danger" onclick="deleteEmployee(${emp.id})">Remove</button>`
-                    : `<button class="btn btn-outline-success" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`
+                    ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deleteEmployee(${emp.id})">Remove</button>`
+                    : `<button class="btn btn-sm btn-outline-success rounded-pill" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`
                 }
               </div>
             </div>
