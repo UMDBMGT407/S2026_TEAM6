@@ -58,7 +58,8 @@ CREATE TABLE clients (
     company_name VARCHAR(255) NOT NULL,
     member_since DATETIME DEFAULT CURRENT_TIMESTAMP,
     account_status VARCHAR(50) DEFAULT 'Active',
-    FOREIGN KEY (contact_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (contact_user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE client_locations (
@@ -75,14 +76,15 @@ CREATE TABLE client_locations (
 
 CREATE TABLE employees (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
+    user_id INT NOT NULL UNIQUE,
     employee_code VARCHAR(20) NOT NULL UNIQUE,
     job_title VARCHAR(150),
-    employment_status VARCHAR(50),
+    employment_status VARCHAR(50) DEFAULT 'Active',
     hire_date DATETIME,
     pay_rate_hourly DECIMAL(10,2),
     address_id INT,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
@@ -115,6 +117,7 @@ CREATE TABLE suppliers (
     total_orders INT DEFAULT 0,
     last_order_date DATE,
     status ENUM('Ordered','Shipped','Delivered'),
+    is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
 
@@ -130,6 +133,7 @@ CREATE TABLE plant_master (
     humidity_range VARCHAR(100),
     photo_url TEXT,
     notes TEXT
+    is_active BOOLEAN DEFAULT TRUE,
 );
 
 -- INVENTORY
@@ -145,6 +149,7 @@ CREATE TABLE inventory_items (
     quantity_on_hand DECIMAL(10,2),
     reorder_level DECIMAL(10,2),
     unit_label VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (plant_id) REFERENCES plant_master(plant_id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
 );
@@ -174,7 +179,7 @@ CREATE TABLE service_requests (
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (location_id) REFERENCES client_locations(location_id),
     FOREIGN KEY (service_id) REFERENCES services(service_id),
-    FOREIGN KEY (approved_by) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (approved_by) REFERENCES users(user_id)
 );
 
 -- APPOINTMENTS
