@@ -771,6 +771,55 @@ INSERT INTO payroll_records (
     (1, 1, 76.00, 4.00, 60.00, 24.50, 100.00, 50.00, 2060.00, 2010.00, 'Direct Deposit'),
     (1, 2, 72.00, 2.00, 55.00, 22.00, 0.00, 40.00, 1628.00, 1588.00, 'Direct Deposit');
 
+
+INSERT INTO plant_master 
+(common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, is_active)
+VALUES
+('Snake Plant','Dracaena trifasciata','Low to Bright Indirect','Every 2-3 weeks','60-85°F','Low','', 'Very hardy, good for beginners', TRUE),
+('Peace Lily','Spathiphyllum wallisii','Low to Medium','Weekly','65-80°F','Medium','', 'Flowers indoors, likes moisture', TRUE),
+('Fiddle Leaf Fig','Ficus lyrata','Bright Indirect','Weekly','65-75°F','Medium','', 'Sensitive to changes', TRUE),
+('Spider Plant','Chlorophytum comosum','Bright Indirect','Weekly','60-80°F','Medium','', 'Produces baby plants', TRUE),
+('Pothos','Epipremnum aureum','Low to Bright','Every 1-2 weeks','65-85°F','Low','', 'Very easy to grow', TRUE),
+('Monstera','Monstera deliciosa','Bright Indirect','Weekly','65-85°F','Medium','', 'Large split leaves', TRUE),
+('ZZ Plant','Zamioculcas zamiifolia','Low to Bright','Every 2-3 weeks','60-85°F','Low','', 'Very drought tolerant', TRUE),
+('Rubber Plant','Ficus elastica','Bright Indirect','Weekly','60-80°F','Medium','', 'Glossy leaves', TRUE),
+('Boston Fern','Nephrolepis exaltata','Indirect','2-3 times weekly','60-75°F','High','', 'Needs humidity', TRUE),
+('Aloe Vera','Aloe barbadensis miller','Bright Direct','Every 2-3 weeks','55-80°F','Low','', 'Succulent, medicinal', TRUE),
+
+('Jade Plant','Crassula ovata','Bright Direct','Every 2-3 weeks','60-75°F','Low','', 'Succulent, long lifespan', TRUE),
+('Areca Palm','Dypsis lutescens','Bright Indirect','Weekly','65-75°F','Medium','', 'Adds tropical look', TRUE),
+('Calathea','Calathea ornata','Low to Medium','Weekly','65-80°F','High','', 'Sensitive to water quality', TRUE),
+('Philodendron','Philodendron hederaceum','Low to Bright','Weekly','65-85°F','Medium','', 'Trailing plant', TRUE),
+('Chinese Evergreen','Aglaonema','Low to Medium','Weekly','65-80°F','Medium','', 'Tolerates low light', TRUE),
+('Dracaena','Dracaena marginata','Low to Bright','Every 1-2 weeks','65-80°F','Low','', 'Tall indoor plant', TRUE),
+('Parlor Palm','Chamaedorea elegans','Low to Medium','Weekly','65-80°F','Medium','', 'Classic indoor palm', TRUE),
+('Croton','Codiaeum variegatum','Bright Light','Weekly','65-85°F','Medium','', 'Colorful leaves', TRUE),
+('Bamboo Palm','Chamaedorea seifrizii','Indirect','Weekly','65-80°F','Medium','', 'Air purifying', TRUE),
+('Kentia Palm','Howea forsteriana','Indirect','Weekly','60-80°F','Medium','', 'Slow growing', TRUE),
+
+('Anthurium','Anthurium andraeanum','Bright Indirect','Weekly','65-80°F','High','', 'Red waxy flowers', TRUE),
+('Orchid','Phalaenopsis','Bright Indirect','Weekly','65-80°F','High','', 'Needs careful watering', TRUE),
+('Lavender','Lavandula','Full Sun','Weekly','60-85°F','Low','', 'Fragrant herb', TRUE),
+('Rosemary','Rosmarinus officinalis','Full Sun','Weekly','60-80°F','Low','', 'Herb plant', TRUE),
+('Mint','Mentha','Partial Sun','2-3 times weekly','60-75°F','Medium','', 'Fast growing herb', TRUE),
+('Basil','Ocimum basilicum','Full Sun','Weekly','65-85°F','Medium','', 'Common herb', TRUE),
+('Thyme','Thymus vulgaris','Full Sun','Weekly','60-80°F','Low','', 'Drought tolerant herb', TRUE),
+('Cactus','Various','Full Sun','Every 3-4 weeks','60-90°F','Low','', 'Minimal water needed', TRUE),
+('Succulent Mix','Various','Bright Light','Every 2-3 weeks','60-85°F','Low','', 'Assorted succulents', TRUE),
+('Air Plant','Tillandsia','Indirect','Mist weekly','60-80°F','Medium','', 'No soil required', TRUE),
+
+('Bird of Paradise','Strelitzia reginae','Bright Light','Weekly','65-85°F','Medium','', 'Large tropical plant', TRUE),
+('Banana Plant','Musa','Bright Light','Weekly','65-85°F','High','', 'Large leaves', TRUE),
+('Yucca','Yucca elephantipes','Bright Light','Every 2 weeks','60-85°F','Low','', 'Drought tolerant', TRUE),
+('Dieffenbachia','Dieffenbachia seguine','Indirect','Weekly','65-80°F','Medium','', 'Large patterned leaves', TRUE),
+('Oxalis','Oxalis triangularis','Bright Indirect','Weekly','60-75°F','Medium','', 'Purple leaves', TRUE),
+('Coleus','Plectranthus scutellarioides','Bright Indirect','Weekly','65-80°F','Medium','', 'Colorful foliage', TRUE),
+('Begonia','Begonia rex','Indirect','Weekly','65-75°F','High','', 'Decorative leaves', TRUE),
+('Gardenia','Gardenia jasminoides','Bright Light','Weekly','65-75°F','High','', 'Fragrant flowers', TRUE),
+('Hibiscus','Hibiscus rosa-sinensis','Full Sun','Weekly','65-85°F','Medium','', 'Large flowers', TRUE),
+('Geranium','Pelargonium','Full Sun','Weekly','60-80°F','Low','', 'Outdoor/indoor plant', TRUE);
+
+
 INSERT INTO material_requests (
     request_code,
     employee_id,
