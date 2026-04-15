@@ -25,9 +25,9 @@
 </div>
 
 <div class="row g-4 mt-2">
-  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Items</h6><p class="stat-number" id="stat-total">—</p></div></div>
-  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Low Stock Items</h6><p class="stat-number text-red" id="stat-low-stock">—</p></div></div>
-  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Inventory Value</h6><p class="stat-number" id="stat-value">—</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Items</h6><p class="stat-number" id="stat-total">&mdash;</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Low Stock Items</h6><p class="stat-number text-red" id="stat-low-stock">&mdash;</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Inventory Value</h6><p class="stat-number" id="stat-value">&mdash;</p></div></div>
 </div>
 
 <div class="inventory-alert alert d-flex align-items-center border border-warning rounded mt-3" id="low-stock-alert" style="display:none!important">
@@ -49,6 +49,42 @@
 </div>
 
 <div class="management-content-block" id="inventory-list"></div>
+
+<div class="row g-4 mt-3">
+  <div class="col-12 col-xl-6">
+    <div class="management-content-block h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="mb-0">Material Requests</h5>
+          <small class="text-muted">Submitted by staff from the inventory dashboard</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <select id="material-request-status-filter" class="form-select form-select-sm" style="min-width: 130px;">
+            <option value="pending" selected>Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="all">All</option>
+          </select>
+          <button type="button" id="refresh-requests-btn" class="btn btn-outline-success btn-sm">Refresh</button>
+        </div>
+      </div>
+      <div id="material-requests-list"></div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="management-content-block h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="mb-0">Recent Material Usage</h5>
+          <small class="text-muted">Logged by staff and deducted from inventory</small>
+        </div>
+        <button type="button" id="refresh-usage-btn" class="btn btn-outline-success btn-sm">Refresh</button>
+      </div>
+      <div id="material-usage-list"></div>
+    </div>
+  </div>
+</div>
 
 <!-- Adjust Stock Modal -->
 <div class="modal fade" id="adjustStockModal" tabindex="-1" aria-hidden="true">
@@ -122,7 +158,7 @@
           <div class="mb-3">
             <label for="new-item-supplier" class="form-label">Supplier</label>
             <select id="new-item-supplier" class="form-select">
-              <option value="">— None —</option>
+              <option value="">&mdash; None &mdash;</option>
             </select>
           </div>
           <div id="add-item-message"></div>
@@ -150,33 +186,102 @@
   var statValue = document.getElementById('stat-value');
   var lowStockAlert = document.getElementById('low-stock-alert');
   var lowStockAlertText = document.getElementById('low-stock-alert-text');
+  var requestsList = document.getElementById('material-requests-list');
+  var usageList = document.getElementById('material-usage-list');
+  var requestStatusFilter = document.getElementById('material-request-status-filter');
+  var refreshRequestsBtn = document.getElementById('refresh-requests-btn');
+  var refreshUsageBtn = document.getElementById('refresh-usage-btn');
   var adjustModal = new bootstrap.Modal(document.getElementById('adjustStockModal'));
   var addModal = new bootstrap.Modal(document.getElementById('addItemModal'));
+
   var currentSearch = '';
 
-  // ── Load inventory ──────────────────────────────────────────
+  async function requestJson(url, options) {
+    var res = await fetch(url, options || {});
+    var data = {};
+    try {
+      data = await res.json();
+    } catch (err) {
+      data = {};
+    }
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Request failed');
+    }
+    return data;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatNumber(value) {
+    if (value === null || value === undefined || value === '') {
+      return '0';
+    }
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(value);
+  }
+
+  function formatDateTime(value) {
+    if (!value) {
+      return 'Unknown';
+    }
+    var dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) {
+      return String(value);
+    }
+    return dt.toLocaleString();
+  }
+
+  function statusBadgeClass(status) {
+    var normalized = String(status || '').toLowerCase();
+    if (normalized === 'approved') {
+      return 'bg-success-subtle text-success border border-success-subtle';
+    }
+    if (normalized === 'rejected') {
+      return 'bg-danger-subtle text-danger border border-danger-subtle';
+    }
+    return 'bg-warning-subtle text-warning border border-warning-subtle';
+  }
+
   async function loadInventory() {
     var url = '/api/inventory';
-    if (currentSearch) url += '?search=' + encodeURIComponent(currentSearch);
+    if (currentSearch) {
+      url += '?search=' + encodeURIComponent(currentSearch);
+    }
+
     try {
-      var res = await fetch(url);
-      var items = await res.json();
+      var items = await requestJson(url);
       renderItems(items);
       renderStats(items);
-    } catch (e) {
-      inventoryList.innerHTML = '<p class="text-danger mt-3">Failed to load inventory.</p>';
+    } catch (err) {
+      inventoryList.innerHTML = '<p class="text-danger mt-3">Failed to load inventory: ' + escapeHtml(err.message) + '</p>';
     }
   }
 
   function renderStats(items) {
-    var lowCount = items.filter(i => i.quantity_on_hand <= i.reorder_level).length;
-    var value = items.reduce((sum, i) => sum + ((i.unit_price || 0) * i.quantity_on_hand), 0);
+    var lowCount = items.filter(function (item) {
+      return Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
+    }).length;
+
+    var inventoryValue = items.reduce(function (sum, item) {
+      var qty = Number(item.quantity_on_hand || 0);
+      var unitPrice = Number(item.unit_price || 0);
+      return sum + (qty * unitPrice);
+    }, 0);
+
     statTotal.textContent = items.length;
     statLow.textContent = lowCount;
-    statValue.textContent = '$' + value.toFixed(2);
+    statValue.textContent = '$' + inventoryValue.toFixed(2);
+
     if (lowCount > 0) {
       lowStockAlert.style.removeProperty('display');
-      lowStockAlertText.textContent = lowCount + ' item' + (lowCount > 1 ? 's' : '') + ' need to be reordered soon';
+      lowStockAlertText.textContent = lowCount + ' item' + (lowCount === 1 ? '' : 's') + ' need reorder attention';
     } else {
       lowStockAlert.style.display = 'none';
     }
@@ -184,50 +289,45 @@
 
   function renderItems(items) {
     if (!items.length) {
-      inventoryList.innerHTML = '<p class="text-muted mt-3">No inventory items found.</p>';
+      inventoryList.innerHTML = '<p class="text-muted mt-3 mb-0">No inventory items found.</p>';
       return;
     }
+
     inventoryList.innerHTML = items.map(function (item) {
-      var isLow = item.quantity_on_hand <= item.reorder_level;
-      var lowBadge = isLow
+      var lowStock = Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
+      var lowBadge = lowStock
         ? '<span class="low-stock-badge"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>'
         : '';
-      var price = item.unit_price != null ? '$' + Number(item.unit_price).toFixed(2) : '—';
-      var supplier = item.supplier_name || '—';
-      return (
-        '<div class="inventory-card surface-card ' + (isLow ? 'low-stock ' : '') + 'd-flex justify-content-between align-items-center mb-3 p-3">' +
-          '<div class="d-flex align-items-center">' +
-            '<div class="plant-icon me-3"><i class="bi bi-box-seam"></i></div>' +
-            '<div>' +
-              '<div class="d-flex align-items-center flex-wrap gap-2">' +
-                '<h5 class="mb-0 item-title">' + escHtml(item.item_name) + '</h5>' +
-                lowBadge +
-              '</div>' +
-              '<p class="mb-0 item-meta">' +
-                'Qty: <strong>' + item.quantity_on_hand + '</strong> ' + escHtml(item.unit_label) +
-                ' &nbsp;|&nbsp; Reorder at: ' + item.reorder_level +
+      var price = item.unit_price !== null && item.unit_price !== undefined
+        ? '$' + Number(item.unit_price).toFixed(2)
+        : '&mdash;';
+
+      return [
+        '<div class="inventory-card surface-card ' + (lowStock ? 'low-stock ' : '') + 'd-flex justify-content-between align-items-center mb-3 p-3">',
+          '<div class="d-flex align-items-center">',
+            '<div class="plant-icon me-3"><i class="bi bi-box-seam"></i></div>',
+            '<div>',
+              '<div class="d-flex align-items-center flex-wrap gap-2">',
+                '<h5 class="mb-0 item-title">' + escapeHtml(item.item_name) + '</h5>',
+                lowBadge,
+              '</div>',
+              '<p class="mb-0 item-meta">',
+                'Qty: <strong>' + formatNumber(item.quantity_on_hand) + '</strong> ' + escapeHtml(item.unit_label || 'units') +
+                ' &nbsp;|&nbsp; Reorder at: ' + formatNumber(item.reorder_level) +
                 ' &nbsp;|&nbsp; Price: ' + price +
-                ' &nbsp;|&nbsp; Supplier: ' + escHtml(supplier) +
-              '</p>' +
-            '</div>' +
-          '</div>' +
-          '<div class="d-flex flex-column gap-2 ms-3">' +
-            '<button class="btn management-action-btn btn-soft-neutral" onclick="openAdjust(' + item.item_id + ', \'' + escAttr(item.item_name) + '\', ' + item.quantity_on_hand + ')">Adjust Stock</button>' +
-            '<button class="btn management-action-btn btn-olive" onclick="doReorder(' + item.item_id + ')">Reorder</button>' +
-          '</div>' +
+                ' &nbsp;|&nbsp; Supplier: ' + escapeHtml(item.supplier_name || 'Unassigned'),
+              '</p>',
+            '</div>',
+          '</div>',
+          '<div class="d-flex flex-column gap-2 ms-3">',
+            '<button class="btn management-action-btn btn-soft-neutral js-adjust-stock" data-item-id="' + item.item_id + '" data-item-name="' + escapeHtml(item.item_name || '') + '" data-item-qty="' + Number(item.quantity_on_hand || 0) + '">Adjust Stock</button>',
+            '<button class="btn management-action-btn btn-olive js-reorder-stock" data-item-id="' + item.item_id + '">Reorder</button>',
+          '</div>',
         '</div>'
-      );
+      ].join('');
     }).join('');
   }
 
-  function escHtml(v) {
-    return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-  function escAttr(v) {
-    return String(v || '').replace(/'/g, "\\'");
-  }
-
-  // ── Adjust Stock ─────────────────────────────────────────────
   window.openAdjust = function (itemId, itemName, currentQty) {
     document.getElementById('adjust-item-id').value = itemId;
     document.getElementById('adjust-item-name').textContent = itemName;
@@ -236,91 +336,215 @@
     adjustModal.show();
   };
 
-  document.getElementById('adjust-stock-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
+  document.getElementById('adjust-stock-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
     var itemId = document.getElementById('adjust-item-id').value;
     var qty = document.getElementById('adjust-quantity').value;
     var msgEl = document.getElementById('adjust-message');
+
     try {
-      var res = await fetch('/api/inventory/' + itemId + '/stock', {
+      await requestJson('/api/inventory/' + itemId + '/stock', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity_on_hand: parseFloat(qty) })
+        body: JSON.stringify({ quantity_on_hand: Number(qty) })
       });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error');
       adjustModal.hide();
-      loadInventory();
+      await Promise.all([loadInventory(), loadManagementUsageLogs()]);
     } catch (err) {
-      msgEl.innerHTML = '<span class="text-danger">' + err.message + '</span>';
+      msgEl.innerHTML = '<span class="text-danger">' + escapeHtml(err.message) + '</span>';
     }
   });
 
-  // ── Reorder ──────────────────────────────────────────────────
   window.doReorder = async function (itemId) {
-    if (!confirm('Place a reorder for this item? Stock will be set to reorder level + 20.')) return;
+    if (!confirm('Place reorder for this item? Stock will be set to reorder level + 20.')) {
+      return;
+    }
+
     try {
-      var res = await fetch('/api/inventory/' + itemId + '/reorder', { method: 'POST' });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error');
-      loadInventory();
+      await requestJson('/api/inventory/' + itemId + '/reorder', { method: 'POST' });
+      await loadInventory();
     } catch (err) {
       alert('Reorder failed: ' + err.message);
     }
   };
 
-  // ── Add Item ─────────────────────────────────────────────────
   async function loadSupplierOptions() {
     try {
-      var res = await fetch('{{ url_for("get_suppliers") }}');
-      var suppliers = await res.json();
+      var suppliers = await requestJson('{{ url_for("get_suppliers") }}');
       var select = document.getElementById('new-item-supplier');
-      suppliers.filter(s => s.is_active).forEach(function (s) {
-        var opt = document.createElement('option');
-        opt.value = s.supplier_id;
-        opt.textContent = s.supplier_name;
-        select.appendChild(opt);
+      select.innerHTML = '<option value="">&mdash; None &mdash;</option>';
+      suppliers.filter(function (supplier) {
+        return supplier.is_active;
+      }).forEach(function (supplier) {
+        var option = document.createElement('option');
+        option.value = supplier.supplier_id;
+        option.textContent = supplier.supplier_name;
+        select.appendChild(option);
       });
-    } catch (e) {}
+    } catch (err) {
+      console.error('Failed loading suppliers:', err);
+    }
   }
 
   document.getElementById('addItemModal').addEventListener('show.bs.modal', loadSupplierOptions);
 
-  document.getElementById('add-item-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
+  document.getElementById('add-item-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
     var msgEl = document.getElementById('add-item-message');
+
     var payload = {
       item_name: document.getElementById('new-item-name').value.trim(),
       item_type: document.getElementById('new-item-type').value.trim(),
       sku: document.getElementById('new-item-sku').value.trim(),
-      quantity_on_hand: parseFloat(document.getElementById('new-item-qty').value) || 0,
+      quantity_on_hand: Number(document.getElementById('new-item-qty').value) || 0,
       unit_label: document.getElementById('new-item-unit').value.trim() || 'units',
-      reorder_level: parseFloat(document.getElementById('new-item-reorder').value) || 0,
-      unit_price: parseFloat(document.getElementById('new-item-price').value) || null,
-      supplier_id: document.getElementById('new-item-supplier').value || null,
+      reorder_level: Number(document.getElementById('new-item-reorder').value) || 0,
+      unit_price: document.getElementById('new-item-price').value === '' ? null : Number(document.getElementById('new-item-price').value),
+      supplier_id: document.getElementById('new-item-supplier').value || null
     };
+
     try {
-      var res = await fetch('/api/inventory', {
+      await requestJson('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error');
       addModal.hide();
       document.getElementById('add-item-form').reset();
-      loadInventory();
+      msgEl.innerHTML = '';
+      await Promise.all([loadInventory(), loadManagementMaterialRequests()]);
     } catch (err) {
-      msgEl.innerHTML = '<span class="text-danger">' + err.message + '</span>';
+      msgEl.innerHTML = '<span class="text-danger">' + escapeHtml(err.message) + '</span>';
     }
   });
 
-  // ── Search ───────────────────────────────────────────────────
+  async function loadManagementMaterialRequests() {
+    var status = requestStatusFilter ? requestStatusFilter.value : 'pending';
+    var url = '/api/management/material-requests?limit=50&status=' + encodeURIComponent(status);
+
+    try {
+      var data = await requestJson(url);
+      renderMaterialRequests(data.requests || []);
+    } catch (err) {
+      requestsList.innerHTML = '<p class="text-danger mb-0">Failed to load material requests: ' + escapeHtml(err.message) + '</p>';
+    }
+  }
+
+  function renderMaterialRequests(requests) {
+    if (!requests.length) {
+      requestsList.innerHTML = '<p class="text-muted mb-0">No material requests found for this filter.</p>';
+      return;
+    }
+
+    requestsList.innerHTML = requests.map(function (request) {
+      var itemsMarkup = (request.items || []).length
+        ? '<ul class="mb-2 ps-3">' + request.items.map(function (item) {
+            var mappingBadge = item.linked_to_inventory
+              ? '<span class="badge bg-success-subtle text-success border border-success-subtle ms-2">Mapped</span>'
+              : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2">Needs Inventory Match</span>';
+            return '<li>' +
+              escapeHtml(item.item_name) +
+              ': <strong>' + formatNumber(item.quantity_requested) + ' ' + escapeHtml(item.unit_label) + '</strong>' +
+              mappingBadge +
+            '</li>';
+          }).join('') + '</ul>'
+        : '<p class="mb-2 text-muted">No request line items found.</p>';
+
+      var actionButtons = String(request.status || '').toLowerCase() === 'pending'
+        ? [
+            '<div class="d-flex gap-2">',
+              '<button class="btn btn-sm btn-success" onclick="updateMaterialRequestStatus(' + request.material_request_id + ', \'approve\')">Approve</button>',
+              '<button class="btn btn-sm btn-outline-danger" onclick="updateMaterialRequestStatus(' + request.material_request_id + ', \'reject\')">Reject</button>',
+            '</div>'
+          ].join('')
+        : '';
+
+      return [
+        '<div class="border rounded p-3 mb-3">',
+          '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">',
+            '<div>',
+              '<div class="fw-semibold">' + escapeHtml(request.request_code || ('MR-' + request.material_request_id)) + '</div>',
+              '<div class="small text-muted">' + escapeHtml(request.employee_name || 'Unknown Staff') +
+                (request.task_name ? ' | ' + escapeHtml(request.task_name) : '') + '</div>',
+            '</div>',
+            '<span class="badge ' + statusBadgeClass(request.status) + '">' + escapeHtml(request.status || 'Pending') + '</span>',
+          '</div>',
+          (request.has_unlinked_items
+            ? '<p class="small text-warning mb-2">Approval will be blocked until all requested materials are in active inventory.</p>'
+            : ''),
+          itemsMarkup,
+          '<p class="mb-2 small">' + escapeHtml(request.note || 'No note provided.') + '</p>',
+          '<div class="d-flex justify-content-between align-items-center gap-2">',
+            '<small class="text-muted">Submitted: ' + escapeHtml(formatDateTime(request.created_at)) + '</small>',
+            actionButtons,
+          '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
+  window.updateMaterialRequestStatus = async function (requestId, action) {
+    if (action === 'reject' && !confirm('Reject this material request?')) {
+      return;
+    }
+    if (action === 'approve' && !confirm('Approve this material request?')) {
+      return;
+    }
+
+    try {
+      await requestJson('/api/management/material-requests/' + requestId + '/' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      await loadManagementMaterialRequests();
+    } catch (err) {
+      alert('Failed to update request: ' + err.message);
+    }
+  };
+
+  async function loadManagementUsageLogs() {
+    try {
+      var data = await requestJson('/api/management/material-usage?limit=50');
+      renderMaterialUsageLogs(data.logs || []);
+    } catch (err) {
+      usageList.innerHTML = '<p class="text-danger mb-0">Failed to load usage logs: ' + escapeHtml(err.message) + '</p>';
+    }
+  }
+
+  function renderMaterialUsageLogs(logs) {
+    if (!logs.length) {
+      usageList.innerHTML = '<p class="text-muted mb-0">No material usage logs found yet.</p>';
+      return;
+    }
+
+    usageList.innerHTML = logs.map(function (log) {
+      var itemsMarkup = (log.items || []).length
+        ? '<ul class="mb-2 ps-3">' + log.items.map(function (item) {
+            return '<li>' + escapeHtml(item.item_name) + ': <strong>' + formatNumber(item.quantity_used) + ' ' + escapeHtml(item.unit_label) + '</strong></li>';
+          }).join('') + '</ul>'
+        : '<p class="mb-2 text-muted">No usage rows recorded.</p>';
+
+      return [
+        '<div class="border rounded p-3 mb-3">',
+          '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">',
+            '<div>',
+              '<div class="fw-semibold">' + escapeHtml(log.task_name || ('Task #' + log.task_id)) + '</div>',
+              '<div class="small text-muted">Logged by ' + escapeHtml(log.employee_name || 'Unknown Staff') + '</div>',
+            '</div>',
+            '<small class="text-muted">' + escapeHtml(formatDateTime(log.logged_at)) + '</small>',
+          '</div>',
+          itemsMarkup,
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
   var searchForm = document.getElementById('inventory-search-form');
   var searchInput = document.getElementById('inventory-search-input');
 
-  searchForm.addEventListener('submit', function (e) {
-    e.preventDefault();
+  searchForm.addEventListener('submit', function (event) {
+    event.preventDefault();
     currentSearch = searchInput.value.trim();
     loadInventory();
   });
@@ -330,7 +554,38 @@
     loadInventory();
   });
 
-  loadInventory();
+  inventoryList.addEventListener('click', function (event) {
+    var adjustButton = event.target.closest('.js-adjust-stock');
+    if (adjustButton) {
+      window.openAdjust(
+        Number(adjustButton.dataset.itemId),
+        adjustButton.dataset.itemName || '',
+        Number(adjustButton.dataset.itemQty || 0)
+      );
+      return;
+    }
+
+    var reorderButton = event.target.closest('.js-reorder-stock');
+    if (reorderButton) {
+      window.doReorder(Number(reorderButton.dataset.itemId));
+    }
+  });
+
+  if (requestStatusFilter) {
+    requestStatusFilter.addEventListener('change', loadManagementMaterialRequests);
+  }
+  if (refreshRequestsBtn) {
+    refreshRequestsBtn.addEventListener('click', loadManagementMaterialRequests);
+  }
+  if (refreshUsageBtn) {
+    refreshUsageBtn.addEventListener('click', loadManagementUsageLogs);
+  }
+
+  Promise.all([
+    loadInventory(),
+    loadManagementMaterialRequests(),
+    loadManagementUsageLogs()
+  ]);
 })();
 </script>
 {% endblock %}
