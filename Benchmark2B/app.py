@@ -48,7 +48,7 @@ def ensure_suppliers_table():
                     address_id INT,
                     total_orders INT DEFAULT 0,
                     last_order_date DATE,
-                    status ENUM('Ordered','Shipped','Delivered'),
+                    status VARCHAR(50) DEFAULT 'Active',
                     is_active BOOLEAN DEFAULT TRUE,
                     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
                 )
@@ -59,6 +59,15 @@ def ensure_suppliers_table():
                 cur.execute("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
             except:
                 pass  # Column exists
+
+            try:
+                cur.execute("ALTER TABLE suppliers MODIFY COLUMN status VARCHAR(50) DEFAULT 'Active'")
+            except:
+                pass
+        try:
+            cur.execute("UPDATE suppliers SET status = 'Active' WHERE status IS NULL OR TRIM(status) = ''")
+        except:
+            pass
         mysql.connection.commit()
         cur.close()
 
@@ -1186,7 +1195,7 @@ def get_suppliers():
     search = request.args.get('search', '').strip()
 
     base_sql = """
-        SELECT supplier_id, supplier_name, phone, email, total_orders, last_order_date, is_active
+        SELECT supplier_id, supplier_name, phone, email, total_orders, last_order_date, status, is_active
         FROM suppliers
     """
 
@@ -1211,7 +1220,8 @@ def get_suppliers():
             'email': sup[3],
             'total_orders': sup[4],
             'last_order_date': sup[5].isoformat() if sup[5] is not None else None,
-            'is_active': bool(sup[6])
+            'status': sup[6] or ('Active' if sup[7] else 'Inactive'),
+            'is_active': bool(sup[7])
         })
 
     return jsonify(supplier_list)
@@ -1222,7 +1232,11 @@ def get_suppliers():
 @role_required('Management')
 def deactivate_supplier(supplier_id):
     cur = mysql.connection.cursor()
-    cur.execute("UPDATE suppliers SET is_active = FALSE WHERE supplier_id = %s", (supplier_id,))
+    cur.execute("""
+        UPDATE suppliers
+        SET is_active = FALSE, status = 'Inactive'
+        WHERE supplier_id = %s
+    """, (supplier_id,))
     mysql.connection.commit()
     cur.close()
     return jsonify(message='Supplier deactivated successfully')
@@ -1233,7 +1247,11 @@ def deactivate_supplier(supplier_id):
 @role_required('Management')
 def reactivate_supplier(supplier_id):
     cur = mysql.connection.cursor()
-    cur.execute("UPDATE suppliers SET is_active = TRUE WHERE supplier_id = %s", (supplier_id,))
+    cur.execute("""
+        UPDATE suppliers
+        SET is_active = TRUE, status = 'Active'
+        WHERE supplier_id = %s
+    """, (supplier_id,))
     mysql.connection.commit()
     cur.close()
     return jsonify(message='Supplier reactivated successfully')
