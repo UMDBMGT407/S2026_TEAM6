@@ -44,6 +44,34 @@
         </p>
       </button>
     </section>
+
+    <section class="inventory-reference-panel surface-card">
+      <div class="inventory-reference-header">
+        <div>
+          <p class="staff-eyebrow">Inventory</p>
+          <h2 class="inventory-reference-title">Current Inventory List</h2>
+          <p class="inventory-reference-subtitle">
+            View active materials, tools, and supplies with unit price and on-hand quantities.
+          </p>
+        </div>
+        <div class="inventory-reference-actions">
+          <input
+            type="search"
+            id="inventory-reference-search"
+            class="staff-input inventory-reference-search"
+            placeholder="Search inventory"
+          />
+          <button
+            type="button"
+            id="refresh-staff-inventory-btn"
+            class="btn management-action-btn btn-soft-neutral"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div id="inventory-reference-list" class="inventory-reference-list"></div>
+    </section>
   </div>
 
   <div
