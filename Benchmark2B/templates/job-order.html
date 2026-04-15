@@ -1,5 +1,5 @@
 {% extends "base_management.html" %}
-{% set active_page = 'employees' %}
+{% set active_page = 'job-order' %}
 
 {% block title %}Planted Management Portal{% endblock %}
 
@@ -8,631 +8,133 @@
   href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
   rel="stylesheet"
 />
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+/>
 {% endblock %}
 
 {% block page_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/manage-employee.css') }}">
+<style>
+  #request-filter-buttons {
+    align-items: center;
+    row-gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .request-status-filter {
+    min-height: 42px;
+    padding: 0.5rem 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.1;
+  }
+</style>
 {% endblock %}
 
 {% block page_content %}
-          <div class="row align-items-center mb-2">
-            <div class="col">
-              <h2 class="page-title mb-0">Manage Employee Info</h2>
-              <p class="page-subtitle mb-0">
-                Monitor and manage your team's availability
-              </p>
-            </div>
-            <div class="col-auto">
-              <button
-                class="btn btn-outline-success px-4"
-                data-bs-toggle="modal"
-                data-bs-target="#addEmployeeModal"
-              >
-                + Add Employee
-              </button>
-            </div>
+<div class="row align-items-center mb-2">
+  <div class="col">
+    <h2 class="page-title mb-0">Job Orders</h2>
+    <p class="page-subtitle mb-0">Review client service requests and approve with available staff only</p>
+  </div>
+  <div class="col-auto">
+    <button id="job-order-refresh-btn" class="btn btn-outline-success px-4" type="button">Refresh</button>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-3"><div class="stat-card"><h6>Pending Requests</h6><p id="stat-pending-requests" class="stat-number text-warning">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Approved Requests</h6><p id="stat-approved-requests" class="stat-number text-green">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Rejected Requests</h6><p id="stat-rejected-requests" class="stat-number text-red">0</p></div></div>
+  <div class="col-md-3"><div class="stat-card"><h6>Total Job Orders</h6><p id="stat-job-orders" class="stat-number">0</p></div></div>
+</div>
+
+<div class="management-section">
+  <form id="service-request-search-form" class="management-search-form" role="search">
+    <div class="input-group">
+      <span class="input-group-text management-search-icon">
+        <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg" alt="Search" />
+      </span>
+      <input id="service-request-search-input" class="form-control management-search-input me-2" type="search" placeholder="Search client, service, location, or contact" aria-label="Search requests" />
+      <button class="btn btn-outline-success px-4" type="submit">Search</button>
+    </div>
+  </form>
+</div>
+
+<div class="d-flex gap-2 flex-wrap mb-3" id="request-filter-buttons">
+  <button type="button" class="btn btn-outline-success request-status-filter active" data-status="pending">Pending</button>
+  <button type="button" class="btn btn-outline-success request-status-filter" data-status="approved">Approved</button>
+  <button type="button" class="btn btn-outline-success request-status-filter" data-status="rejected">Rejected</button>
+  <button type="button" class="btn btn-outline-success request-status-filter" data-status="all">All</button>
+</div>
+
+<div id="job-order-status" class="mb-3"></div>
+
+<div class="management-content-block mb-4">
+  <h3 class="h5 mb-3">Service Requests</h3>
+  <div id="service-request-list" class="row g-3"></div>
+</div>
+
+<div class="management-content-block">
+  <h3 class="h5 mb-3">Recent Job Orders</h3>
+  <div id="job-order-list" class="row g-3"></div>
+</div>
+
+<div class="modal fade" id="approveRequestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5 mb-0">Approve Request and Assign Staff</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2" id="approve-request-summary"></p>
+        <input type="hidden" id="approve-request-id" />
+
+        <div class="mb-3">
+          <label for="approve-scheduled-date" class="form-label">Scheduled Date</label>
+          <input id="approve-scheduled-date" type="date" class="form-control" readonly disabled />
+          <small class="text-muted">Date is locked to the client’s requested date.</small>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label for="approve-start-time" class="form-label">Start Time</label>
+            <input id="approve-start-time" type="time" class="form-control" value="09:00" />
           </div>
-
-          <div class="row g-4 mt-2">
-            <div class="col-md-4">
-              <div class="stat-card">
-                <h6>Total Employees</h6>
-                <p class="stat-number" id="employee-total-count">0</p>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="stat-card">
-                <h6>Active</h6>
-                <p class="stat-number" id="employee-active-count">0</p>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="stat-card">
-                <h6>Inactive</h6>
-                <p class="stat-number" id="employee-inactive-count">0</p>
-              </div>
-            </div>
+          <div class="col-6">
+            <label for="approve-end-time" class="form-label">End Time</label>
+            <input id="approve-end-time" type="time" class="form-control" value="10:00" />
           </div>
+        </div>
+        <div class="mt-3">
+          <label for="approve-employee-select" class="form-label">Available Employee</label>
+          <select id="approve-employee-select" class="form-select">
+            <option value="">Set date/time first</option>
+          </select>
+          <small class="text-muted" id="approve-employee-help"></small>
+        </div>
 
-          <div class="management-section mt-4">
-            <form class="management-search-form" role="search">
-              <div class="input-group">
-                <span class="input-group-text management-search-icon">
-                  <img
-                    src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg"
-                    alt="Search"
-                  />
-                </span>
-                <input
-                  class="form-control management-search-input me-2"
-                  type="search"
-                  placeholder="Search employees"
-                  aria-label="Search"
-                />
-                <button class="btn btn-outline-success px-4" type="submit">
-                  Search
-                </button>
-              </div>
-            </form>
+        <div class="mt-3">
+          <label for="approve-priority" class="form-label">Priority</label>
+          <select id="approve-priority" class="form-select">
+            <option value="Normal" selected>Normal</option>
+            <option value="High">High</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
 
-            <div class="d-flex flex-wrap gap-3 align-items-center mt-3">
-              <div class="btn-group" role="group" aria-label="Employee filter">
-                <button type="button" class="btn btn-outline-secondary active filter-btn" data-filter="all">All</button>
-                <button type="button" class="btn btn-outline-secondary filter-btn" data-filter="active">Active</button>
-                <button type="button" class="btn btn-outline-secondary filter-btn" data-filter="inactive">Inactive</button>
-              </div>
-
-              <div class="input-group w-auto">
-                <label class="input-group-text" for="employeeSort">Sort</label>
-                <select class="form-select" id="employeeSort">
-                  <option value="name-asc">Name A–Z</option>
-                  <option value="name-desc">Name Z–A</option>
-                  <option value="hire-newest">Hire Date Newest</option>
-                  <option value="hire-oldest">Hire Date Oldest</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="table-responsive mt-4">
-            <table class="table table-bordered table-hover" id="employeeTable">
-              <thead class="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Role</th>
-                  <th>Hire Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="employeeTableBody">
-                <tr>
-                  <td colspan="7" class="text-center text-muted py-4">Loading employees...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- employee pop up -->
-          <div
-            class="modal fade"
-            id="employeeManagementModal"
-            tabindex="-1"
-            aria-labelledby="employeeManagementModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-              <div class="modal-content employee-modal">
-                <div class="modal-header employee-modal-header border-0">
-                  <div>
-                    <h2
-                      class="modal-title mb-0"
-                      id="employeeManagementModalLabel"
-                    >
-                      Employee Management
-                    </h2>
-                    <p class="mb-0 employee-modal-subtitle">
-                      Add or remove specialists from the system
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    class="btn-close custom-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                  ></button>
-                </div>
-
-                <div class="modal-body p-4">
-                  <button class="btn add-employee-btn w-100 mb-4" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-                    + Add New Employee
-                  </button>
-
-                  <p class="employee-section-label mb-3">
-                    CURRENT EMPLOYEES (<span id="employeeCount">0</span>)
-                  </p>
-
-                  <div id="employeeList">
-                    <!-- Employees will be loaded here -->
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add Employee Form Modal -->
-          <div
-            class="modal fade"
-            id="addEmployeeModal"
-            tabindex="-1"
-            aria-labelledby="addEmployeeModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-              <div class="modal-content employee-modal">
-                <div class="modal-header employee-modal-header border-0">
-                  <div>
-                    <h2 class="modal-title mb-0" id="addEmployeeModalLabel">
-                      Add New Employee
-                    </h2>
-                    <p class="mb-0 employee-modal-subtitle">
-                      Fill in the employee details below
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn-close custom-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                  ></button>
-                </div>
-
-                <div class="modal-body p-4">
-                  <form id="addEmployeeForm">
-                    <div class="row g-3 mb-3">
-                      <div class="col-md-6">
-                        <label for="firstName" class="form-label">First Name *</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="firstName"
-                          name="first_name"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6">
-                        <label for="lastName" class="form-label">Last Name *</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="lastName"
-                          name="last_name"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label for="email" class="form-label">Email *</label>
-                      <input
-                        type="email"
-                        class="form-control"
-                        id="email"
-                        name="email"
-                        required
-                      />
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                      <div class="col-md-6">
-                        <label for="phone" class="form-label">Phone</label>
-                        <input
-                          type="tel"
-                          class="form-control"
-                          id="phone"
-                          name="phone"
-                        />
-                      </div>
-                      <div class="col-md-6">
-                        <label for="password" class="form-label">Password</label>
-                        <input
-                          type="password"
-                          class="form-control"
-                          id="password"
-                          name="password"
-                          placeholder="Leave blank for default: test123"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label for="role" class="form-label">Role</label>
-                      <select class="form-control" id="role" name="role">
-                        <option value="Staff" selected>Staff</option>
-                        <option value="Management">Management</option>
-                        <option value="Client">Client</option>
-                      </select>
-                    </div>
-
-                    <div id="formMessage" class="alert d-none" role="alert"></div>
-
-                    <div class="d-flex gap-2 justify-content-end">
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal"
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" class="btn btn-success">
-                        Add Employee
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- availability pop up -->
-          <div
-            class="modal fade"
-            id="availabilityModal"
-            tabindex="-1"
-            aria-labelledby="availabilityModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-              <div class="modal-content availability-modal">
-                <div class="modal-body p-4">
-                  <p class="availability-label mb-1">Availability Status</p>
-                  <h2
-                    class="availability-name mb-4"
-                    id="availabilityModalLabel"
-                  >
-                    Martha Schemer
-                  </h2>
-
-                  <div class="availability-grid">
-                    <div class="schedule-header-empty"></div>
-                    <div class="schedule-day">Sun</div>
-                    <div class="schedule-day">Mon</div>
-                    <div class="schedule-day">Tues</div>
-                    <div class="schedule-day">Wed</div>
-                    <div class="schedule-day">Thurs</div>
-                    <div class="schedule-day">Fri</div>
-                    <div class="schedule-day">Sat</div>
-
-                    <!-- 8am -->
-                    <div class="schedule-time">8am</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-
-                    <!-- 9am -->
-                    <div class="schedule-time">9am</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 10am -->
-                    <div class="schedule-time">10am</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 11am -->
-                    <div class="schedule-time">11am</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 12pm -->
-                    <div class="schedule-time">12pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 1pm -->
-                    <div class="schedule-time">1pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 2pm -->
-                    <div class="schedule-time">2pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 3pm -->
-                    <div class="schedule-time">3pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 4pm -->
-                    <div class="schedule-time">4pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell active"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 5pm -->
-                    <div class="schedule-time">5pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 6pm -->
-                    <div class="schedule-time">6pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 7pm -->
-                    <div class="schedule-time">7pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 8pm -->
-                    <div class="schedule-time">8pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 9pm -->
-                    <div class="schedule-time">9pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-
-                    <!-- 10pm -->
-                    <div class="schedule-time">10pm</div>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                    <button class="schedule-cell"></button>
-                  </div>
-
-                  <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button
-                      class="btn btn-outline-secondary"
-                      data-bs-dismiss="modal"
-                    >
-                      Close
-                    </button>
-                    <button class="btn btn-outline-success">
-                      Save Availability
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- payroll pop up -->
-          <div
-            class="modal fade"
-            id="payrollModal"
-            tabindex="-1"
-            aria-labelledby="payrollModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-              <div class="modal-content payroll-modal">
-                <div class="modal-body p-4 p-md-5">
-                  <div
-                    class="d-flex justify-content-between align-items-start mb-3"
-                  >
-                    <div>
-                      <h2 class="payroll-title mb-1" id="payrollModalLabel">
-                        Payroll Details
-                      </h2>
-                      <p class="payroll-subtitle mb-0">
-                        Martha Schemer • March 1-15, 2026
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn-close"
-                      data-bs-dismiss="modal"
-                      aria-label="Close"
-                    ></button>
-                  </div>
-
-                  <hr class="payroll-divider" />
-
-                  <section class="mb-4">
-                    <h5 class="section-title mb-3">Employee Information</h5>
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <div class="info-box">
-                          <div class="info-label">Employee ID</div>
-                          <div class="info-value">0001</div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="info-box">
-                          <div class="info-label">Employee Name</div>
-                          <div class="info-value">Martha Schemer</div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="info-box">
-                          <div class="info-label">Role</div>
-                          <div class="info-value">Senior Horticulturist</div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="info-box">
-                          <div class="info-label">Pay Rate</div>
-                          <div class="info-value">$24.00/Hour</div>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  <hr class="payroll-divider" />
-
-                  <section class="mb-4">
-                    <div class="pay-period-box">
-                      <span class="pay-period-label">Pay Period:</span>
-                      <span class="pay-period-value"
-                        >March 1 - March 15, 2026</span
-                      >
-                    </div>
-                  </section>
-
-                  <hr class="payroll-divider" />
-
-                  <section class="mb-4">
-                    <h5 class="section-title mb-3">Hours Breakdown</h5>
-                    <div class="row g-3">
-                      <div class="col-md-4">
-                        <div class="hours-box">
-                          <div class="info-label">Regular Hours</div>
-                          <div class="hours-value">75h</div>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="hours-box">
-                          <div class="info-label">Overtime Hours</div>
-                          <div class="hours-value text-danger">0h</div>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="hours-box">
-                          <div class="info-label">Billable Hours</div>
-                          <div class="hours-value text-success">75h</div>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  <hr class="payroll-divider" />
-
-                  <section class="mb-4">
-                    <h5 class="section-title mb-3">Pay Breakdown</h5>
-
-                    <div class="pay-row neutral-row">
-                      <span>Regular Pay</span>
-                      <span>75h × $24.00 = $1,800</span>
-                    </div>
-
-                    <div class="pay-row positive-row">
-                      <span>Regular Pay</span>
-                      <span>+$150</span>
-                    </div>
-
-                    <div class="pay-row negative-row">
-                      <span>Deductions</span>
-                      <span>-$285</span>
-                    </div>
-                  </section>
-
-                  <hr class="payroll-divider" />
-
-                  <section class="mb-4">
-                    <div class="summary-box gross-box">
-                      <span>Gross Pay</span>
-                      <span>$1900</span>
-                    </div>
-
-                    <div class="summary-box net-box mt-3">
-                      <span>Net Pay</span>
-                      <span>$1615</span>
-                    </div>
-                  </section>
-
-                  <hr class="payroll-divider" />
-
-                  <section>
-                    <h5 class="section-title mb-3">Payment Info</h5>
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <div class="info-box payment-box">
-                          <div class="payment-title">Payment Method</div>
-                          <div class="payment-value">Direct Deposit</div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="info-box payment-box">
-                          <div class="payment-title">Payment Date</div>
-                          <div class="payment-value">2026-03-16</div>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div id="approve-modal-message" class="mt-3"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="approve-request-confirm-btn">Approve and Create Job</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block vendor_js %}
@@ -641,383 +143,479 @@
 
 {% block page_js %}
 <script>
-  const employeeManagementModal = document.getElementById('employeeManagementModal');
-  const employeeTableBody = document.getElementById('employeeTableBody');
-  const employeeSearchForm = document.querySelector('.management-search-form');
-  const employeeSearchInput = document.querySelector('.management-search-input');
-  const employeeFilterButtons = document.querySelectorAll('.filter-btn');
-  const employeeSortSelect = document.getElementById('employeeSort');
-  const employeeTotalCount = document.getElementById('employee-total-count');
-  const employeeActiveCount = document.getElementById('employee-active-count');
-  const employeeInactiveCount = document.getElementById('employee-inactive-count');
-  const employeeList = document.getElementById('employeeList');
-  const employeeCount = document.getElementById('employeeCount');
+  (function () {
+    var searchForm = document.getElementById('service-request-search-form');
+    var searchInput = document.getElementById('service-request-search-input');
+    var statusEl = document.getElementById('job-order-status');
+    var requestList = document.getElementById('service-request-list');
+    var jobList = document.getElementById('job-order-list');
+    var filterButtons = Array.from(document.querySelectorAll('.request-status-filter'));
+    var refreshButton = document.getElementById('job-order-refresh-btn');
 
-  let employeeCache = [];
-  let currentFilter = 'all';
-  let currentSort = 'name-asc';
+    var statPending = document.getElementById('stat-pending-requests');
+    var statApproved = document.getElementById('stat-approved-requests');
+    var statRejected = document.getElementById('stat-rejected-requests');
+    var statJobOrders = document.getElementById('stat-job-orders');
 
-  if (employeeManagementModal) {
-    employeeManagementModal.addEventListener('show.bs.modal', async function() {
-      if (!employeeCache.length) {
-        await loadEmployees();
-      }
-      renderEmployeeList();
-    });
-  }
+    var approveModalEl = document.getElementById('approveRequestModal');
+    var approveModal = bootstrap.Modal.getOrCreateInstance(approveModalEl);
+    var approveSummary = document.getElementById('approve-request-summary');
+    var approveRequestIdInput = document.getElementById('approve-request-id');
+    var approveDateInput = document.getElementById('approve-scheduled-date');
+    var approveStartInput = document.getElementById('approve-start-time');
+    var approveEndInput = document.getElementById('approve-end-time');
+    var approveEmployeeSelect = document.getElementById('approve-employee-select');
+    var approveEmployeeHelp = document.getElementById('approve-employee-help');
+    var approvePriority = document.getElementById('approve-priority');
+    var approveConfirmBtn = document.getElementById('approve-request-confirm-btn');
+    var approveModalMessage = document.getElementById('approve-modal-message');
 
-  async function fetchEmployees(searchQuery = '') {
-    const url = '/employees' + (searchQuery ? '?search=' + encodeURIComponent(searchQuery) : '');
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error('Unable to fetch employees');
-    }
-    const employees = await response.json();
-    employeeCache = employees;
-    return employees;
-  }
+    var currentStatusFilter = 'pending';
+    var currentSearch = '';
+    var requestById = {};
 
-  async function loadEmployees(searchQuery = '') {
-    try {
-      await fetchEmployees(searchQuery);
-      renderEmployeeTable();
-      renderEmployeeList();
-      updateSummaryCounts();
-    } catch (error) {
-      console.error('Error loading employees:', error);
-      if (employeeTableBody) {
-        employeeTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading employees</td></tr>';
-      }
-      if (employeeList) {
-        employeeList.innerHTML = '<p class="text-danger">Error loading employees</p>';
-      }
-    }
-  }
-
-  function filterAndSortEmployees() {
-    return employeeCache
-      .filter(emp => {
-        if (currentFilter === 'active') return emp.is_active;
-        if (currentFilter === 'inactive') return !emp.is_active;
-        return true;
-      })
-      .sort((a, b) => {
-        if (a.is_active !== b.is_active) {
-          return b.is_active - a.is_active;
-        }
-
-        if (currentSort === 'name-asc') {
-          return a.name.localeCompare(b.name);
-        }
-        if (currentSort === 'name-desc') {
-          return b.name.localeCompare(a.name);
-        }
-        if (currentSort === 'hire-newest') {
-          return new Date(b.hire_date || 0) - new Date(a.hire_date || 0);
-        }
-        if (currentSort === 'hire-oldest') {
-          return new Date(a.hire_date || 0) - new Date(b.hire_date || 0);
-        }
-        return 0;
-      });
-  }
-
-  function renderEmployeeTable() {
-    if (!employeeTableBody) return;
-
-    const rows = filterAndSortEmployees();
-
-    if (!rows.length) {
-      employeeTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No employees found.</td></tr>';
-      return;
+    function setStatus(text, isError) {
+      statusEl.textContent = text || '';
+      statusEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
     }
 
-    employeeTableBody.innerHTML = rows.map(emp => `
-      <tr>
-        <td>${emp.name}</td>
-        <td>${emp.email || '—'}</td>
-        <td>${emp.phone || '—'}</td>
-        <td>${emp.role}</td>
-        <td>${emp.hire_date || '—'}</td>
-        <td>${emp.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
-        <td>
-          ${emp.is_active ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteEmployee(${emp.id})">Deactivate</button>` : `<button class="btn btn-sm btn-outline-primary" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`}
-        </td>
-      </tr>`).join('');
-  }
-
-  function renderEmployeeList() {
-    if (!employeeList || !employeeCount) return;
-
-    const rows = filterAndSortEmployees();
-    employeeCount.textContent = rows.length;
-
-    if (!rows.length) {
-      employeeList.innerHTML = '<p class="text-muted">No employees yet</p>';
-      return;
+    function setApproveModalMessage(text, isError) {
+      approveModalMessage.textContent = text || '';
+      approveModalMessage.className = isError ? 'text-danger mt-3' : 'text-success mt-3';
     }
 
-    employeeList.innerHTML = rows.map(emp => `
-      <div class="employee-row d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div class="employee-info">
-          <h5 class="mb-0 employee-name">${emp.name}</h5>
-          <p class="mb-1 employee-role">${emp.role} • <small class="text-muted">ID: ${emp.employee_id || ''}${emp.employee_code ? (' • ' + emp.employee_code) : ''}</small></p>
-          <div class="employee-meta mb-1"><small class="text-muted">Hired: ${emp.hire_date || '—'}</small></div>
-          <div class="employee-contact"><span>${emp.email || 'N/A'}</span><span class="ms-4">${emp.phone || 'N/A'}</span></div>
-        </div>
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          ${emp.is_active ? `<button class="btn remove-employee-btn" onclick="deleteEmployee(${emp.id})">Remove Employee</button>` : `<button class="btn btn-outline-primary reactivate-employee-btn" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`}
-          ${emp.is_active ? '<span class="status-pill active-pill">Active</span>' : '<span class="status-pill text-muted border border-secondary rounded px-2">Inactive</span>'}
-        </div>
-      </div>`).join('');
-  }
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-  function updateSummaryCounts() {
-    const active = employeeCache.filter(emp => emp.is_active).length;
-    const inactive = employeeCache.filter(emp => !emp.is_active).length;
-    const total = employeeCache.length;
+    function formatDate(value) {
+      if (!value) return 'Not set';
+      var date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString();
+    }
 
-    if (employeeTotalCount) employeeTotalCount.textContent = String(total);
-    if (employeeActiveCount) employeeActiveCount.textContent = String(active);
-    if (employeeInactiveCount) employeeInactiveCount.textContent = String(inactive);
-  }
+    function formatMoney(value) {
+      return '$' + Number(value || 0).toFixed(2);
+    }
 
-  function debounce(fn, wait) {
-    let t = null;
-    return function(...args) {
-      clearTimeout(t);
-      t = setTimeout(() => fn.apply(this, args), wait);
-    };
-  }
+    function formatStatus(status) {
+      var normalized = String(status || '').toLowerCase();
+      if (!normalized) return 'Pending';
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
 
-  if (employeeSearchForm && employeeSearchInput) {
-    employeeSearchForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      await loadEmployees(employeeSearchInput.value.trim());
-    });
+    function getStatusBadgeClass(status) {
+      var normalized = String(status || '').toLowerCase();
+      if (normalized === 'approved') return 'bg-success-subtle text-success';
+      if (normalized === 'rejected') return 'bg-danger-subtle text-danger';
+      return 'bg-warning-subtle text-warning';
+    }
 
-    employeeSearchInput.addEventListener('input', debounce(async function() {
-      await loadEmployees(employeeSearchInput.value.trim());
-    }, 300));
-  }
+    async function fetchJson(url, options) {
+      var response = await fetch(url, options || {});
+      var contentType = response.headers.get('content-type') || '';
+      var data = null;
 
-  employeeFilterButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      employeeFilterButtons.forEach(btn => btn.classList.remove('active'));
-      this.classList.add('active');
-      currentFilter = this.dataset.filter;
-      renderEmployeeTable();
-      renderEmployeeList();
-    });
-  });
-
-  if (employeeSortSelect) {
-    employeeSortSelect.addEventListener('change', function() {
-      currentSort = this.value;
-      renderEmployeeTable();
-      renderEmployeeList();
-    });
-  }
-
-  async function deleteEmployee(userId) {
-    if (!confirm('Are you sure you want to remove this employee?')) return;
-    try {
-      const response = await fetch(`/user/${userId}`, { method: 'DELETE' });
-      const data = await response.json();
-      if (response.ok) {
-        alert('Employee removed successfully');
-        await loadEmployees(employeeSearchInput?.value.trim() || '');
+      if (contentType.indexOf('application/json') !== -1) {
+        data = await response.json();
       } else {
-        alert(data.error || 'Error removing employee');
+        var rawText = await response.text();
+        if (response.status === 401 || response.status === 403 || rawText.toLowerCase().indexOf('<!doctype') !== -1) {
+          throw new Error('Your session may have expired. Please sign in again and refresh this page.');
+        }
+        throw new Error('Unexpected server response (HTTP ' + response.status + ').');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error removing employee');
-    }
-  }
 
-  async function reactivateEmployee(userId) {
-    try {
-      const response = await fetch(`/user/${userId}/reactivate`, { method: 'POST' });
-      const data = await response.json();
-      if (response.ok) {
-        alert(data.message || 'Employee reactivated successfully');
-        await loadEmployees(employeeSearchInput?.value.trim() || '');
-      } else {
-        alert(data.error || 'Error reactivating employee');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error reactivating employee');
-    }
-  }
-
-  document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formMessage = document.getElementById('formMessage');
-    formMessage.classList.add('d-none');
-    const formData = {
-      first_name: document.getElementById('firstName').value.trim(),
-      last_name: document.getElementById('lastName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      password: document.getElementById('password').value.trim(),
-      role: document.getElementById('role').value
-    };
-    if (!formData.first_name || !formData.last_name || !formData.email) {
-      formMessage.textContent = 'Please fill in all required fields (First Name, Last Name, Email)';
-      formMessage.className = 'alert alert-danger';
-      formMessage.classList.remove('d-none');
-      return;
-    }
-    try {
-      const response = await fetch('/user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
-      const data = await response.json();
-      if (response.ok) {
-        formMessage.textContent = 'Employee added successfully!';
-        formMessage.className = 'alert alert-success';
-        formMessage.classList.remove('d-none');
-        document.getElementById('addEmployeeForm').reset();
-        setTimeout(async () => {
-          const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
-          if (modal) modal.hide();
-          await loadEmployees(employeeSearchInput?.value.trim() || '');
-        }, 1000);
-      } else {
-        formMessage.textContent = data.error || 'Error adding employee. Please try again.';
-        formMessage.className = 'alert alert-danger';
-        formMessage.classList.remove('d-none');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      formMessage.textContent = 'Error adding employee. Please try again.';
-      formMessage.className = 'alert alert-danger';
-      formMessage.classList.remove('d-none');
-    }
-  });
-
-  loadEmployees();
-
-  let selectedEmployeeId = null;
-
-  // Get the current week's Monday date
-  function getWeekStartDate() {
-    const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(today.setDate(diff));
-    const year = monday.getFullYear();
-    const month = String(monday.getMonth() + 1).padStart(2, '0');
-    const date = String(monday.getDate()).padStart(2, '0');
-    return `${year}-${month}-${date}`;
-  }
-
-  // Populate availability grid with data from database
-  async function loadAvailabilityGrid() {
-    if (!selectedEmployeeId) {
-      console.warn('No employee selected');
-      return;
-    }
-
-    try {
-      const weekStart = getWeekStartDate();
-      console.log('Loading availability for employee:', selectedEmployeeId, 'week:', weekStart);
-      
-      const response = await fetch(`/availability/employee/${selectedEmployeeId}?week_start_date=${weekStart}`);
-      
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(data.error || ('HTTP ' + response.status));
       }
-      
-      const availabilityResponse = await response.json();
-      const availability = availabilityResponse.availability || availabilityResponse;
-      console.log('Availability data received:', availabilityResponse);
-
-      // Map day index to day name: 0=Sunday, 1=Monday, etc.
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      
-      // Generate time slots from 8am to 10pm (22:00)
-      const hours = [];
-      for (let h = 8; h <= 22; h++) {
-        hours.push(h);
-      }
-
-      // Clear existing grid and rebuild
-      const availabilityGrid = document.querySelector('.availability-grid');
-      
-      if (!availabilityGrid) {
-        console.error('Availability grid element not found');
-        throw new Error('Availability grid element not found in DOM');
-      }
-      
-      // Create header with day names
-      let gridHTML = '<div class="schedule-header-empty"></div>';
-      for (let day = 0; day < 7; day++) {
-        const dayAbbrev = dayNames[day].substring(0, 3);
-        gridHTML += `<div class="schedule-day">${dayAbbrev}</div>`;
-      }
-
-      // Create time slots
-      for (let hour of hours) {
-        const period = hour >= 12 ? 'pm' : 'am';
-        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
-        gridHTML += `<div class="schedule-time">${displayHour}${period}</div>`;
-
-        // For each day of the week
-        for (let day = 0; day < 7; day++) {
-          const dayAvailability = availability[String(day)] || availability[day];
-          let isActive = false;
-
-          // Check if current hour falls within the available time range
-          if (dayAvailability && dayAvailability.available && dayAvailability.from && dayAvailability.to) {
-            const fromHour = parseInt(dayAvailability.from.split(':')[0]);
-            const toHour = parseInt(dayAvailability.to.split(':')[0]);
-            console.log(`Day ${day}: from ${fromHour} to ${toHour}, checking hour ${hour}`);
-            if (hour >= fromHour && hour < toHour) {
-              isActive = true;
-            }
-          }
-
-          gridHTML += `<button class="schedule-cell ${isActive ? 'active' : ''}" disabled></button>`;
-        }
-      }
-
-      // Update grid with new HTML
-      console.log('Rendering grid with', hours.length, 'hours');
-      availabilityGrid.innerHTML = gridHTML;
-    } catch (error) {
-      console.error('Error loading availability:', error);
-      alert('Failed to load availability: ' + error.message);
+      return data;
     }
-  }
 
-  // Auto-refresh availability every 5 seconds when modal is open
-  let availabilityRefreshInterval = null;
-  
-  const availabilityModal = document.getElementById('availabilityModal');
-  if (availabilityModal) {
-    availabilityModal.addEventListener('show.bs.modal', function() {
-      // Small delay to ensure authentication is ready
-      setTimeout(function() {
-        loadAvailabilityGrid();
-        // Refresh every 3 seconds while modal is open
-        availabilityRefreshInterval = setInterval(loadAvailabilityGrid, 3000);
-      }, 100);
+    function buildManagementRequestQuery(status, search) {
+      var params = new URLSearchParams();
+      params.set('status', status);
+      if (search) params.set('search', search);
+      return params.toString();
+    }
+
+    function updateFilterButtons() {
+      filterButtons.forEach(function (button) {
+        var isActive = button.getAttribute('data-status') === currentStatusFilter;
+        button.classList.toggle('active', isActive);
+      });
+    }
+
+    function renderRequestStats(allRequests, jobs) {
+      var pending = 0;
+      var approved = 0;
+      var rejected = 0;
+
+      allRequests.forEach(function (item) {
+        var status = String(item.status || 'Pending').toLowerCase();
+        if (status === 'approved') {
+          approved += 1;
+        } else if (status === 'rejected') {
+          rejected += 1;
+        } else {
+          pending += 1;
+        }
+      });
+
+      statPending.textContent = String(pending);
+      statApproved.textContent = String(approved);
+      statRejected.textContent = String(rejected);
+      statJobOrders.textContent = String(jobs.length);
+    }
+
+    function renderRequestCards(requests) {
+      if (!requests.length) {
+        requestList.innerHTML = '<div class="col-12"><p class="text-muted mb-0">No service requests found for this filter.</p></div>';
+        return;
+      }
+
+      requestList.innerHTML = requests.map(function (item) {
+        var statusLabel = formatStatus(item.status);
+        var badgeClass = getStatusBadgeClass(item.status);
+        var hasPendingActions = String(item.status || '').toLowerCase() === 'pending';
+        var notes = item.requested_notes ? escapeHtml(item.requested_notes) : '<span class="text-muted">No notes</span>';
+
+        var actionHtml = '';
+        if (hasPendingActions) {
+          actionHtml =
+            '<div class="d-flex gap-2 mt-3">' +
+              '<button type="button" class="btn btn-success btn-sm approve-request-btn" data-request-id="' + item.service_request_id + '">Approve and Assign</button>' +
+              '<button type="button" class="btn btn-outline-danger btn-sm reject-request-btn" data-request-id="' + item.service_request_id + '">Reject</button>' +
+            '</div>';
+        } else if (item.approved_by_name) {
+          actionHtml =
+            '<div class="mt-3">' +
+              '<small class="text-muted">Updated by: ' + escapeHtml(item.approved_by_name) + '</small>' +
+            '</div>';
+        }
+
+        return (
+          '<div class="col-12">' +
+            '<div class="surface-card p-4">' +
+              '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
+                '<div>' +
+                  '<h4 class="mb-1">Request #' + item.service_request_id + ' - ' + escapeHtml(item.service_name) + '</h4>' +
+                  '<p class="mb-0 text-muted">' + escapeHtml(item.company_name) + ' | Contact: ' + escapeHtml(item.contact_name || 'N/A') + '</p>' +
+                '</div>' +
+                '<span class="badge ' + badgeClass + '">' + statusLabel + '</span>' +
+              '</div>' +
+              '<div class="row mt-3 g-3">' +
+                '<div class="col-md-6">' +
+                  '<p class="mb-1"><strong>Requested Date:</strong> ' + formatDate(item.requested_date) + '</p>' +
+                  '<p class="mb-1"><strong>Submitted:</strong> ' + formatDate(item.created_at) + '</p>' +
+                  '<p class="mb-0"><strong>Estimated Price:</strong> ' + formatMoney(item.base_price) + '</p>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                  '<p class="mb-1"><strong>Location:</strong> ' + escapeHtml(item.location_name || 'Location') + '</p>' +
+                  '<p class="mb-1"><strong>Address:</strong> ' + escapeHtml(item.location_address || 'N/A') + '</p>' +
+                  '<p class="mb-0"><strong>Email:</strong> ' + escapeHtml(item.contact_email || 'N/A') + '</p>' +
+                '</div>' +
+              '</div>' +
+              '<div class="mt-3"><strong>Notes:</strong> ' + notes + '</div>' +
+              actionHtml +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function renderJobCards(jobs) {
+      if (!jobs.length) {
+        jobList.innerHTML = '<div class="col-12"><p class="text-muted mb-0">No job orders created yet.</p></div>';
+        return;
+      }
+
+      jobList.innerHTML = jobs.slice(0, 12).map(function (job) {
+        var statusLabel = formatStatus(job.status);
+        var badgeClass = getStatusBadgeClass(job.status);
+        var assignedTo = job.assigned_name || 'Unassigned';
+        var timeLabel = (job.start_time && job.end_time) ? (job.start_time + ' - ' + job.end_time) : 'Not scheduled';
+
+        return (
+          '<div class="col-12">' +
+            '<div class="surface-card p-4">' +
+              '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
+                '<div>' +
+                  '<h4 class="mb-1">' + escapeHtml(job.job_order_code || ('Job #' + job.id)) + ' - ' + escapeHtml(job.title || 'Job Order') + '</h4>' +
+                  '<p class="mb-0 text-muted">' + escapeHtml(job.company || 'Client') + '</p>' +
+                '</div>' +
+                '<span class="badge ' + badgeClass + '">' + statusLabel + '</span>' +
+              '</div>' +
+              '<div class="row mt-3 g-3">' +
+                '<div class="col-md-6">' +
+                  '<p class="mb-1"><strong>Date:</strong> ' + formatDate(job.scheduled_date) + '</p>' +
+                  '<p class="mb-0"><strong>Time:</strong> ' + escapeHtml(timeLabel) + '</p>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                  '<p class="mb-1"><strong>Location:</strong> ' + escapeHtml(job.location || 'N/A') + '</p>' +
+                  '<p class="mb-0"><strong>Assigned to:</strong> ' + escapeHtml(assignedTo) + '</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    async function loadAvailableEmployeesForApproval() {
+      var scheduledDate = approveDateInput.value;
+      var startTime = approveStartInput.value;
+      var endTime = approveEndInput.value;
+
+      if (!scheduledDate || !startTime || !endTime) {
+        approveEmployeeSelect.innerHTML = '<option value="">Set date and time first</option>';
+        approveEmployeeHelp.textContent = '';
+        return;
+      }
+
+      try {
+        var query = new URLSearchParams({
+          scheduled_date: scheduledDate,
+          start_time: startTime,
+          end_time: endTime
+        }).toString();
+        var data = await fetchJson('/api/management/available-employees?' + query);
+        var available = data.available || [];
+        var unavailable = data.unavailable || [];
+
+        if (!available.length) {
+          approveEmployeeSelect.innerHTML = '<option value="">No available employees for this window</option>';
+          if (unavailable.length) {
+            var reasonPreview = unavailable.slice(0, 3).map(function (emp) {
+              return emp.name + ': ' + (emp.reason || 'Unavailable');
+            }).join(' | ');
+            approveEmployeeHelp.textContent = reasonPreview;
+          } else {
+            approveEmployeeHelp.textContent = 'Change time to see available staff.';
+          }
+          return;
+        }
+
+        approveEmployeeSelect.innerHTML =
+          '<option value="">Select an employee</option>' +
+          available.map(function (emp) {
+            var range = emp.availability_from && emp.availability_to
+              ? (' (' + emp.availability_from + '-' + emp.availability_to + ')')
+              : '';
+            return '<option value="' + emp.employee_id + '">' + escapeHtml(emp.name) + range + '</option>';
+          }).join('');
+        approveEmployeeHelp.textContent = available.length + ' available employee(s) found.';
+      } catch (error) {
+        approveEmployeeSelect.innerHTML = '<option value="">Could not load available employees</option>';
+        approveEmployeeHelp.textContent = error.message;
+      }
+    }
+
+    async function applySuggestedWindowIfNeeded() {
+      var scheduledDate = approveDateInput.value;
+      if (!scheduledDate) {
+        return;
+      }
+
+      try {
+        var suggestionsData = await fetchJson('/api/management/available-employees/suggestions?scheduled_date=' + encodeURIComponent(scheduledDate));
+        var suggestions = suggestionsData.suggestions || [];
+        if (!suggestions.length) {
+          var reasons = suggestionsData.no_availability_reasons || [];
+          if (reasons.length) {
+            approveEmployeeHelp.textContent = reasons.slice(0, 3).map(function (emp) {
+              return emp.name + ': ' + (emp.reason || 'Unavailable');
+            }).join(' | ');
+          } else {
+            approveEmployeeHelp.textContent = 'No staff has an available slot for this requested date.';
+          }
+          return;
+        }
+
+        // If current window has no availability, auto-switch to first valid window.
+        var currentQuery = new URLSearchParams({
+          scheduled_date: scheduledDate,
+          start_time: approveStartInput.value,
+          end_time: approveEndInput.value
+        }).toString();
+        var currentWindowData = await fetchJson('/api/management/available-employees?' + currentQuery);
+        if ((currentWindowData.available || []).length > 0) {
+          return;
+        }
+
+        approveStartInput.value = suggestions[0].start_time;
+        approveEndInput.value = suggestions[0].end_time;
+        approveEmployeeHelp.textContent = 'Auto-selected first available time window: ' + suggestions[0].start_time + '-' + suggestions[0].end_time + '.';
+      } catch (error) {
+        // Keep silent here; regular loader already handles message display.
+      }
+    }
+
+    async function openApproveModal(serviceRequestId) {
+      var requestItem = requestById[String(serviceRequestId)];
+      if (!requestItem) {
+        setStatus('Could not load request details. Please refresh and try again.', true);
+        return;
+      }
+
+      approveRequestIdInput.value = String(serviceRequestId);
+      approveSummary.textContent = 'Request #' + serviceRequestId + ' - ' + (requestItem.service_name || 'Service');
+      approveDateInput.value = requestItem.requested_date || '';
+      approveStartInput.value = '09:00';
+      approveEndInput.value = '10:00';
+      approvePriority.value = 'Normal';
+      setApproveModalMessage('', false);
+      await applySuggestedWindowIfNeeded();
+      await loadAvailableEmployeesForApproval();
+      approveModal.show();
+    }
+
+    async function approveRequestFromModal() {
+      var serviceRequestId = approveRequestIdInput.value;
+      var employeeId = approveEmployeeSelect.value;
+      var scheduledDate = approveDateInput.value;
+      var startTime = approveStartInput.value;
+      var endTime = approveEndInput.value;
+
+      if (!serviceRequestId) {
+        setApproveModalMessage('No request selected.', true);
+        return;
+      }
+      if (!scheduledDate || !startTime || !endTime) {
+        setApproveModalMessage('Set scheduled date and time before approval.', true);
+        return;
+      }
+      if (!employeeId) {
+        setApproveModalMessage('Select an available employee before approval.', true);
+        return;
+      }
+
+      approveConfirmBtn.disabled = true;
+      approveConfirmBtn.textContent = 'Approving...';
+      try {
+        var payload = {
+          employee_id: Number(employeeId),
+          scheduled_date: scheduledDate,
+          start_time: startTime,
+          end_time: endTime,
+          priority: approvePriority.value || 'Normal'
+        };
+        var result = await fetchJson('/api/management/service-requests/' + serviceRequestId + '/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        approveModal.hide();
+        setStatus('Approved request #' + serviceRequestId + '. Created ' + (result.job_order_code || 'job order') + ' with assigned staff.', false);
+        await loadDashboard();
+      } catch (error) {
+        setApproveModalMessage(error.message, true);
+      } finally {
+        approveConfirmBtn.disabled = false;
+        approveConfirmBtn.textContent = 'Approve and Create Job';
+      }
+    }
+
+    async function rejectRequest(serviceRequestId) {
+      var reason = prompt('Optional reason for rejection:') || '';
+      try {
+        await fetchJson('/api/management/service-requests/' + serviceRequestId + '/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason.trim() })
+        });
+        setStatus('Rejected request #' + serviceRequestId + '.', false);
+        await loadDashboard();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    }
+
+    async function loadDashboard() {
+      try {
+        var requestQuery = buildManagementRequestQuery(currentStatusFilter, currentSearch);
+        var results = await Promise.all([
+          fetchJson('/api/management/service-requests?status=all'),
+          fetchJson('/api/management/service-requests?' + requestQuery),
+          fetchJson('/jobs')
+        ]);
+
+        var allRequests = results[0];
+        var filteredRequests = results[1];
+        var jobs = results[2];
+
+        requestById = {};
+        allRequests.forEach(function (item) {
+          requestById[String(item.service_request_id)] = item;
+        });
+
+        renderRequestStats(allRequests, jobs);
+        renderRequestCards(filteredRequests);
+        renderJobCards(jobs);
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    }
+
+    searchForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      currentSearch = searchInput.value.trim();
+      setStatus('', false);
+      loadDashboard();
     });
-    
-    availabilityModal.addEventListener('hidden.bs.modal', function() {
-      if (availabilityRefreshInterval) {
-        clearInterval(availabilityRefreshInterval);
-        availabilityRefreshInterval = null;
+
+    searchInput.addEventListener('input', function () {
+      currentSearch = searchInput.value.trim();
+      setStatus('', false);
+      loadDashboard();
+    });
+
+    filterButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        currentStatusFilter = button.getAttribute('data-status') || 'pending';
+        updateFilterButtons();
+        setStatus('', false);
+        loadDashboard();
+      });
+    });
+
+    requestList.addEventListener('click', function (event) {
+      var approveBtn = event.target.closest('.approve-request-btn');
+      if (approveBtn) {
+        openApproveModal(approveBtn.getAttribute('data-request-id'));
+        return;
+      }
+
+      var rejectBtn = event.target.closest('.reject-request-btn');
+      if (rejectBtn) {
+        rejectRequest(rejectBtn.getAttribute('data-request-id'));
       }
     });
-  }
 
-  // Load employees on page load
-  loadEmployees();
+    refreshButton.addEventListener('click', function () {
+      setStatus('', false);
+      loadDashboard();
+    });
+
+    approveConfirmBtn.addEventListener('click', function () {
+      approveRequestFromModal();
+    });
+
+    [approveStartInput, approveEndInput].forEach(function (input) {
+      input.addEventListener('change', function () {
+        setApproveModalMessage('', false);
+        loadAvailableEmployeesForApproval();
+      });
+    });
+
+    updateFilterButtons();
+    loadDashboard();
+  })();
 </script>
 {% endblock %}
-}

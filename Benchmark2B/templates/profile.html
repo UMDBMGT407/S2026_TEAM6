@@ -10,65 +10,82 @@
 {% block page_content %}
 <div class="mb-4">
   <h1 class="page-title">My Profile</h1>
-  <p class="page-subtitle">Manage your account information and preferences</p>
+  <p class="page-subtitle">Manage your account information and service locations</p>
 </div>
 
 <div class="profile-banner mb-4">
   <div class="row align-items-center">
     <div class="col-md-9 d-flex align-items-center gap-4">
-      <div class="profile-avatar" id="profile-avatar">SM</div>
+      <div class="profile-avatar" id="profile-avatar">--</div>
       <div>
         <div class="profile-name" id="profile-name">Loading...</div>
-        <div class="profile-email" id="profile-email-banner">Loading...</div>
-        <div class="profile-since" id="profile-member-since">Member since --</div>
+        <div class="profile-email" id="profile-email">Loading...</div>
+        <div class="profile-since" id="profile-since">Member since --</div>
       </div>
-    </div>
-    <div class="col-md-3 text-end">
-      <input id="profile-photo-input" type="file" accept="image/*" class="d-none">
-      <button class="upload-photo-btn" id="upload-photo-btn" type="button">Upload Photo</button>
     </div>
   </div>
 </div>
 
-<div class="profile-card mb-3">
-  <div class="row align-items-center">
-    <div class="col-md-10">
-      <div class="profile-section-title">Personal Information</div>
-      <div class="row mt-2">
-        <div class="col-md-4"><div class="profile-field-label">FIRST NAME</div><div class="profile-field-value" id="profile-first-name">--</div></div>
-        <div class="col-md-4"><div class="profile-field-label">LAST NAME</div><div class="profile-field-value" id="profile-last-name">--</div></div>
-      </div>
+<form id="profile-form" class="profile-card mb-3 p-4">
+  <div class="profile-section-title mb-3">Profile Information</div>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label for="first-name-input" class="profile-field-label">FIRST NAME</label>
+      <input id="first-name-input" class="form-control" required />
     </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="personal">Edit</button></div>
+    <div class="col-md-3">
+      <label for="last-name-input" class="profile-field-label">LAST NAME</label>
+      <input id="last-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+      <label for="email-input" class="profile-field-label">EMAIL</label>
+      <input id="email-input" class="form-control" disabled />
+    </div>
+    <div class="col-md-3">
+      <label for="phone-input" class="profile-field-label">PHONE</label>
+      <input id="phone-input" class="form-control" />
+    </div>
+    <div class="col-md-6">
+      <label for="company-name-input" class="profile-field-label">COMPANY NAME</label>
+      <input id="company-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+      <button type="submit" class="btn-action">Save Profile</button>
+    </div>
   </div>
-</div>
+</form>
 
-<div class="profile-card mb-3">
-  <div class="row align-items-center">
-    <div class="col-md-10">
-      <div class="profile-section-title">Contact Details</div>
-      <div class="row mt-2">
-        <div class="col-md-4"><div class="profile-field-label">EMAIL ADDRESS</div><div class="profile-field-value" id="profile-email">--</div></div>
-        <div class="col-md-4"><div class="profile-field-label">PHONE NUMBER</div><div class="profile-field-value" id="profile-phone">--</div></div>
-      </div>
-    </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="contact">Edit</button></div>
-  </div>
-</div>
+<div class="profile-card mb-3 p-4">
+  <div class="profile-section-title mb-3">Service Locations</div>
+  <p id="profile-status" class="mb-3"></p>
+  <div id="locations-list" class="mb-4"></div>
 
-<div class="profile-card mb-3">
-  <div class="row align-items-center">
-    <div class="col-md-10">
-      <div class="profile-section-title">Service Address</div>
-      <div class="row mt-2">
-        <div class="col-md-5"><div class="profile-field-label">STREET ADDRESS</div><div class="profile-field-value" id="profile-street">--</div></div>
-        <div class="col-md-2"><div class="profile-field-label">CITY</div><div class="profile-field-value" id="profile-city">--</div></div>
-        <div class="col-md-2"><div class="profile-field-label">STATE</div><div class="profile-field-value" id="profile-state">--</div></div>
-        <div class="col-md-2"><div class="profile-field-label">ZIP CODE</div><div class="profile-field-value" id="profile-zip">--</div></div>
-      </div>
+  <div class="profile-section-title mb-3">Add Location</div>
+  <form id="add-location-form" class="row g-3">
+    <div class="col-md-4">
+      <label for="location-name-input" class="profile-field-label">LOCATION NAME</label>
+      <input id="location-name-input" class="form-control" required />
     </div>
-    <div class="col-md-2 text-end"><button class="profile-edit-btn" data-edit-section="address">Edit</button></div>
-  </div>
+    <div class="col-md-8">
+      <label for="street-input" class="profile-field-label">STREET ADDRESS</label>
+      <input id="street-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="city-input" class="profile-field-label">CITY</label>
+      <input id="city-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="state-input" class="profile-field-label">STATE</label>
+      <input id="state-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="zip-input" class="profile-field-label">ZIP</label>
+      <input id="zip-input" class="form-control" required />
+    </div>
+    <div class="col-md-12">
+      <button type="submit" class="btn-action">Add Location</button>
+    </div>
+  </form>
 </div>
 {% endblock %}
 
@@ -78,192 +95,149 @@
 
 {% block page_js %}
 <script>
-  var currentUserId = {{ current_user.id }};
-  var uploadPhotoButton = document.getElementById('upload-photo-btn');
-  var profilePhotoInput = document.getElementById('profile-photo-input');
-  var profileAvatar = document.getElementById('profile-avatar');
-  var profileName = document.getElementById('profile-name');
-  var profileEmailBanner = document.getElementById('profile-email-banner');
-  var profileMemberSince = document.getElementById('profile-member-since');
-  var currentLocationId = null;
+  (function () {
+    var profileForm = document.getElementById('profile-form');
+    var locationForm = document.getElementById('add-location-form');
+    var statusEl = document.getElementById('profile-status');
+    var locationsList = document.getElementById('locations-list');
 
-  var sectionConfig = {
-    personal: [
-      { id: 'profile-first-name', field: 'first_name' },
-      { id: 'profile-last-name', field: 'last_name' }
-    ],
-    contact: [
-      { id: 'profile-email', field: 'email' },
-      { id: 'profile-phone', field: 'phone' }
-    ],
-    address: [
-      { id: 'profile-street', field: 'street_1' },
-      { id: 'profile-city', field: 'city' },
-      { id: 'profile-state', field: 'state' },
-      { id: 'profile-zip', field: 'zip_code' }
-    ]
-  };
-
-  function setText(id, value) {
-    var element = document.getElementById(id);
-    if (element) {
-      element.textContent = value || '--';
-    }
-  }
-
-  function toYear(dateText) {
-    if (!dateText) {
-      return '--';
-    }
-    var dateValue = new Date(dateText);
-    if (Number.isNaN(dateValue.getTime())) {
-      return '--';
-    }
-    return String(dateValue.getFullYear());
-  }
-
-  function initials(firstName, lastName) {
-    var first = (firstName || '').trim().slice(0, 1).toUpperCase();
-    var last = (lastName || '').trim().slice(0, 1).toUpperCase();
-    return (first + last) || 'CL';
-  }
-
-  function startEditing(sectionName, button) {
-    (sectionConfig[sectionName] || []).forEach(function (item) {
-      var field = document.getElementById(item.id);
-      if (!field) {
-        return;
-      }
-      var currentValue = field.textContent.trim() === '--' ? '' : field.textContent.trim();
-      field.innerHTML = '<input type="text" class="profile-input" value="' + currentValue.replace(/"/g, '&quot;') + '" />';
-    });
-    button.textContent = 'Save';
-    button.dataset.editing = 'true';
-  }
-
-  async function saveSection(sectionName, button) {
-    var payload = {};
-    (sectionConfig[sectionName] || []).forEach(function (item) {
-      var field = document.getElementById(item.id);
-      if (!field) {
-        return;
-      }
-      var input = field.querySelector('input');
-      payload[item.field] = input ? input.value.trim() : field.textContent.trim();
-    });
-
-    if (sectionName === 'address') {
-      if (!payload.street_1 || !payload.city || !payload.state || !payload.zip_code) {
-        alert('Please fill out street, city, state, and zip code.');
-        return;
-      }
-      if (currentLocationId) {
-        payload.location_id = currentLocationId;
-      }
+    function setStatus(text, isError) {
+      statusEl.textContent = text || '';
+      statusEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
     }
 
-    button.disabled = true;
-    try {
-      var endpoint = sectionName === 'address'
-        ? '/client/me/location'
-        : '/user/' + String(currentUserId);
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-      var response = await fetch(endpoint, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+    async function fetchJson(url, options) {
+      var response = await fetch(url, options || {});
       var data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Unable to save changes.');
+        throw new Error(data.error || ('HTTP ' + response.status));
       }
-
-      await loadProfile();
-      button.textContent = 'Edit';
-      button.dataset.editing = 'false';
-    } catch (error) {
-      alert(error.message || 'Unable to save profile changes.');
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  async function loadProfile() {
-    try {
-      var responses = await Promise.all([
-        fetch('/user/' + String(currentUserId)),
-        fetch('/client/me')
-      ]);
-
-      var userResponse = responses[0];
-      var clientResponse = responses[1];
-      var userData = await userResponse.json();
-      var clientData = await clientResponse.json();
-
-      if (!userResponse.ok) {
-        throw new Error(userData.error || 'Unable to load user profile.');
-      }
-      if (!clientResponse.ok) {
-        throw new Error(clientData.error || 'Unable to load client profile.');
-      }
-
-      setText('profile-first-name', userData.first_name);
-      setText('profile-last-name', userData.last_name);
-      setText('profile-email', userData.email);
-      setText('profile-phone', userData.phone);
-
-      var fullName = [userData.first_name, userData.last_name].filter(Boolean).join(' ');
-      profileName.textContent = fullName || 'Client User';
-      profileEmailBanner.textContent = userData.email || '--';
-      profileMemberSince.textContent = 'Member since ' + toYear(clientData.member_since || userData.created_at);
-      profileAvatar.textContent = initials(userData.first_name, userData.last_name);
-
-      var primaryLocation = (clientData.locations || [])[0] || {};
-      currentLocationId = primaryLocation.location_id || null;
-      setText('profile-street', primaryLocation.street_1);
-      setText('profile-city', primaryLocation.city);
-      setText('profile-state', primaryLocation.state);
-      setText('profile-zip', primaryLocation.zip_code);
-    } catch (error) {
-      profileName.textContent = 'Unable to load profile';
-      profileEmailBanner.textContent = error.message || 'Please refresh and try again.';
-    }
-  }
-
-  uploadPhotoButton.addEventListener('click', function() {
-    profilePhotoInput.click();
-  });
-
-  profilePhotoInput.addEventListener('change', function() {
-    var file = this.files[0];
-    if (!file) {
-      return;
+      return data;
     }
 
-    var reader = new FileReader();
-    reader.onload = function(event) {
-      profileAvatar.innerHTML = '<img src=\"' + event.target.result + '\" alt=\"Profile Photo\" style=\"width: 100%; height: 100%; object-fit: cover; border-radius: 50%;\">';
-    };
-    reader.readAsDataURL(file);
-  });
+    async function loadProfile() {
+      var data = await fetchJson('/api/client/profile');
+      document.getElementById('first-name-input').value = data.first_name || '';
+      document.getElementById('last-name-input').value = data.last_name || '';
+      document.getElementById('email-input').value = data.email || '';
+      document.getElementById('phone-input').value = data.phone || '';
+      document.getElementById('company-name-input').value = data.company_name || '';
 
-  document.querySelectorAll('.profile-edit-btn[data-edit-section]').forEach(function(button) {
-    button.addEventListener('click', function () {
-      var sectionName = button.dataset.editSection;
-      if (!sectionName) {
+      var initials = ((data.first_name || '').slice(0, 1) + (data.last_name || '').slice(0, 1)).toUpperCase();
+      document.getElementById('profile-avatar').textContent = initials || '--';
+      document.getElementById('profile-name').textContent = (data.first_name || '') + ' ' + (data.last_name || '');
+      document.getElementById('profile-email').textContent = data.email || '';
+      if (data.member_since) {
+        var dt = new Date(data.member_since);
+        document.getElementById('profile-since').textContent = 'Member since ' + dt.getFullYear();
+      } else {
+        document.getElementById('profile-since').textContent = 'Member since --';
+      }
+    }
+
+    async function loadLocations() {
+      var locations = await fetchJson('/api/client/locations');
+
+      if (!locations.length) {
+        locationsList.innerHTML = '<p class="text-muted">No locations yet.</p>';
         return;
       }
 
-      if (button.dataset.editing === 'true') {
-        saveSection(sectionName, button);
-      } else {
-        startEditing(sectionName, button);
+      locationsList.innerHTML = locations.map(function (loc) {
+        return (
+          '<div class="border rounded p-3 mb-2">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+              '<div>' +
+                '<div class="fw-semibold">' + escapeHtml(loc.location_name) + '</div>' +
+                '<div>' + escapeHtml(loc.street_1) + ', ' + escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.zip_code) + '</div>' +
+              '</div>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger delete-location-btn" data-location-id="' + loc.location_id + '">Delete</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    profileForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setStatus('', false);
+
+      try {
+        await fetchJson('/api/client/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: document.getElementById('first-name-input').value.trim(),
+            last_name: document.getElementById('last-name-input').value.trim(),
+            phone: document.getElementById('phone-input').value.trim(),
+            company_name: document.getElementById('company-name-input').value.trim()
+          })
+        });
+        setStatus('Profile saved successfully.', false);
+        await loadProfile();
+      } catch (error) {
+        setStatus(error.message, true);
       }
     });
-  });
 
-  loadProfile();
+    locationForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setStatus('', false);
+
+      try {
+        await fetchJson('/api/client/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location_name: document.getElementById('location-name-input').value.trim(),
+            street_1: document.getElementById('street-input').value.trim(),
+            city: document.getElementById('city-input').value.trim(),
+            state: document.getElementById('state-input').value.trim(),
+            zip_code: document.getElementById('zip-input').value.trim()
+          })
+        });
+
+        locationForm.reset();
+        setStatus('Location added successfully.', false);
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    locationsList.addEventListener('click', async function (event) {
+      var button = event.target.closest('.delete-location-btn');
+      if (!button) return;
+
+      var locationId = button.getAttribute('data-location-id');
+      if (!confirm('Delete this location?')) return;
+
+      try {
+        await fetchJson('/api/client/locations/' + locationId, { method: 'DELETE' });
+        setStatus('Location removed.', false);
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    (async function init() {
+      try {
+        await loadProfile();
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    })();
+  })();
 </script>
 {% endblock %}

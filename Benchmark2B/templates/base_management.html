@@ -55,6 +55,9 @@
                 <a class="nav-link sidebar-link{% if active_page == 'clients' %} active-link{% endif %}" href="{{ url_for('clients_page') }}">Clients</a>
               </li>
               <li class="nav-item">
+                <a class="nav-link sidebar-link{% if active_page == 'services' %} active-link{% endif %}" href="{{ url_for('services_page') }}">Services</a>
+              </li>
+              <li class="nav-item">
                 <a class="nav-link sidebar-link{% if active_page == 'job-order' %} active-link{% endif %}" href="{{ url_for('job_order_page') }}">Job Orders</a>
               </li>
             </ul>

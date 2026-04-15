@@ -5,112 +5,11 @@
 
 {% block vendor_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
-<style>
-  #client-appointments-calendar {
-    --fc-border-color: rgba(40, 52, 44, 0.12);
-    --fc-page-bg-color: #fcfcf8;
-    --fc-neutral-bg-color: rgba(40, 52, 44, 0.06);
-    --fc-today-bg-color: rgba(136, 139, 97, 0.16);
-    --fc-button-bg-color: #5f6d44;
-    --fc-button-border-color: #5f6d44;
-    --fc-button-hover-bg-color: #4c5c34;
-    --fc-button-hover-border-color: #4c5c34;
-    --fc-button-active-bg-color: #394828;
-    --fc-button-active-border-color: #394828;
-    --fc-event-bg-color: #6a7a4a;
-    --fc-event-border-color: #6a7a4a;
-    --fc-event-text-color: #ffffff;
-    min-height: 540px;
-  }
-
-  #client-appointments-calendar .fc-toolbar-title {
-    font-size: 1.08rem;
-    color: var(--color-dark);
-  }
-
-  #client-appointments-calendar .fc-col-header-cell-cushion,
-  #client-appointments-calendar .fc-daygrid-day-number,
-  #client-appointments-calendar .fc-timegrid-axis-cushion,
-  #client-appointments-calendar .fc-timegrid-slot-label-cushion {
-    color: var(--color-dark);
-  }
-
-  #client-appointments-calendar .fc .fc-button-primary:focus {
-    box-shadow: 0 0 0 0.2rem rgba(95, 109, 68, 0.25);
-  }
-
-  #client-appointments-calendar .fc-event {
-    border: none;
-    border-radius: 10px;
-    padding: 2px 4px;
-    font-weight: 600;
-  }
-
-  #client-appointments-calendar .client-event-scheduled {
-    background: #6a7a4a;
-    color: #ffffff;
-  }
-
-  #client-appointments-calendar .client-event-completed {
-    background: #3f7a56;
-    color: #ffffff;
-  }
-
-  #client-appointments-calendar .client-event-cancelled {
-    background: #9b6a3d;
-    color: #ffffff;
-  }
-
-  #client-appointments-calendar .client-event-pending {
-    background: #8d7b54;
-    color: #ffffff;
-  }
-
-  .client-calendar-status {
-    margin: 0;
-    color: #5f6f68;
-    font-size: 0.95rem;
-  }
-
-  .client-upcoming-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-
-  .client-upcoming-item {
-    border: 1px solid rgba(34, 43, 37, 0.14);
-    border-radius: 0.8rem;
-    padding: 0.8rem 0.9rem;
-    background: #f8fbf8;
-  }
-
-  .client-upcoming-item-title {
-    margin: 0;
-    font-weight: 600;
-    color: #213127;
-  }
-
-  .client-upcoming-item-meta {
-    margin: 0.2rem 0 0;
-    color: #506053;
-    font-size: 0.92rem;
-  }
-
-  .client-upcoming-card {
-    margin-top: 0.25rem;
-  }
-</style>
 {% endblock %}
 
 {% block page_content %}
-{% set greeting_name = (current_user.name.split(' ')[0] if current_user and current_user.name else 'Client') %}
 <div class="mb-4">
-  <h1 class="page-title">Good morning, {{ greeting_name }}</h1>
+  <h1 class="page-title">Good morning,</h1>
   <p class="page-subtitle">Here's a look at all your appointments</p>
 </div>
 
@@ -118,50 +17,50 @@
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Total Appointments</div>
-      <div class="stat-number" id="appt-total">0</div>
+      <div class="stat-number" id="appt-total">10</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Upcoming</div>
-      <div class="stat-number stat-unassigned" id="appt-upcoming">0</div>
+      <div class="stat-number stat-unassigned" id="appt-upcoming">4</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Completed</div>
-      <div class="stat-number stat-scheduled" id="appt-completed">0</div>
+      <div class="stat-number stat-scheduled">6</div>
     </div>
   </div>
 </div>
 
-<div class="row g-4">
-  <div class="col-12">
-    <div class="job-card">
-      <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-          <h2 class="job-title mb-1">Appointment Calendar</h2>
-          <p class="job-client mb-0">View your appointments by day, week, or month.</p>
+<div class="job-card mb-3" data-appointment-card data-service="Weekly Maintenance" data-technician="Peter Smith" data-date="2026-03-15" data-time="12:00 pm" data-location="123 Rainbow Road" data-status="Scheduled">
+  <div class="row align-items-start">
+    <div class="col-md-9">
+      <p class="detail-label mb-1">Next Appointment</p>
+      <h2 class="job-title">Weekly Maintenance</h2>
+      <p class="job-client">With Peter Smith</p>
+      <div class="row mt-2">
+        <div class="col-md-6">
+          <p class="job-detail"><span class="detail-label">Date:</span> <span data-date-label>2026-03-15</span></p>
+          <p class="job-detail"><span class="detail-label">Time:</span> <span data-time-label>12:00 pm</span></p>
+        </div>
+        <div class="col-md-6">
+          <p class="job-detail"><span class="detail-label">Location:</span> <span data-location-label>123 Rainbow Road</span></p>
         </div>
       </div>
-      <p id="calendar-status" class="client-calendar-status">Loading appointments...</p>
-      <div id="client-appointments-calendar"></div>
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn-action appointment-reassign-btn" type="button">Reassign</button>
+        <button class="btn-action appointment-details-btn" type="button">Details</button>
+      </div>
     </div>
-  </div>
-
-  <div class="col-12">
-    <div class="job-card client-upcoming-card">
-      <h2 class="job-title mb-1">Upcoming Appointments</h2>
-      <p class="job-client mb-3">Your next confirmed and pending visits.</p>
-      <ul id="upcoming-appointments-list" class="client-upcoming-list">
-        <li class="client-upcoming-item">
-          <p class="client-upcoming-item-title">Loading...</p>
-          <p class="client-upcoming-item-meta">Please wait</p>
-        </li>
-      </ul>
+    <div class="col-md-3 text-end">
+      <span class="status-badge status-scheduled" data-status-label>Scheduled</span>
     </div>
   </div>
 </div>
+
+<div id="saved-appointments"></div>
 
 <div class="cta-banner d-flex align-items-center justify-content-between">
   <div>
@@ -200,13 +99,10 @@
 {% endblock %}
 
 {% block page_js %}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script>
   var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
-  var calendarElement = document.getElementById('client-appointments-calendar');
-  var upcomingListElement = document.getElementById('upcoming-appointments-list');
-  var calendarStatusElement = document.getElementById('calendar-status');
-  var calendar = null;
+  var savedAppts = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
+  var container = document.getElementById('saved-appointments');
   var modalService = document.getElementById('appt-modal-service');
   var modalTechnician = document.getElementById('appt-modal-technician');
   var modalDate = document.getElementById('appt-modal-date');
@@ -214,227 +110,86 @@
   var modalLocation = document.getElementById('appt-modal-location');
   var modalStatus = document.getElementById('appt-modal-status');
 
-  function statusClass(statusText) {
-    var status = String(statusText || '').toLowerCase();
-    if (status === 'scheduled' || status === 'confirmed') {
-      return 'status-scheduled';
-    }
-    if (status === 'completed' || status === 'paid') {
-      return 'status-paid';
-    }
-    if (status === 'overdue') {
-      return 'status-overdue';
-    }
-    return 'status-unassigned';
-  }
+  function openAppointmentModal(card) {
+    var service = card.dataset.service || 'Service Request';
+    var technician = card.dataset.technician || 'Pending assignment';
+    var date = card.dataset.date || 'TBD';
+    var time = card.dataset.time || 'TBD';
+    var location = card.dataset.location || 'Pending confirmation';
+    var status = card.dataset.status || 'Pending';
 
-  function toDisplayTime(timeText) {
-    if (!timeText) {
-      return 'TBD';
-    }
-    var parsed = String(timeText).slice(0, 5);
-    return parsed;
-  }
-
-  function toDisplayDate(dateText) {
-    if (!dateText) {
-      return 'TBD';
-    }
-    var dateValue = new Date(dateText + 'T00:00:00');
-    if (Number.isNaN(dateValue.getTime())) {
-      return dateText;
-    }
-    return dateValue.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-
-  function parseDateOnly(dateText) {
-    if (!dateText) {
-      return null;
-    }
-    var dateValue = new Date(dateText + 'T00:00:00');
-    return Number.isNaN(dateValue.getTime()) ? null : dateValue;
-  }
-
-  function combineDateTime(dateText, timeText) {
-    if (!dateText) {
-      return null;
-    }
-    var safeTime = timeText && String(timeText).length >= 5 ? String(timeText).slice(0, 8) : null;
-    return safeTime ? (dateText + 'T' + safeTime) : (dateText + 'T09:00:00');
-  }
-
-  function oneHourLater(dateText, timeText) {
-    var startDate = new Date(combineDateTime(dateText, timeText));
-    if (Number.isNaN(startDate.getTime())) {
-      return null;
-    }
-    startDate.setHours(startDate.getHours() + 1);
-    return startDate.toISOString();
-  }
-
-  function buildCalendarEvents(appointments) {
-    return appointments.map(function (appointment) {
-      var start = combineDateTime(appointment.appointment_date, appointment.start_time);
-      var end = combineDateTime(appointment.appointment_date, appointment.end_time) || oneHourLater(appointment.appointment_date, appointment.start_time);
-      var status = appointment.status || 'Scheduled';
-      var normalizedStatus = String(status).toLowerCase();
-
-      return {
-        id: String(appointment.appointment_id),
-        title: appointment.service_name || 'Service Appointment',
-        start: start,
-        end: end,
-        classNames: [
-          normalizedStatus === 'completed' ? 'client-event-completed' : '',
-          normalizedStatus === 'cancelled' ? 'client-event-cancelled' : '',
-          normalizedStatus === 'pending' ? 'client-event-pending' : '',
-          (normalizedStatus === 'scheduled' || normalizedStatus === 'confirmed' || normalizedStatus === 'paid') ? 'client-event-scheduled' : ''
-        ].filter(Boolean),
-        extendedProps: {
-          service: appointment.service_name || 'Service Appointment',
-          technician: appointment.assigned_employee || 'Pending assignment',
-          location: appointment.location_name || 'Pending confirmation',
-          status: status,
-          dateText: toDisplayDate(appointment.appointment_date),
-          timeText: toDisplayTime(appointment.start_time) + ' - ' + toDisplayTime(appointment.end_time)
-        }
-      };
-    });
-  }
-
-  function renderUpcomingList(appointments) {
-    var today = new Date(new Date().toDateString());
-    var upcoming = appointments
-      .filter(function (appointment) {
-        var status = String(appointment.status || '').toLowerCase();
-        var dateValue = parseDateOnly(appointment.appointment_date);
-        return dateValue && dateValue >= today && status !== 'completed' && status !== 'cancelled';
-      })
-      .sort(function (a, b) {
-        return parseDateOnly(a.appointment_date) - parseDateOnly(b.appointment_date);
-      })
-      .slice(0, 6);
-
-    upcomingListElement.innerHTML = '';
-    if (!upcoming.length) {
-      upcomingListElement.innerHTML =
-        '<li class="client-upcoming-item">' +
-          '<p class="client-upcoming-item-title">No upcoming appointments</p>' +
-          '<p class="client-upcoming-item-meta">Book a new service to see it here.</p>' +
-        '</li>';
-      return;
-    }
-
-    upcoming.forEach(function (appointment) {
-      var item = document.createElement('li');
-      item.className = 'client-upcoming-item';
-      item.innerHTML =
-        '<p class="client-upcoming-item-title">' + (appointment.service_name || 'Service Appointment') + '</p>' +
-        '<p class="client-upcoming-item-meta">' + toDisplayDate(appointment.appointment_date) + ' | ' +
-        toDisplayTime(appointment.start_time) + ' - ' + toDisplayTime(appointment.end_time) + '</p>';
-      upcomingListElement.appendChild(item);
-    });
-  }
-
-  function setCalendarStatus(message) {
-    calendarStatusElement.textContent = message;
-  }
-
-  function openAppointmentModalFromEvent(eventObject) {
-    var props = eventObject.extendedProps || {};
-    modalService.textContent = props.service || eventObject.title || 'Service Request';
-    modalTechnician.textContent = props.technician || 'Pending assignment';
-    modalDate.textContent = props.dateText || 'TBD';
-    modalTime.textContent = props.timeText || 'TBD';
-    modalLocation.textContent = props.location || 'Pending confirmation';
-    modalStatus.innerHTML = '&#x25CF; ' + (props.status || 'Pending');
-    modalStatus.className = 'inv-status modal-status-inline ' + statusClass(props.status || 'Pending');
+    modalService.textContent = service;
+    modalTechnician.textContent = technician;
+    modalDate.textContent = date;
+    modalTime.textContent = time;
+    modalLocation.textContent = location;
+    modalStatus.innerHTML = '&#x25CF; ' + status;
+    modalStatus.className = 'inv-status modal-status-inline ' + (status === 'Scheduled' ? 'status-scheduled' : 'status-unassigned');
     apptModal.show();
   }
 
-  function initializeCalendar() {
-    calendar = new FullCalendar.Calendar(calendarElement, {
-      initialView: 'dayGridMonth',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-      },
-      height: 'auto',
-      nowIndicator: true,
-      eventClick: function (clickInfo) {
-        openAppointmentModalFromEvent(clickInfo.event);
-      },
-      eventTimeFormat: {
-        hour: 'numeric',
-        minute: '2-digit',
-        meridiem: 'short'
-      }
-    });
-    calendar.render();
-  }
+  function bindAppointmentCard(card) {
+    var detailsButton = card.querySelector('.appointment-details-btn');
+    var reassignButton = card.querySelector('.appointment-reassign-btn');
 
-  async function loadAppointments() {
-    try {
-      var response = await fetch('/appointments');
-      var appointments = await response.json();
-      if (!response.ok) {
-        throw new Error(appointments.error || 'Unable to load appointments.');
-      }
-
-      appointments = Array.isArray(appointments) ? appointments : [];
-      var now = new Date(new Date().toDateString());
-
-      var sortedAppointments = appointments.slice().sort(function (a, b) {
-        var aDate = new Date((a.appointment_date || '1970-01-01') + 'T00:00:00');
-        var bDate = new Date((b.appointment_date || '1970-01-01') + 'T00:00:00');
-        return aDate - bDate;
+    if (detailsButton) {
+      detailsButton.addEventListener('click', function() {
+        openAppointmentModal(card);
       });
+    }
 
-      var upcoming = sortedAppointments.filter(function (appointment) {
-        var status = String(appointment.status || '').toLowerCase();
-        var appointmentDate = new Date((appointment.appointment_date || '1970-01-01') + 'T00:00:00');
-        return appointmentDate >= now && status !== 'completed' && status !== 'cancelled';
+    if (reassignButton) {
+      reassignButton.addEventListener('click', function() {
+        window.location.href = '{{ url_for("service_request_page") }}';
       });
-
-      var completed = sortedAppointments.filter(function (appointment) {
-        return String(appointment.status || '').toLowerCase() === 'completed';
-      });
-
-      document.getElementById('appt-total').textContent = String(sortedAppointments.length);
-      document.getElementById('appt-upcoming').textContent = String(upcoming.length);
-      document.getElementById('appt-completed').textContent = String(completed.length);
-
-      renderUpcomingList(sortedAppointments);
-
-      var events = buildCalendarEvents(sortedAppointments);
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
-      if (!events.length) {
-        setCalendarStatus('No appointments to display yet.');
-      } else {
-        setCalendarStatus('Loaded ' + events.length + ' appointment(s). Click any event for details.');
-      }
-    } catch (error) {
-      setCalendarStatus(error.message || 'Unable to load appointments.');
-      upcomingListElement.innerHTML =
-        '<li class="client-upcoming-item">' +
-          '<p class="client-upcoming-item-title">Unable to load appointments</p>' +
-          '<p class="client-upcoming-item-meta">Please refresh and try again.</p>' +
-        '</li>';
     }
   }
 
-  if (typeof FullCalendar === 'undefined') {
-    setCalendarStatus('Calendar failed to load.');
-  } else {
-    initializeCalendar();
-    loadAppointments();
+  savedAppts.forEach(function(appt) {
+    var statusText = appt.status || 'Pending';
+    var statusClass = statusText === 'Scheduled' ? 'status-scheduled' : 'status-unassigned';
+    var locationText = appt.location || 'Pending confirmation';
+
+    var card = document.createElement('div');
+    card.className = 'job-card mb-3';
+    card.setAttribute('data-appointment-card', '');
+    card.dataset.service = appt.service;
+    card.dataset.technician = 'Pending assignment';
+    card.dataset.date = appt.date;
+    card.dataset.time = 'Pending confirmation';
+    card.dataset.location = locationText;
+    card.dataset.status = statusText;
+    card.innerHTML =
+      '<div class="row align-items-start">' +
+        '<div class="col-md-9">' +
+          '<p class="detail-label mb-1">Requested Service</p>' +
+          '<h2 class="job-title">' + appt.service + '</h2>' +
+          '<div class="row mt-2">' +
+            '<div class="col-md-6">' +
+              '<p class="job-detail"><span class="detail-label">Requested Date:</span> ' + appt.date + '</p>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+              '<p class="job-detail"><span class="detail-label">Location:</span> ' + locationText + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="d-flex gap-2 mt-3">' +
+            '<button class="btn-action appointment-reassign-btn" type="button">Edit Request</button>' +
+            '<button class="btn-action appointment-details-btn" type="button">Details</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="col-md-3 text-end">' +
+          '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
+        '</div>' +
+      '</div>';
+    container.appendChild(card);
+    bindAppointmentCard(card);
+  });
+
+  if (savedAppts.length > 0) {
+    document.getElementById('appt-upcoming').textContent = 4 + savedAppts.length;
+    document.getElementById('appt-total').textContent = 10 + savedAppts.length;
   }
 
+  document.querySelectorAll('[data-appointment-card]').forEach(bindAppointmentCard);
 </script>
 {% endblock %}

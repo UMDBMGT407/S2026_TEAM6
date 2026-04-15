@@ -57,7 +57,7 @@
           </div>
 
           <div class="management-section">
-            <form class="management-search-form" role="search">
+            <form id="employeeSearchForm" class="management-search-form" role="search">
               <div class="input-group">
                 <span class="input-group-text management-search-icon">
                   <img
@@ -66,6 +66,7 @@
                   />
                 </span>
                 <input
+                  id="employeeSearchInput"
                   class="form-control management-search-input me-2"
                   type="search"
                   placeholder="Search"
@@ -76,6 +77,11 @@
                 </button>
               </div>
             </form>
+            <div class="d-flex gap-2 mt-3" id="employeeStatusFilters">
+              <button type="button" class="btn btn-sm btn-success employee-filter-btn" data-status="active">Active</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="inactive">Inactive</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="all">All</button>
+            </div>
           </div>
 
           <!-- 2x2 Cards Grid - Loaded Dynamically -->
@@ -599,6 +605,34 @@
             </div>
           </div>
 
+          <div
+            class="modal fade"
+            id="assignTaskModal"
+            tabindex="-1"
+            aria-labelledby="assignTaskModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 class="modal-title h5 mb-0" id="assignTaskModalLabel">Assign / Reassign Task</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <div class="modal-body">
+                  <p class="mb-2"><strong>Employee:</strong> <span id="assignTaskEmployeeName"></span></p>
+                  <p class="text-muted mb-3">Only jobs where this employee is available and not already double-booked appear below.</p>
+                  <div id="assignTaskMessage" class="mb-3"></div>
+                  <div id="assignableJobsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
 {% endblock %}
 
 {% block vendor_js %}
@@ -607,6 +641,60 @@
 
 {% block page_js %}
 <script>
+  let currentEmployeeStatusFilter = 'active';
+  let currentEmployeeSearch = '';
+  let selectedEmployeeId = null;
+  let assignmentEmployeeId = null;
+  let assignmentEmployeeName = '';
+
+  const employeeSearchForm = document.getElementById('employeeSearchForm');
+  const employeeSearchInput = document.getElementById('employeeSearchInput');
+  const employeeFilterButtons = document.querySelectorAll('.employee-filter-btn');
+  const assignTaskModalElement = document.getElementById('assignTaskModal');
+  const assignTaskModal = bootstrap.Modal.getOrCreateInstance(assignTaskModalElement);
+  const assignTaskEmployeeNameEl = document.getElementById('assignTaskEmployeeName');
+  const assignTaskMessageEl = document.getElementById('assignTaskMessage');
+  const assignableJobsListEl = document.getElementById('assignableJobsList');
+
+  async function fetchJson(url, options) {
+    const response = await fetch(url, options || {});
+    const contentType = response.headers.get('content-type') || '';
+    let data = null;
+
+    if (contentType.indexOf('application/json') !== -1) {
+      data = await response.json();
+    } else {
+      const rawText = await response.text();
+      if (response.status === 401 || response.status === 403 || rawText.toLowerCase().indexOf('<!doctype') !== -1) {
+        throw new Error('Your session may have expired. Please sign in again and refresh.');
+      }
+      throw new Error('Unexpected server response (HTTP ' + response.status + ').');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || ('HTTP ' + response.status));
+    }
+    return data;
+  }
+
+  function setAssignTaskMessage(text, isError) {
+    assignTaskMessageEl.textContent = text || '';
+    assignTaskMessageEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
+  }
+
+  function buildEmployeesQuery() {
+    const params = new URLSearchParams();
+    params.set('status', currentEmployeeStatusFilter);
+    if (currentEmployeeSearch) {
+      params.set('search', currentEmployeeSearch);
+    }
+    return params.toString();
+  }
+
+  async function refreshEmployeeViews() {
+    await Promise.all([loadEmployees(), loadEmployeeCards()]);
+  }
+
   // Load employees when modal is shown
   const employeeManagementModal = document.getElementById('employeeManagementModal');
   employeeManagementModal.addEventListener('show.bs.modal', async function() {
@@ -616,7 +704,7 @@
   // Fetch and display employees
   async function loadEmployees() {
     try {
-      const response = await fetch('/employees');
+      const response = await fetch(`/employees?${buildEmployeesQuery()}`);
       const employees = await response.json();
       
       const employeeList = document.getElementById('employeeList');
@@ -642,10 +730,14 @@
           </div>
 
           <div class="d-flex align-items-center gap-3 flex-wrap">
-            <button class="btn remove-employee-btn" onclick="deleteEmployee(${emp.id})">
-              Remove Employee
-            </button>
-            <span class="status-pill active-pill">Active</span>
+            ${
+              emp.is_active
+                ? `<button class="btn remove-employee-btn" onclick="deleteEmployee(${emp.id})">Remove Employee</button>`
+                : `<button class="btn btn-outline-success" onclick="reactivateEmployee(${emp.id})">Reactivate Employee</button>`
+            }
+            <span class="status-pill ${emp.is_active ? 'active-pill' : ''}" ${emp.is_active ? '' : 'style="background:#f8d7da;color:#842029;border:1px solid #f5c2c7;"'}>
+              ${emp.is_active ? 'Active' : 'Inactive'}
+            </span>
           </div>
         </div>
       `).join('');
@@ -668,13 +760,36 @@
       
       if (response.ok) {
         alert('Employee removed successfully');
-        await loadEmployees();
+        await refreshEmployeeViews();
       } else {
         alert(data.error || 'Error removing employee');
       }
     } catch (error) {
       console.error('Error:', error);
       alert('Error removing employee');
+    }
+  }
+
+  // Reactivate employee
+  async function reactivateEmployee(userId) {
+    if (!confirm('Are you sure you want to reactivate this employee?')) return;
+
+    try {
+      const response = await fetch(`/user/${userId}/reactivate`, {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Employee reactivated successfully');
+        await refreshEmployeeViews();
+      } else {
+        alert(data.error || 'Error reactivating employee');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error reactivating employee');
     }
   }
 
@@ -725,8 +840,8 @@
         setTimeout(async () => {
           const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
           if (modal) modal.hide();
-          // Reload employee list
-          await loadEmployees();
+          // Reload employee views
+          await refreshEmployeeViews();
         }, 1000);
       } else {
         formMessage.textContent = data.error || 'Error adding employee. Please try again.';
@@ -742,11 +857,10 @@
   });
 
   // Load employee cards on page load
-  let selectedEmployeeId = null;
 
   async function loadEmployeeCards() {
     try {
-      const response = await fetch('/employees');
+      const response = await fetch(`/employees?${buildEmployeesQuery()}`);
       const employees = await response.json();
       
       const cardsGrid = document.getElementById('employeeCardsGrid');
@@ -762,7 +876,9 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <h5 class="fw-bold m-0">${emp.name}</h5>
-                <span class="text-success border border-success rounded px-2">Active</span>
+                <span class="${emp.is_active ? 'text-success border border-success' : 'text-danger border border-danger'} rounded px-2">
+                  ${emp.is_active ? 'Active' : 'Inactive'}
+                </span>
               </div>
               <div class="page-subtitle m-0">
                 <small class="employee-info-line">${emp.phone || 'No phone'}</small>
@@ -777,11 +893,20 @@
                   data-bs-target="#availabilityModal">
                   View Availability
                 </button>
-                <button class="btn btn-outline-success"
-                  data-bs-toggle="modal"
-                  data-bs-target="#payrollModal">
-                  Payment
-                </button>
+                ${
+                  emp.is_active && emp.role === 'Staff' && emp.employee_id
+                    ? `<button class="btn btn-outline-success assign-task-btn"
+                        data-employee-id="${emp.employee_id}"
+                        data-employee-name="${encodeURIComponent(emp.name || '')}">
+                        Assign/Reassign Task
+                      </button>`
+                    : ''
+                }
+                ${
+                  emp.is_active
+                    ? `<button class="btn btn-outline-danger" onclick="deleteEmployee(${emp.id})">Remove</button>`
+                    : `<button class="btn btn-outline-success" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`
+                }
               </div>
             </div>
           </div>
@@ -797,8 +922,87 @@
           loadAvailabilityGrid();
         });
       });
+
+      document.querySelectorAll('.assign-task-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          assignmentEmployeeId = Number(this.dataset.employeeId);
+          assignmentEmployeeName = decodeURIComponent(this.dataset.employeeName || '');
+          await openAssignTaskModal();
+        });
+      });
     } catch (error) {
       console.error('Error loading employee cards:', error);
+    }
+  }
+
+  async function loadAssignableJobsForEmployee(employeeId) {
+    return await fetchJson(`/api/management/employees/${employeeId}/assignable-jobs`);
+  }
+
+  function renderAssignableJobs(jobs) {
+    const availableJobs = jobs.filter(job => job.can_assign);
+
+    if (!availableJobs.length) {
+      assignableJobsListEl.innerHTML = '<p class="text-muted mb-0">No currently assignable jobs for this employee.</p>';
+      return;
+    }
+
+    assignableJobsListEl.innerHTML = availableJobs.map(job => {
+      const assignedLabel = job.assigned_name || 'Unassigned';
+      return `
+        <div class="border rounded p-3 mb-2">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold">${job.job_order_code || ('Job #' + job.job_id)} - ${job.title || 'Job'}</div>
+              <div class="text-muted">${job.company || 'Client'}</div>
+              <div><small>Date: ${job.scheduled_date || 'N/A'} | Time: ${job.start_time || '--'} - ${job.end_time || '--'}</small></div>
+              <div><small>Currently Assigned: ${assignedLabel}</small></div>
+            </div>
+            <button class="btn btn-sm btn-success assign-selected-job-btn" data-job-id="${job.job_id}">
+              Assign Here
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function openAssignTaskModal() {
+    if (!assignmentEmployeeId) {
+      return;
+    }
+
+    assignTaskEmployeeNameEl.textContent = assignmentEmployeeName || ('Employee #' + assignmentEmployeeId);
+    setAssignTaskMessage('', false);
+    assignableJobsListEl.innerHTML = '<p class="text-muted mb-0">Loading assignable jobs...</p>';
+    assignTaskModal.show();
+
+    try {
+      const jobs = await loadAssignableJobsForEmployee(assignmentEmployeeId);
+      renderAssignableJobs(jobs);
+    } catch (error) {
+      setAssignTaskMessage(error.message, true);
+      assignableJobsListEl.innerHTML = '';
+    }
+  }
+
+  async function assignEmployeeToJob(jobId) {
+    if (!assignmentEmployeeId) return;
+
+    try {
+      await fetchJson(`/jobs/${jobId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ employee_id: assignmentEmployeeId })
+      });
+      setAssignTaskMessage('Assignment updated successfully.', false);
+      await refreshEmployeeViews();
+      const jobs = await loadAssignableJobsForEmployee(assignmentEmployeeId);
+      renderAssignableJobs(jobs);
+    } catch (error) {
+      setAssignTaskMessage(error.message, true);
     }
   }
 
@@ -918,8 +1122,41 @@
     });
   }
 
+  employeeSearchForm.addEventListener('submit', async function(event) {
+    event.preventDefault();
+    currentEmployeeSearch = employeeSearchInput.value.trim();
+    await refreshEmployeeViews();
+  });
+
+  employeeSearchInput.addEventListener('input', async function() {
+    currentEmployeeSearch = employeeSearchInput.value.trim();
+    await refreshEmployeeViews();
+  });
+
+  employeeFilterButtons.forEach(function(button) {
+    button.addEventListener('click', async function() {
+      currentEmployeeStatusFilter = this.dataset.status;
+
+      employeeFilterButtons.forEach(function(btn) {
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+      });
+      this.classList.remove('btn-outline-secondary');
+      this.classList.add('btn-success');
+
+      await refreshEmployeeViews();
+    });
+  });
+
+  assignableJobsListEl.addEventListener('click', async function(event) {
+    const button = event.target.closest('.assign-selected-job-btn');
+    if (!button) return;
+    const jobId = Number(button.dataset.jobId);
+    if (!jobId) return;
+    await assignEmployeeToJob(jobId);
+  });
+
   // Load employees on page load
-  loadEmployees();
-  loadEmployeeCards();
+  refreshEmployeeViews();
 </script>
 {% endblock %}
