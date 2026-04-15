@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'secret-key-change-this'
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '20031031'
+app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
 app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
@@ -109,6 +109,65 @@ def ensure_services_schema():
 
 
 ensure_services_schema()
+
+
+def ensure_inventory_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("ALTER TABLE inventory_items ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+        except:
+            pass
+        try:
+            cur.execute("UPDATE inventory_items SET is_active = TRUE WHERE is_active IS NULL")
+        except:
+            pass
+        mysql.connection.commit()
+        cur.close()
+
+
+ensure_inventory_schema()
+
+
+def ensure_material_request_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("ALTER TABLE material_request_items MODIFY COLUMN item_id INT NULL")
+        except:
+            pass
+        try:
+            cur.execute("ALTER TABLE material_request_items ADD COLUMN requested_item_name VARCHAR(255)")
+        except:
+            pass
+        try:
+            cur.execute("ALTER TABLE material_request_items ADD COLUMN requested_unit_label VARCHAR(50)")
+        except:
+            pass
+        try:
+            cur.execute("""
+                UPDATE material_request_items mri
+                JOIN inventory_items ii ON ii.item_id = mri.item_id
+                SET mri.requested_item_name = COALESCE(mri.requested_item_name, ii.item_name),
+                    mri.requested_unit_label = COALESCE(mri.requested_unit_label, ii.unit_label, 'units')
+                WHERE mri.requested_item_name IS NULL
+                   OR mri.requested_unit_label IS NULL
+            """)
+        except:
+            pass
+        try:
+            cur.execute("""
+                UPDATE material_request_items
+                SET requested_unit_label = 'units'
+                WHERE requested_unit_label IS NULL OR TRIM(requested_unit_label) = ''
+            """)
+        except:
+            pass
+        mysql.connection.commit()
+        cur.close()
+
+
+ensure_material_request_schema()
 
 # --- Login Manager ---
 login_manager = LoginManager()
@@ -207,6 +266,14 @@ def api_login_required(fn):
             return jsonify(error="Unauthorized - please log in"), 401
         return fn(*args, **kwargs)
     return decorated_view
+
+
+def require_staff_portal_access():
+    role = getattr(current_user, 'role', None)
+    if role not in ('Staff', 'Management'):
+        return jsonify(error='Forbidden: Staff portal access required'), 403
+    return None
+
 
 def ensure_client_record(cur, user_id, company_name=None):
     cur.execute(
@@ -739,11 +806,11 @@ def get_inventory():
     sql = """
         SELECT i.item_id, i.item_name, i.item_type, i.sku,
                i.unit_price, i.quantity_on_hand, i.reorder_level,
-               i.unit_label, i.is_active,
+               i.unit_label, COALESCE(i.is_active, TRUE) AS is_active,
                s.supplier_name, s.supplier_id
         FROM inventory_items i
         LEFT JOIN suppliers s ON s.supplier_id = i.supplier_id
-        WHERE i.is_active = TRUE
+        WHERE COALESCE(i.is_active, TRUE) = TRUE
     """
     params = []
     if search:
@@ -830,6 +897,466 @@ def reorder_inventory_item(item_id):
     return jsonify(message='Reorder placed', new_quantity=new_qty)
 
 
+@app.route('/staff/inventory/options', methods=['GET'])
+@api_login_required
+def staff_inventory_item_options():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+    try:
+        search = (request.args.get('search') or '').strip()
+        cur = mysql.connection.cursor()
+        sql = """
+            SELECT item_id,
+                   item_name,
+                   item_type,
+                   unit_price,
+                   COALESCE(unit_label, 'units') AS unit_label,
+                   quantity_on_hand,
+                   reorder_level
+            FROM inventory_items
+            WHERE COALESCE(is_active, TRUE) = TRUE
+        """
+        params = []
+        if search:
+            sql += " AND item_name LIKE %s"
+            params.append(f'%{search}%')
+        sql += " ORDER BY item_name LIMIT 200"
+        cur.execute(sql, tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+
+        options = []
+        for row in rows:
+            options.append({
+                'item_id': row[0],
+                'item_name': row[1] or '',
+                'item_type': row[2] or '',
+                'unit_price': float(row[3]) if row[3] is not None else None,
+                'unit_label': row[4] or 'units',
+                'quantity_on_hand': float(row[5]) if row[5] is not None else 0,
+                'reorder_level': float(row[6]) if row[6] is not None else 0,
+            })
+
+        return jsonify(items=options)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load inventory options: {str(e)}'), 500
+
+
+@app.route('/api/management/material-requests', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_management_material_requests():
+    status = (request.args.get('status') or 'pending').strip().lower()
+    search = (request.args.get('search') or '').strip()
+    limit_raw = (request.args.get('limit') or '50').strip()
+
+    try:
+        limit = int(limit_raw)
+    except Exception:
+        return jsonify(error='limit must be an integer'), 400
+    if limit < 1 or limit > 250:
+        return jsonify(error='limit must be between 1 and 250'), 400
+
+    status_filter = {
+        'pending': 'pending',
+        'approved': 'approved',
+        'rejected': 'rejected',
+    }
+    if status != 'all' and status not in status_filter:
+        return jsonify(error='status must be one of: pending, approved, rejected, all'), 400
+
+    base_sql = """
+        SELECT mr.material_request_id,
+               mr.request_code,
+               mr.status,
+               mr.note,
+               mr.created_at,
+               mr.task_id,
+               t.task_name,
+               e.employee_id,
+               CONCAT(u.first_name, ' ', u.last_name) AS employee_name
+        FROM material_requests mr
+        JOIN employees e ON e.employee_id = mr.employee_id
+        JOIN users u ON u.user_id = e.user_id
+        LEFT JOIN tasks t ON t.task_id = mr.task_id
+    """
+
+    where_clauses = []
+    params = []
+
+    if status != 'all':
+        where_clauses.append("LOWER(COALESCE(mr.status, 'Pending')) = %s")
+        params.append(status_filter[status])
+
+    if search:
+        where_clauses.append("""
+            (
+                mr.request_code LIKE %s
+                OR CONCAT(u.first_name, ' ', u.last_name) LIKE %s
+                OR COALESCE(t.task_name, '') LIKE %s
+                OR COALESCE(mr.note, '') LIKE %s
+            )
+        """)
+        like_search = f'%{search}%'
+        params.extend([like_search, like_search, like_search, like_search])
+
+    if where_clauses:
+        base_sql += " WHERE " + " AND ".join(where_clauses)
+
+    base_sql += " ORDER BY mr.created_at DESC, mr.material_request_id DESC LIMIT %s"
+    params.append(limit)
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(base_sql, tuple(params))
+        request_rows = cur.fetchall()
+
+        requests_out = []
+        for row in request_rows:
+            request_id = row[0]
+            cur.execute(
+                """
+                SELECT mri.material_request_item_id,
+                       mri.item_id,
+                       ii.item_name,
+                       mri.requested_item_name,
+                       mri.quantity_requested,
+                       COALESCE(ii.unit_label, mri.requested_unit_label, 'units') AS unit_label,
+                       COALESCE(ii.is_active, TRUE) AS inventory_is_active
+                FROM material_request_items mri
+                LEFT JOIN inventory_items ii ON ii.item_id = mri.item_id
+                WHERE mri.material_request_id = %s
+                ORDER BY mri.material_request_item_id
+                """,
+                (request_id,)
+            )
+            item_rows = cur.fetchall()
+            items = []
+            has_unlinked_items = False
+            for irow in item_rows:
+                item_id = irow[1]
+                item_name = irow[2] or irow[3] or ''
+                is_linked = bool(item_id) and bool(irow[6])
+                if not is_linked:
+                    has_unlinked_items = True
+                items.append({
+                    'material_request_item_id': irow[0],
+                    'item_id': item_id,
+                    'item_name': item_name,
+                    'requested_item_name': irow[3] or item_name,
+                    'quantity_requested': float(irow[4]) if irow[4] is not None else 0,
+                    'unit_label': irow[5] or 'units',
+                    'linked_to_inventory': is_linked
+                })
+
+            if not items:
+                has_unlinked_items = True
+
+            requests_out.append({
+                'material_request_id': request_id,
+                'request_code': row[1] or '',
+                'status': row[2] or 'Pending',
+                'note': row[3] or '',
+                'created_at': row[4].isoformat() if row[4] else None,
+                'task_id': row[5],
+                'task_name': row[6] or '',
+                'employee_id': row[7],
+                'employee_name': row[8] or '',
+                'items': items,
+                'has_unlinked_items': has_unlinked_items
+            })
+
+        cur.close()
+        return jsonify(requests=requests_out)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load material requests: {str(e)}'), 500
+
+
+def build_material_request_decision_note(existing_note, decision, manager_note=''):
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+    audit_note = f"[Management {decision} on {timestamp} by user {current_user.id}]"
+    manager_note = manager_note.strip()
+    if manager_note:
+        audit_note = f"{audit_note} {manager_note}"
+
+    existing_note = (existing_note or '').strip()
+    if not existing_note:
+        return audit_note
+    return f"{existing_note}\n{audit_note}"
+
+
+def autolink_material_request_items(cur, material_request_id):
+    cur.execute(
+        """
+        SELECT material_request_item_id,
+               requested_item_name
+        FROM material_request_items
+        WHERE material_request_id = %s
+          AND item_id IS NULL
+        """,
+        (material_request_id,)
+    )
+    unresolved_rows = cur.fetchall()
+
+    for row in unresolved_rows:
+        request_item_id = row[0]
+        requested_name = (row[1] or '').strip()
+        if not requested_name:
+            continue
+
+        cur.execute(
+            """
+            SELECT item_id
+            FROM inventory_items
+            WHERE COALESCE(is_active, TRUE) = TRUE
+              AND LOWER(TRIM(item_name)) = LOWER(TRIM(%s))
+            LIMIT 1
+            """,
+            (requested_name,)
+        )
+        match = cur.fetchone()
+        if match:
+            cur.execute(
+                """
+                UPDATE material_request_items
+                SET item_id = %s
+                WHERE material_request_item_id = %s
+                """,
+                (match[0], request_item_id)
+            )
+
+
+def list_unlinked_material_request_items(cur, material_request_id):
+    cur.execute(
+        """
+        SELECT mri.material_request_item_id,
+               mri.item_id,
+               COALESCE(ii.item_name, mri.requested_item_name, '') AS display_name,
+               COALESCE(ii.is_active, TRUE) AS inventory_is_active
+        FROM material_request_items mri
+        LEFT JOIN inventory_items ii ON ii.item_id = mri.item_id
+        WHERE mri.material_request_id = %s
+        ORDER BY mri.material_request_item_id
+        """,
+        (material_request_id,)
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return ['No material line items are linked to this request yet']
+
+    unresolved = []
+    for row in rows:
+        item_id = row[1]
+        item_name = (row[2] or '').strip() or f'Line item #{row[0]}'
+        is_active = bool(row[3])
+        if not item_id:
+            unresolved.append(item_name)
+            continue
+        if not is_active:
+            unresolved.append(f'{item_name} (inactive)')
+    return unresolved
+
+
+@app.route('/api/management/material-requests/<int:material_request_id>/approve', methods=['POST'])
+@login_required
+@role_required('Management')
+def approve_material_request(material_request_id):
+    payload = request.get_json(silent=True) or {}
+    manager_note = (payload.get('note') or '').strip()
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT status,
+                   note
+            FROM material_requests
+            WHERE material_request_id = %s
+            """,
+            (material_request_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Material request not found'), 404
+
+        current_status = (row[0] or 'Pending').strip().lower()
+        if current_status in ('approved', 'rejected'):
+            cur.close()
+            return jsonify(error=f'Material request is already {row[0] or "processed"}'), 400
+
+        # Approval rule: every requested line item must be tied to active inventory.
+        autolink_material_request_items(cur, material_request_id)
+        unresolved_items = list_unlinked_material_request_items(cur, material_request_id)
+        if unresolved_items:
+            mysql.connection.commit()
+            cur.close()
+            return jsonify(
+                error=(
+                    'Request cannot be approved until every material is mapped to active inventory. '
+                    'Unresolved: ' + ', '.join(unresolved_items)
+                )
+            ), 400
+
+        merged_note = build_material_request_decision_note(row[1], 'Approved', manager_note)
+        cur.execute(
+            """
+            UPDATE material_requests
+            SET status = %s,
+                note = %s
+            WHERE material_request_id = %s
+            """,
+            ('Approved', merged_note, material_request_id)
+        )
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Material request approved', material_request_id=material_request_id)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to approve material request: {str(e)}'), 500
+
+
+@app.route('/api/management/material-requests/<int:material_request_id>/reject', methods=['POST'])
+@login_required
+@role_required('Management')
+def reject_material_request(material_request_id):
+    payload = request.get_json(silent=True) or {}
+    manager_note = (payload.get('note') or '').strip()
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT status,
+                   note
+            FROM material_requests
+            WHERE material_request_id = %s
+            """,
+            (material_request_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Material request not found'), 404
+
+        current_status = (row[0] or 'Pending').strip().lower()
+        if current_status in ('approved', 'rejected'):
+            cur.close()
+            return jsonify(error=f'Material request is already {row[0] or "processed"}'), 400
+
+        merged_note = build_material_request_decision_note(row[1], 'Rejected', manager_note)
+        cur.execute(
+            """
+            UPDATE material_requests
+            SET status = %s,
+                note = %s
+            WHERE material_request_id = %s
+            """,
+            ('Rejected', merged_note, material_request_id)
+        )
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Material request rejected', material_request_id=material_request_id)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        mysql.connection.rollback()
+        return jsonify(error=f'Failed to reject material request: {str(e)}'), 500
+
+
+@app.route('/api/management/material-usage', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_management_material_usage():
+    search = (request.args.get('search') or '').strip()
+    limit_raw = (request.args.get('limit') or '50').strip()
+
+    try:
+        limit = int(limit_raw)
+    except Exception:
+        return jsonify(error='limit must be an integer'), 400
+    if limit < 1 or limit > 250:
+        return jsonify(error='limit must be between 1 and 250'), 400
+
+    base_sql = """
+        SELECT mul.usage_log_id,
+               mul.logged_at,
+               mul.task_id,
+               t.task_name,
+               e.employee_id,
+               CONCAT(u.first_name, ' ', u.last_name) AS employee_name
+        FROM material_usage_logs mul
+        JOIN tasks t ON t.task_id = mul.task_id
+        JOIN employees e ON e.employee_id = mul.employee_id
+        JOIN users u ON u.user_id = e.user_id
+    """
+    params = []
+    if search:
+        base_sql += """
+            WHERE (
+                CONCAT(u.first_name, ' ', u.last_name) LIKE %s
+                OR COALESCE(t.task_name, '') LIKE %s
+            )
+        """
+        like_search = f'%{search}%'
+        params.extend([like_search, like_search])
+    base_sql += " ORDER BY mul.logged_at DESC, mul.usage_log_id DESC LIMIT %s"
+    params.append(limit)
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(base_sql, tuple(params))
+        usage_rows = cur.fetchall()
+        logs = []
+
+        for row in usage_rows:
+            usage_log_id = row[0]
+            cur.execute(
+                """
+                SELECT mui.item_id,
+                       ii.item_name,
+                       mui.quantity_used,
+                       COALESCE(ii.unit_label, 'units') AS unit_label
+                FROM material_usage_items mui
+                JOIN inventory_items ii ON ii.item_id = mui.item_id
+                WHERE mui.usage_log_id = %s
+                ORDER BY mui.usage_item_id
+                """,
+                (usage_log_id,)
+            )
+            item_rows = cur.fetchall()
+            items = [{
+                'item_id': irow[0],
+                'item_name': irow[1] or '',
+                'quantity_used': float(irow[2]) if irow[2] is not None else 0,
+                'unit_label': irow[3] or 'units'
+            } for irow in item_rows]
+
+            logs.append({
+                'usage_log_id': usage_log_id,
+                'logged_at': row[1].isoformat() if row[1] else None,
+                'task_id': row[2],
+                'task_name': row[3] or '',
+                'employee_id': row[4],
+                'employee_name': row[5] or '',
+                'items': items
+            })
+
+        cur.close()
+        return jsonify(logs=logs)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load material usage logs: {str(e)}'), 500
+
+
 @app.route('/plant-master.html')
 @login_required
 @role_required('Management')
@@ -904,7 +1431,10 @@ def task_management_dashboard_page():
                 status_class, status_label = status_map.get(status, ('staff-status-incomplete', status or 'Pending'))
                 # Build service window string
                 if sched_date:
-                    date_str = sched_date.strftime('%B %-d, %Y') if hasattr(sched_date, 'strftime') else str(sched_date)
+                    if hasattr(sched_date, 'year') and hasattr(sched_date, 'month') and hasattr(sched_date, 'day'):
+                        date_str = f"{sched_date.strftime('%B')} {sched_date.day}, {sched_date.year}"
+                    else:
+                        date_str = str(sched_date)
                     if start_t and end_t:
                         def fmt_time(t):
                             if hasattr(t, 'seconds'):
@@ -3258,6 +3788,9 @@ def save_my_skills():
 @app.route('/staff/tasks/options', methods=['GET'])
 @api_login_required
 def staff_task_options():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
     try:
         cur = mysql.connection.cursor()
         cur.execute("SELECT employee_id FROM employees WHERE user_id = %s", (current_user.id,))
@@ -3279,7 +3812,10 @@ def staff_task_options():
         for task_id, task_name, sched_date in rows:
             label = task_name or f'Task #{task_id}'
             if sched_date:
-                date_s = sched_date.strftime('%-m/%-d/%y') if hasattr(sched_date, 'strftime') else str(sched_date)
+                if hasattr(sched_date, 'year') and hasattr(sched_date, 'month') and hasattr(sched_date, 'day'):
+                    date_s = f"{sched_date.month}/{sched_date.day}/{str(sched_date.year)[-2:]}"
+                else:
+                    date_s = str(sched_date)
                 label = f'{label} ({date_s})'
             tasks.append({'id': task_id, 'label': label})
         return jsonify(tasks=tasks)
@@ -3290,19 +3826,87 @@ def staff_task_options():
         return jsonify(error=str(e)), 500
 
 
+def resolve_inventory_item_reference(cur, item_id=None, item_name='', allow_unlisted=False):
+    if item_id not in (None, ''):
+        try:
+            item_id = int(item_id)
+        except Exception:
+            return None, 'item_id must be numeric'
+
+        cur.execute(
+            """
+            SELECT item_id,
+                   item_name,
+                   COALESCE(unit_label, 'units') AS unit_label
+            FROM inventory_items
+            WHERE item_id = %s
+              AND COALESCE(is_active, TRUE) = TRUE
+            LIMIT 1
+            """,
+            (item_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return None, 'Selected inventory item was not found or is inactive'
+        return {
+            'item_id': row[0],
+            'item_name': row[1] or '',
+            'unit_label': row[2] or 'units'
+        }, None
+
+    normalized_name = (item_name or '').strip()
+    if not normalized_name:
+        return None, 'Item name is required'
+
+    cur.execute(
+        """
+        SELECT item_id,
+               item_name,
+               COALESCE(unit_label, 'units') AS unit_label
+        FROM inventory_items
+        WHERE COALESCE(is_active, TRUE) = TRUE
+          AND LOWER(TRIM(item_name)) = LOWER(TRIM(%s))
+        LIMIT 1
+        """,
+        (normalized_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return {
+            'item_id': row[0],
+            'item_name': row[1] or normalized_name,
+            'unit_label': row[2] or 'units'
+        }, None
+
+    if allow_unlisted:
+        return {
+            'item_id': None,
+            'item_name': normalized_name,
+            'unit_label': 'units'
+        }, None
+
+    return None, f'Item "{normalized_name}" is not in active inventory'
+
+
 @app.route('/staff/material-requests', methods=['POST'])
 @api_login_required
 def submit_material_request():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
     try:
         data = request.get_json() or {}
         item_name = (data.get('item') or '').strip()
-        quantity = data.get('quantity')
+        item_id = data.get('item_id')
+        quantity_raw = data.get('quantity')
         note = (data.get('note') or '').strip()
         task_id = data.get('task_id') or None
 
-        if not item_name:
-            return jsonify(error='Item name is required'), 400
-        if quantity is None or float(quantity) <= 0:
+        try:
+            quantity = float(quantity_raw)
+        except Exception:
+            return jsonify(error='Quantity must be greater than zero'), 400
+        if quantity <= 0:
             return jsonify(error='Quantity must be greater than zero'), 400
 
         cur = mysql.connection.cursor()
@@ -3310,14 +3914,39 @@ def submit_material_request():
         mysql.connection.commit()
 
         if task_id:
-            cur.execute("SELECT task_id FROM tasks WHERE task_id = %s", (int(task_id),))
+            try:
+                task_id = int(task_id)
+            except Exception:
+                cur.close()
+                return jsonify(error='task_id must be numeric when provided'), 400
+
+            cur.execute(
+                """
+                SELECT task_id
+                FROM tasks
+                WHERE task_id = %s
+                  AND assigned_employee_id = %s
+                """,
+                (task_id, employee_id)
+            )
             if not cur.fetchone():
-                task_id = None
+                cur.close()
+                return jsonify(error='Task not found for current staff member'), 404
+
+        resolved_item, item_error = resolve_inventory_item_reference(
+            cur,
+            item_id=item_id,
+            item_name=item_name,
+            allow_unlisted=True
+        )
+        if item_error:
+            cur.close()
+            return jsonify(error=item_error), 400
 
         # Generate unique request code
-        request_code = f"MR-{datetime.now().strftime('%Y%m%d%H%M%S')}-{employee_id}"
-
-        full_note = f'Item: {item_name}, Qty: {quantity}' + (f'. {note}' if note else '')
+        request_code = f"MR-{datetime.now().strftime('%Y%m%d%H%M%S')}-{employee_id}-{random.randint(10, 99)}"
+        detail_note = f"Requested Item: {resolved_item['item_name']} | Qty: {quantity:g} {resolved_item['unit_label']}"
+        full_note = detail_note if not note else f"{detail_note}. {note}"
 
         cur.execute("""
             INSERT INTO material_requests (request_code, employee_id, task_id, note, status, created_at)
@@ -3325,80 +3954,152 @@ def submit_material_request():
         """, (request_code, employee_id, task_id, full_note))
         request_id = cur.lastrowid
 
-        # Try to link to inventory item if name matches
-        cur.execute("SELECT item_id FROM inventory_items WHERE item_name = %s AND is_active = TRUE LIMIT 1", (item_name,))
-        inv_row = cur.fetchone()
-        if inv_row:
-            cur.execute("""
-                INSERT INTO material_request_items (material_request_id, item_id, quantity_requested)
-                VALUES (%s, %s, %s)
-            """, (request_id, inv_row[0], float(quantity)))
+        cur.execute("""
+            INSERT INTO material_request_items (
+                material_request_id,
+                item_id,
+                quantity_requested,
+                requested_item_name,
+                requested_unit_label
+            )
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            request_id,
+            resolved_item.get('item_id'),
+            quantity,
+            resolved_item['item_name'],
+            resolved_item['unit_label']
+        ))
 
         mysql.connection.commit()
         cur.close()
-        return jsonify(message='Request submitted successfully', request_code=request_code), 201
+        return jsonify(
+            message='Request submitted successfully',
+            request_code=request_code,
+            material_request_id=request_id
+        ), 201
     except Exception as e:
         print(f'Error in submit_material_request: {e}')
         if 'cur' in locals():
             cur.close()
+        mysql.connection.rollback()
         return jsonify(error=str(e)), 500
 
 
 @app.route('/staff/material-usage', methods=['POST'])
 @api_login_required
 def submit_material_usage():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
     try:
         data = request.get_json() or {}
         task_id = data.get('task_id')
         items = data.get('items') or []
 
-        if not task_id:
+        if task_id in (None, ''):
             return jsonify(error='Task ID is required'), 400
         if not items:
             return jsonify(error='At least one item is required'), 400
+
+        try:
+            task_id = int(task_id)
+        except Exception:
+            return jsonify(error='task_id must be numeric'), 400
 
         cur = mysql.connection.cursor()
         employee_id = ensure_employee_record(cur, current_user.id)
         mysql.connection.commit()
 
-        cur.execute("SELECT task_id FROM tasks WHERE task_id = %s", (int(task_id),))
+        cur.execute(
+            """
+            SELECT task_id
+            FROM tasks
+            WHERE task_id = %s
+              AND assigned_employee_id = %s
+            """,
+            (task_id, employee_id)
+        )
         if not cur.fetchone():
             cur.close()
-            return jsonify(error='Task not found'), 404
+            return jsonify(error='Task not found for current staff member'), 404
+
+        resolved_entries = []
+        validation_errors = []
+
+        for idx, entry in enumerate(items):
+            item_name = (entry.get('item') or '').strip()
+            item_id = entry.get('item_id')
+            quantity_raw = entry.get('quantity')
+
+            # Ignore empty rows from dynamic forms.
+            if item_id in (None, '') and not item_name and quantity_raw in (None, ''):
+                continue
+
+            try:
+                quantity = float(quantity_raw)
+            except Exception:
+                validation_errors.append(f'Row {idx + 1}: quantity must be a number')
+                continue
+
+            if quantity <= 0:
+                validation_errors.append(f'Row {idx + 1}: quantity must be greater than zero')
+                continue
+
+            resolved_item, item_error = resolve_inventory_item_reference(
+                cur,
+                item_id=item_id,
+                item_name=item_name,
+                allow_unlisted=False
+            )
+            if item_error:
+                validation_errors.append(f'Row {idx + 1}: {item_error}')
+                continue
+
+            resolved_entries.append({
+                'item_id': resolved_item['item_id'],
+                'item_name': resolved_item['item_name'],
+                'quantity': quantity
+            })
+
+        if validation_errors:
+            cur.close()
+            return jsonify(error='; '.join(validation_errors)), 400
+
+        if not resolved_entries:
+            cur.close()
+            return jsonify(error='At least one valid material row is required'), 400
 
         cur.execute("""
             INSERT INTO material_usage_logs (task_id, employee_id, logged_at)
             VALUES (%s, %s, NOW())
-        """, (int(task_id), employee_id))
+        """, (task_id, employee_id))
         log_id = cur.lastrowid
 
-        for entry in items:
-            item_name = (entry.get('item') or '').strip()
-            quantity = entry.get('quantity')
-            if not item_name or not quantity:
-                continue
-            cur.execute("SELECT item_id FROM inventory_items WHERE item_name = %s AND is_active = TRUE LIMIT 1", (item_name,))
-            inv_row = cur.fetchone()
-            if inv_row:
-                item_id = inv_row[0]
-                cur.execute("""
-                    INSERT INTO material_usage_items (usage_log_id, item_id, quantity_used)
-                    VALUES (%s, %s, %s)
-                """, (log_id, item_id, float(quantity)))
-                # Deduct from inventory
-                cur.execute("""
-                    UPDATE inventory_items
-                    SET quantity_on_hand = GREATEST(0, quantity_on_hand - %s)
-                    WHERE item_id = %s
-                """, (float(quantity), item_id))
+        for entry in resolved_entries:
+            cur.execute("""
+                INSERT INTO material_usage_items (usage_log_id, item_id, quantity_used)
+                VALUES (%s, %s, %s)
+            """, (log_id, entry['item_id'], entry['quantity']))
+            # Deduct from inventory while preventing negative stock.
+            cur.execute("""
+                UPDATE inventory_items
+                SET quantity_on_hand = GREATEST(0, quantity_on_hand - %s)
+                WHERE item_id = %s
+            """, (entry['quantity'], entry['item_id']))
 
         mysql.connection.commit()
         cur.close()
-        return jsonify(message='Usage log submitted successfully'), 201
+        return jsonify(
+            message='Usage log submitted successfully',
+            usage_log_id=log_id,
+            submitted_items=len(resolved_entries)
+        ), 201
     except Exception as e:
         print(f'Error in submit_material_usage: {e}')
         if 'cur' in locals():
             cur.close()
+        mysql.connection.rollback()
         return jsonify(error=str(e)), 500
 
 
@@ -3445,4 +4146,3 @@ def init_db_command():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='127.0.0.1', port=port)
-
