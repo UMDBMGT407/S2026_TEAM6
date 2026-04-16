@@ -259,6 +259,7 @@
       var items = await requestJson(url);
       renderItems(items);
       renderStats(items);
+      autoReorderIfNeeded(items);
     } catch (err) {
       inventoryList.innerHTML = '<p class="text-danger mt-3">Failed to load inventory: ' + escapeHtml(err.message) + '</p>';
     }
@@ -321,7 +322,7 @@
           '</div>',
           '<div class="d-flex flex-column gap-2 ms-3">',
             '<button class="btn management-action-btn btn-soft-neutral js-adjust-stock" data-item-id="' + item.item_id + '" data-item-name="' + escapeHtml(item.item_name || '') + '" data-item-qty="' + Number(item.quantity_on_hand || 0) + '">Adjust Stock</button>',
-            '<button class="btn management-action-btn btn-olive js-reorder-stock" data-item-id="' + item.item_id + '">Reorder</button>',
+            '<button class="btn management-action-btn btn-olive js-reorder-stock" data-item-id="' + item.item_id + '" data-item-qty="' + Number(item.quantity_on_hand || 0) + '" data-item-reorder="' + Number(item.reorder_level || 0) + '">Reorder</button>',
           '</div>',
         '</div>'
       ].join('');
@@ -355,19 +356,54 @@
     }
   });
 
-  window.doReorder = async function (itemId) {
-    if (!confirm('Place reorder for this item? Stock will be set to reorder level + 20.')) {
+  window.doReorder = async function (itemId, currentQty, reorderLevel) {
+    var current = Number(currentQty || 0);
+    var level = Number(reorderLevel || 0);
+    var amount = level > 0 ? level : 20;
+    var newQty = current + amount;
+
+    var msg = 'Confirm reorder for this item?\n\n' +
+      'Current quantity: ' + current + '\n' +
+      'Reorder amount to add: ' + amount + '\n' +
+      'New quantity after reorder: ' + newQty + '\n\n' +
+      'Click OK to place reorder.';
+    if (!confirm(msg)) {
       return;
     }
 
     try {
-      await requestJson('/api/inventory/' + itemId + '/reorder', { method: 'POST' });
+      await requestJson('/api/inventory/' + itemId + '/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manual: true })
+      });
       await loadInventory();
     } catch (err) {
       alert('Reorder failed: ' + err.message);
     }
   };
 
+
+  // Automatically reorder items below reorder level (non-manual). Batched then reload.
+  async function autoReorderIfNeeded(items) {
+    var toReorder = items.filter(function (item) {
+      return Number(item.quantity_on_hand || 0) < Number(item.reorder_level || 0);
+    });
+    if (!toReorder.length) return;
+    try {
+      await Promise.all(toReorder.map(function (it) {
+        return requestJson('/api/inventory/' + it.item_id + '/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+      }));
+      await loadInventory();
+    } catch (err) {
+      console.error('Auto-reorder failed', err);
+    }
+  }
+  
   async function loadSupplierOptions() {
     try {
       var suppliers = await requestJson('{{ url_for("get_suppliers") }}');
@@ -567,7 +603,11 @@
 
     var reorderButton = event.target.closest('.js-reorder-stock');
     if (reorderButton) {
-      window.doReorder(Number(reorderButton.dataset.itemId));
+      window.doReorder(
+        Number(reorderButton.dataset.itemId),
+        Number(reorderButton.dataset.itemQty || 0),
+        Number(reorderButton.dataset.itemReorder || 0)
+      );
     }
   });
 
