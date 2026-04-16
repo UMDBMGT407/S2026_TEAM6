@@ -697,6 +697,57 @@ def db_check():
     )
 
 
+@app.route('/invoices', methods=['GET'])
+@login_required
+def get_invoices_json():
+    cur = mysql.connection.cursor()
+    try:
+        # If the user is a client, only return their invoices
+        if getattr(current_user, 'role', '') == 'Client':
+            cur.execute("SELECT client_id FROM clients WHERE contact_user_id = %s", (current_user.id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify([])
+            client_id = row[0]
+            cur.execute("""
+                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
+                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                FROM invoices inv
+                LEFT JOIN clients c ON c.client_id = inv.client_id
+                WHERE inv.client_id = %s
+                ORDER BY inv.issue_date DESC
+            """, (client_id,))
+        else:
+            cur.execute("""
+                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
+                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                FROM invoices inv
+                LEFT JOIN clients c ON c.client_id = inv.client_id
+                ORDER BY inv.issue_date DESC
+            """)
+
+        rows = cur.fetchall()
+        invoices = []
+        for r in rows:
+            issue_date = r[3].strftime('%Y-%m-%d') if hasattr(r[3], 'strftime') else (r[3] and str(r[3]))
+            due_date = r[4].strftime('%Y-%m-%d') if hasattr(r[4], 'strftime') else (r[4] and str(r[4]))
+            invoices.append({
+                'invoice_id': r[0],
+                'invoice_number': r[1],
+                'client_id': r[2],
+                'issue_date': issue_date,
+                'due_date': due_date,
+                'subtotal': float(r[5]) if r[5] is not None else 0,
+                'tax_amount': float(r[6]) if r[6] is not None else 0,
+                'total_amount': float(r[7]) if r[7] is not None else 0,
+                'status': r[8],
+                'company_name': r[9] or ''
+            })
+        return jsonify(invoices)
+    finally:
+        cur.close()
+
+
 # --- Logout ---
 @app.route('/logout')
 @login_required
