@@ -115,6 +115,7 @@
         '<div class="col-md-7">' +
           '<div class="inv-number">' + (invoice.invoice_number || ('Invoice #' + String(invoice.invoice_id))) + '</div>' +
           '<div class="inv-service">' + (invoice.company_name || 'Planted Service') + '</div>' +
+          '<div class="inv-job-order small text-muted">' + (invoice.job_order_code ? 'Job ' + invoice.job_order_code + ' — ' + (invoice.job_order_status || 'Unknown') : 'No linked job order') + '</div>' +
           '<div class="inv-dates">Due ' + toDateLabel(invoice.due_date) + ' &middot; Issued ' + toDateLabel(invoice.issue_date) + '</div>' +
         '</div>' +
         '<div class="col-md-2 text-center"><span class="inv-status ' + statusClass(filterValue) + '">&#x25CF; ' + statusText(filterValue) + '</span></div>' +
