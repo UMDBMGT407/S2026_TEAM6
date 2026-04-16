@@ -884,17 +884,38 @@ def adjust_inventory_stock(item_id):
 @role_required('Management')
 def reorder_inventory_item(item_id):
     cur = mysql.connection.cursor()
-    cur.execute("SELECT reorder_level FROM inventory_items WHERE item_id = %s", (item_id,))
-    row = cur.fetchone()
-    if not row:
+    try:
+        cur.execute("SELECT quantity_on_hand, reorder_level FROM inventory_items WHERE item_id = %s", (item_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify(error='Item not found'), 404
+        current_qty = float(row[0]) if row[0] is not None else 0
+        reorder_level = float(row[1]) if row[1] is not None else 0
+
+        data = request.get_json(silent=True) or {}
+        add_amount = data.get('add_amount') if isinstance(data, dict) else None
+        manual = bool(data.get('manual')) if isinstance(data, dict) else False
+
+        # determine amount to add: explicit value -> reorder_level -> default 20
+        if add_amount is not None:
+            try:
+                amount = float(add_amount)
+            except Exception:
+                amount = 0
+        else:
+            amount = reorder_level if reorder_level > 0 else 20
+
+        # If this is not a manual request and current quantity is not below reorder level, do nothing
+        if not manual and not (current_qty < reorder_level):
+            return jsonify(message='No reorder needed', new_quantity=current_qty), 200
+
+        new_qty = current_qty + amount
+        cur.execute("UPDATE inventory_items SET quantity_on_hand = %s WHERE item_id = %s", (new_qty, item_id))
+        mysql.connection.commit()
+        return jsonify(message='Reorder placed', added_amount=amount, new_quantity=new_qty)
+    finally:
         cur.close()
-        return jsonify(error='Item not found'), 404
-    reorder_level = float(row[0]) if row[0] else 0
-    new_qty = reorder_level + 20
-    cur.execute("UPDATE inventory_items SET quantity_on_hand = %s WHERE item_id = %s", (new_qty, item_id))
-    mysql.connection.commit()
-    cur.close()
-    return jsonify(message='Reorder placed', new_quantity=new_qty)
+    
 
 
 @app.route('/staff/inventory/options', methods=['GET'])
