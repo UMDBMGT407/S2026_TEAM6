@@ -357,6 +357,87 @@ def generate_job_order_code(cur):
         if not cur.fetchone():
             return code
 
+def generate_invoice_number(cur):
+    """Generate a simple, unique invoice number."""
+    cur.execute("SELECT COUNT(*) FROM invoices")
+    row = cur.fetchone()
+    count = int(row[0]) if row and row[0] is not None else 0
+    return f"INV-{datetime.utcnow().strftime('%Y%m%d')}-{count + 1:04d}"
+
+
+def create_invoice_for_job_order(cur, job_order_id):
+    cur.execute(
+        """
+        SELECT jo.job_order_id,
+               jo.job_order_code,
+               jo.client_id,
+               jo.estimated_cost,
+               jo.title,
+               COALESCE(s.service_name, '') AS service_name
+        FROM job_orders jo
+        LEFT JOIN services s ON s.service_id = jo.service_id
+        WHERE jo.job_order_id = %s
+        LIMIT 1
+        """,
+        (job_order_id,)
+    )
+    row = cur.fetchone()
+    if not row:
+        return None, 'Job order not found'
+
+    cur.execute("SELECT invoice_id FROM invoices WHERE job_order_id = %s", (job_order_id,))
+    existing_invoice = cur.fetchone()
+    if existing_invoice:
+        return existing_invoice[0], None
+
+    subtotal = float(row[3]) if row[3] is not None else 0.0
+    tax_amount = round(subtotal * 0.10, 2)
+    total_amount = round(subtotal + tax_amount, 2)
+    issue_date = datetime.today().date()
+    due_date = issue_date + timedelta(days=15)
+    invoice_number = generate_invoice_number(cur)
+    description = f"{row[5] or row[4] or 'Service'} for job {row[1]}"
+
+    cur.execute(
+        """
+        INSERT INTO invoices (
+            invoice_number,
+            client_id,
+            job_order_id,
+            issue_date,
+            due_date,
+            subtotal,
+            tax_amount,
+            total_amount,
+            status
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            invoice_number,
+            row[2],
+            job_order_id,
+            issue_date,
+            due_date,
+            subtotal,
+            tax_amount,
+            total_amount,
+            'Issued'
+        )
+    )
+    invoice_id = cur.lastrowid
+    cur.execute(
+        """
+        INSERT INTO invoice_items (
+            invoice_id,
+            description,
+            quantity,
+            unit_price,
+            line_total
+        ) VALUES (%s, %s, %s, %s, %s)
+        """,
+        (invoice_id, description, 1, subtotal, subtotal)
+    )
+    return invoice_id, None
 
 def parse_iso_date(value):
     if not value:
@@ -750,19 +831,45 @@ def get_invoices_json():
                 return jsonify([])
             client_id = row[0]
             cur.execute("""
-                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
-                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                SELECT inv.invoice_id,
+                       inv.invoice_number,
+                       inv.client_id,
+                       inv.job_order_id,
+                       inv.issue_date,
+                       inv.due_date,
+                       inv.subtotal,
+                       inv.tax_amount,
+                       inv.total_amount,
+                       inv.status,
+                       c.company_name,
+                       jo.job_order_code,
+                       jo.status AS job_order_status,
+                       jo.title AS job_order_title
                 FROM invoices inv
                 LEFT JOIN clients c ON c.client_id = inv.client_id
+                LEFT JOIN job_orders jo ON jo.job_order_id = inv.job_order_id
                 WHERE inv.client_id = %s
                 ORDER BY inv.issue_date DESC
             """, (client_id,))
         else:
             cur.execute("""
-                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
-                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                SELECT inv.invoice_id,
+                       inv.invoice_number,
+                       inv.client_id,
+                       inv.job_order_id,
+                       inv.issue_date,
+                       inv.due_date,
+                       inv.subtotal,
+                       inv.tax_amount,
+                       inv.total_amount,
+                       inv.status,
+                       c.company_name,
+                       jo.job_order_code,
+                       jo.status AS job_order_status,
+                       jo.title AS job_order_title
                 FROM invoices inv
                 LEFT JOIN clients c ON c.client_id = inv.client_id
+                LEFT JOIN job_orders jo ON jo.job_order_id = inv.job_order_id
                 ORDER BY inv.issue_date DESC
             """)
 
