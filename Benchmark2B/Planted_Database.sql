@@ -267,7 +267,7 @@ CREATE TABLE invoices (
     total_amount DECIMAL(10,2),
     status VARCHAR(50),
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
-    FOREIGN KEY (job_order_id) REFERENCES job_orders(job_order_id)
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
 );
 
 CREATE TABLE invoice_items (
