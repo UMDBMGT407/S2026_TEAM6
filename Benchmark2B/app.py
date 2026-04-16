@@ -936,7 +936,7 @@ def adjust_inventory_stock(item_id):
 def reorder_inventory_item(item_id):
     cur = mysql.connection.cursor()
     try:
-        cur.execute("SELECT quantity_on_hand, reorder_level FROM inventory_items WHERE item_id = %s", (item_id,))
+        cur.execute("SELECT quantity_on_hand, reorder_level, supplier_id FROM inventory_items WHERE item_id = %s", (item_id,))
         row = cur.fetchone()
         if not row:
             return jsonify(error='Item not found'), 404
@@ -962,6 +962,20 @@ def reorder_inventory_item(item_id):
 
         new_qty = current_qty + amount
         cur.execute("UPDATE inventory_items SET quantity_on_hand = %s WHERE item_id = %s", (new_qty, item_id))
+        # if item has a supplier, increment their total_orders and set last_order_date
+        supplier_id = row[2] if len(row) > 2 else None
+        if supplier_id:
+            try:
+                cur.execute("""
+                    UPDATE suppliers
+                    SET total_orders = IFNULL(total_orders, 0) + 1,
+                        last_order_date = %s
+                    WHERE supplier_id = %s
+                """, (datetime.date.today(), supplier_id))
+            except Exception:
+                # don't fail reorder if supplier update fails
+                pass
+
         mysql.connection.commit()
         return jsonify(message='Reorder placed', added_amount=amount, new_quantity=new_qty)
     finally:
