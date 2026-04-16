@@ -266,8 +266,9 @@ CREATE TABLE invoices (
     tax_amount DECIMAL(10,2),
     total_amount DECIMAL(10,2),
     status VARCHAR(50),
-    FOREIGN KEY (client_id) REFERENCES clients(client_id)
-);
+    FOREIGN KEY (client_id) REFERENCES clients(client_id),
+    FOREIGN KEY (job_order_id) REFERENCES job_orders(job_order_id)
+););
 
 CREATE TABLE invoice_items (
     invoice_item_id INT PRIMARY KEY AUTO_INCREMENT,
