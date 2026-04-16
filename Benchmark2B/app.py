@@ -841,8 +841,59 @@ def client_service_requests_alias():
 @login_required
 @role_required('Client')
 def client_appointments_alias():
-    return jsonify([])
 
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT sr.service_request_id,
+                   sr.requested_date AS appointment_date,
+                   COALESCE(sr.status, 'Pending') AS status,
+                   s.service_name,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code
+            FROM service_requests sr
+            JOIN services s ON s.service_id = sr.service_id
+            LEFT JOIN client_locations cl ON cl.location_id = sr.location_id
+            LEFT JOIN addresses a ON a.address_id = cl.address_id
+            WHERE sr.client_id = %s
+              AND sr.requested_date IS NOT NULL
+            ORDER BY sr.requested_date ASC
+            """,
+            (client_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+
+        appointments = []
+        for row in rows:
+            location_address = row[5] or ''
+            if row[6]:
+                location_address += (', ' if location_address else '') + row[6]
+            if row[7]:
+                location_address += (', ' if location_address else '') + row[7]
+            if row[8]:
+                location_address += (location_address and ' ' or '') + row[8]
+
+            appointments.append({
+                'service_request_id': row[0],
+                'appointment_date': row[1].isoformat() if row[1] else None,
+                'status': row[2] or 'Pending',
+                'service_name': row[3] or '',
+                'location_name': row[4] or '',
+                'location_address': location_address.strip()
+            })
+
+        return jsonify(appointments)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load appointments: {str(e)}'), 500
 
 # --- Logout ---
 @app.route('/logout')
