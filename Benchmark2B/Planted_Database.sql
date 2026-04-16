@@ -30,9 +30,9 @@ DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
-    role ENUM('Management','Staff','Client') NOT NULL,
+    `role` ENUM('Management','Staff','Client') NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(30),
@@ -46,7 +46,7 @@ CREATE TABLE addresses (
     address_id INT PRIMARY KEY AUTO_INCREMENT,
     street_1 VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
-    state VARCHAR(100) NOT NULL,
+    `state` VARCHAR(100) NOT NULL,
     zip_code VARCHAR(20) NOT NULL
 );
 
@@ -116,7 +116,7 @@ CREATE TABLE suppliers (
     address_id INT,
     total_orders INT DEFAULT 0,
     last_order_date DATE,
-    status ENUM('Ordered','Shipped','Delivered'),
+    `status` ENUM('Ordered','Shipped','Delivered'),
     is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (address_id) REFERENCES addresses(address_id)
 );
@@ -158,8 +158,8 @@ CREATE TABLE inventory_items (
 
 CREATE TABLE services (
     service_id INT PRIMARY KEY AUTO_INCREMENT,
-    service_name VARCHAR(255) NOT NULL,
-    description TEXT,
+    `service_name` VARCHAR(255) NOT NULL,
+    `description` TEXT,
     base_price DECIMAL(10,2),
     is_active BOOLEAN DEFAULT TRUE
 );
@@ -173,7 +173,7 @@ CREATE TABLE service_requests (
     service_id INT NOT NULL,
     requested_date DATE,
     requested_notes TEXT,
-    status VARCHAR(50),
+    `status` VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     approved_by INT,
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
@@ -194,7 +194,7 @@ CREATE TABLE appointments (
     appointment_date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    status VARCHAR(50),
+    `status` VARCHAR(50),
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (location_id) REFERENCES client_locations(location_id),
     FOREIGN KEY (service_id) REFERENCES services(service_id),
@@ -214,13 +214,13 @@ CREATE TABLE job_orders (
     service_request_id INT,
     assigned_employee_id INT,
     title VARCHAR(255) NOT NULL,
-    description TEXT,
+    `description` TEXT,
     scheduled_date DATE,
     start_time TIME,
     end_time TIME,
     estimated_cost DECIMAL(10,2),
-    status VARCHAR(50),
-    priority VARCHAR(50),
+    `status` VARCHAR(50),
+    `priority` VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (location_id) REFERENCES client_locations(location_id),
@@ -237,8 +237,8 @@ CREATE TABLE tasks (
     job_order_id INT NOT NULL,
     assigned_employee_id INT,
     task_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    status VARCHAR(50),
+    `description` TEXT,
+    `status` VARCHAR(50),
     completed_at DATETIME,
     FOREIGN KEY (job_order_id) REFERENCES job_orders(job_order_id),
     FOREIGN KEY (assigned_employee_id) REFERENCES employees(employee_id)
@@ -265,15 +265,15 @@ CREATE TABLE invoices (
     subtotal DECIMAL(10,2),
     tax_amount DECIMAL(10,2),
     total_amount DECIMAL(10,2),
-    status VARCHAR(50),
+    `status` VARCHAR(50),
     FOREIGN KEY (client_id) REFERENCES clients(client_id),
     FOREIGN KEY (job_order_id) REFERENCES job_orders(job_order_id)
-););
+);
 
 CREATE TABLE invoice_items (
     invoice_item_id INT PRIMARY KEY AUTO_INCREMENT,
     invoice_id INT NOT NULL,
-    description VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
     quantity DECIMAL(10,2),
     unit_price DECIMAL(10,2),
     line_total DECIMAL(10,2),
@@ -325,7 +325,7 @@ CREATE TABLE material_requests (
     employee_id INT NOT NULL,
     task_id INT,
     note TEXT,
-    status VARCHAR(50),
+    `status` VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
     FOREIGN KEY (task_id) REFERENCES tasks(task_id)
@@ -361,9 +361,9 @@ CREATE TABLE material_usage_items (
 -- ADMIN USER
 
 INSERT INTO users (
-    role,
+    `role`,
     email,
-    password,
+    `password`,
     first_name,
     last_name,
     phone,
@@ -382,13 +382,13 @@ INSERT INTO users (
 -- Seeded non-admin users all use password: test123
 
 INSERT INTO users (
-    role,
-    email,
-    password,
-    first_name,
-    last_name,
-    phone,
-    is_active
+    `role`,
+    `email`,
+    `password`,
+    `first_name`,
+    `last_name`,
+    `phone`,
+    `is_active`
 ) VALUES
     ('Management', 'manager@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Maya', 'Manager', '555-111-1000', 1),
     ('Staff', 'alice.staff@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Alice', 'Green', '555-111-2001', 1),
@@ -397,7 +397,7 @@ INSERT INTO users (
     ('Client', 'brendan.client@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Brendan', 'User', '555-111-3001', 1),
     ('Client', 'ivy.client@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Ivy', 'Client', '555-111-3002', 1);
 
-INSERT INTO addresses (street_1, city, state, zip_code) VALUES
+INSERT INTO addresses (street_1, city, `state`, zip_code) VALUES
     ('101 Garden Ave', 'Baltimore', 'MD', '21201'),
     ('202 Greenway Dr', 'Baltimore', 'MD', '21202'),
     ('303 Orchard Ln', 'Baltimore', 'MD', '21203'),
@@ -448,45 +448,11 @@ INSERT INTO employee_availability (
     (2, '2026-04-13', 4, '12:00:00', '20:00:00', 1),
     (2, '2026-04-13', 5, '12:00:00', '20:00:00', 1);
 
-INSERT INTO services (service_name, description, base_price, is_active) VALUES
+INSERT INTO services (`service_name`, `description`, `base_price`, `is_active`) VALUES
     ('Watering Plants', 'Routine watering and moisture checks', 60.00, 1),
     ('Indoor Plant Health Check', 'Inspect plant health and treat common issues', 120.00, 1),
     ('Office Plant Installation', 'Install and stage new office plants', 350.00, 1),
     ('Seasonal Decor Refresh', 'Rotate seasonal plant decor package', 250.00, 0);
-
-INSERT INTO invoices (
-    invoice_number,
-    client_id,
-    job_order_id,
-    issue_date,
-    due_date,
-    subtotal,
-    tax_amount,
-    total_amount,
-    status
-) VALUES
-    ('INV-1001', 1, 1, '2026-04-10', '2026-04-25', 150.00, 30.00, 180.00, 'Unpaid'),
-    ('INV-1002', 1, 2, '2026-03-20', '2026-04-04', 100.00, 20.00, 120.00, 'Paid');
-
-INSERT INTO invoice_items (
-    invoice_id,
-    description,
-    quantity,
-    unit_price,
-    line_total
-) VALUES
-    (1, 'Lobby plant maintenance service', 1, 150.00, 150.00),
-    (2, 'Warehouse plant health check', 1, 100.00, 100.00);
-
-INSERT INTO payments (
-    invoice_id,
-    payment_date,
-    amount,
-    payment_method,
-    reference_number,
-    notes
-) VALUES
-    (2, '2026-04-02', 120.00, 'Credit Card', 'CC-20260402-001', 'Payment for invoice INV-1002');
 
 INSERT INTO service_requests (
     client_id,
@@ -494,7 +460,7 @@ INSERT INTO service_requests (
     service_id,
     requested_date,
     requested_notes,
-    status,
+    `status`,
     created_at,
     approved_by
 ) VALUES
@@ -514,13 +480,13 @@ INSERT INTO job_orders (
     service_request_id,
     assigned_employee_id,
     title,
-    description,
+    `description`,
     scheduled_date,
     start_time,
     end_time,
     estimated_cost,
-    status,
-    priority,
+    `status`,
+    `priority`,
     created_at
 ) VALUES
     ('JO-20260410-001', 1, 2, 2, NULL, 3, 1, 'Indoor Plant Health Check', 'Approved request from BrenCo warehouse.', '2026-04-16', '13:00:00', '14:30:00', 120.00, 'Scheduled', 'High', '2026-04-10 08:30:00'),
@@ -530,15 +496,56 @@ INSERT INTO job_orders (
     ('JO-20260414-001', 2, 3, 2, NULL, NULL, NULL, 'Indoor Plant Health Check', 'Unassigned health check awaiting staffing.', '2026-04-17', '09:00:00', '10:00:00', 120.00, 'Unassigned', 'Normal', '2026-04-14 11:00:00'),
     ('JO-20260414-002', 2, 3, 3, NULL, NULL, NULL, 'Office Plant Installation', 'Backlog job with no schedule yet.', NULL, NULL, NULL, 350.00, 'Unassigned', 'Low', '2026-04-14 12:00:00');
 
+INSERT INTO invoices (
+    invoice_number,
+    client_id,
+    job_order_id,
+    issue_date,
+    due_date,
+    subtotal,
+    tax_amount,
+    total_amount,
+    status
+) VALUES
+    ('INV-1001', 1, 1, '2026-04-10', '2026-04-25', 150.00, 30.00, 180.00, 'Unpaid'),
+    ('INV-1002', 1, 2, '2026-03-20', '2026-04-04', 100.00, 20.00, 120.00, 'Paid');
+
+INSERT INTO invoice_items (
+    invoice_id,
+    `description`,
+    quantity,
+    unit_price,
+    line_total
+) VALUES
+    ((SELECT invoice_id FROM invoices WHERE invoice_number = 'INV-1001'), 'Lobby plant maintenance service', 1.00, 150.00, 150.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number = 'INV-1002'), 'Warehouse plant health check', 1.00, 100.00, 100.00);
+
+INSERT INTO payments (
+    invoice_id,
+    payment_date,
+    amount,
+    payment_method,
+    reference_number,
+    notes
+) VALUES
+    (
+        (SELECT invoice_id FROM invoices WHERE invoice_number = 'INV-1002'),
+        '2026-04-02',
+        (SELECT total_amount FROM invoices WHERE invoice_number = 'INV-1002'),
+        'Credit Card',
+        'CC-20260402-001',
+        'Payment for invoice INV-1002'
+    );
+
 -- ADDITIONAL TEST DATA (extended coverage)
 
 INSERT INTO users (
-    role,
-    email,
-    password,
-    first_name,
-    last_name,
-    phone,
+    `role`,
+    `email`,
+    `password`,
+    `first_name`,
+    `last_name`,
+    `phone`,
     is_active
 ) VALUES
     ('Staff', 'dylan.staff@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Dylan', 'Frost', '555-111-2004', 1),
@@ -546,7 +553,7 @@ INSERT INTO users (
     ('Client', 'nora.client@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Nora', 'Mills', '555-111-3003', 1),
     ('Client', 'oscar.client@test.com', 'scrypt:32768:8:1$liE9UDZJXxfXB9Nm$a768d6047ea608148f634c840a6aa461a6607832e334eb18eb8ffafdfa2c447dac5756e9a31d33904709d3d98b17e1f802dca20a0c9ecf616b9e419d1c02dc6b', 'Oscar', 'Reed', '555-111-3004', 1);
 
-INSERT INTO addresses (street_1, city, state, zip_code) VALUES
+INSERT INTO addresses (street_1, city, `state`, zip_code) VALUES
     ('410 North Park', 'Baltimore', 'MD', '21210'),
     ('77 Elm Street', 'Catonsville', 'MD', '21228'),
     ('900 Charles St', 'Baltimore', 'MD', '21201'),
@@ -613,7 +620,7 @@ INSERT INTO employee_availability (
     (5, '2026-04-20', 4, '14:00:00', '21:00:00', 1),
     (5, '2026-04-20', 5, '14:00:00', '18:00:00', 1);
 
-INSERT INTO services (service_name, description, base_price, is_active) VALUES
+INSERT INTO services (`service_name`, `description`, `base_price`, `is_active`) VALUES
     ('Emergency Plant Triage', 'Urgent same-day diagnosis and stabilization', 180.00, 1),
     ('Soil and Pot Refresh', 'Refresh soil blend and repot where needed', 95.00, 1);
 
@@ -623,7 +630,7 @@ INSERT INTO service_requests (
     service_id,
     requested_date,
     requested_notes,
-    status,
+    `status`,
     created_at,
     approved_by
 ) VALUES
@@ -643,13 +650,13 @@ INSERT INTO job_orders (
     service_request_id,
     assigned_employee_id,
     title,
-    description,
+    `description`,
     scheduled_date,
     start_time,
     end_time,
     estimated_cost,
-    status,
-    priority,
+    `status`,
+    `priority`,
     created_at
 ) VALUES
     ('JO-20260415-101', 3, 5, 2, NULL, 9, 4, 'Indoor Plant Health Check', 'Approved quarterly wellness for hotel annex.', '2026-04-23', '10:00:00', '11:30:00', 120.00, 'Scheduled', 'Normal', '2026-04-15 11:00:00'),
@@ -669,7 +676,7 @@ INSERT INTO appointments (
     appointment_date,
     start_time,
     end_time,
-    status
+    `status`
 ) VALUES
     (3, 5, 2, 9, 4, '2026-04-23', '10:00:00', '11:30:00', 'Scheduled'),
     (4, 6, 1, 10, 5, '2026-04-21', '15:00:00', '16:00:00', 'Scheduled');
@@ -681,10 +688,57 @@ INSERT INTO suppliers (
     address_id,
     total_orders,
     last_order_date,
-    status
+    `status`
 ) VALUES
     ('GreenGrow Supply', '555-200-0001', 'orders@greengrow.test', 9, 12, '2026-04-01', 'Delivered'),
     ('Urban Soil Partners', '555-200-0002', 'sales@urbansoil.test', 10, 7, '2026-03-28', 'Shipped');
+
+INSERT INTO plant_master 
+(common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, is_active)
+VALUES
+('Snake Plant','Dracaena trifasciata','Low to Bright Indirect','Every 2-3 weeks','60-85°F','Low','', 'Very hardy, good for beginners', TRUE),
+('Peace Lily','Spathiphyllum wallisii','Low to Medium','Weekly','65-80°F','Medium','', 'Flowers indoors, likes moisture', TRUE),
+('Fiddle Leaf Fig','Ficus lyrata','Bright Indirect','Weekly','65-75°F','Medium','', 'Sensitive to changes', TRUE),
+('Spider Plant','Chlorophytum comosum','Bright Indirect','Weekly','60-80°F','Medium','', 'Produces baby plants', TRUE),
+('Pothos','Epipremnum aureum','Low to Bright','Every 1-2 weeks','65-85°F','Low','', 'Very easy to grow', TRUE),
+('Monstera','Monstera deliciosa','Bright Indirect','Weekly','65-85°F','Medium','', 'Large split leaves', TRUE),
+('ZZ Plant','Zamioculcas zamiifolia','Low to Bright','Every 2-3 weeks','60-85°F','Low','', 'Very drought tolerant', TRUE),
+('Rubber Plant','Ficus elastica','Bright Indirect','Weekly','60-80°F','Medium','', 'Glossy leaves', TRUE),
+('Boston Fern','Nephrolepis exaltata','Indirect','2-3 times weekly','60-75°F','High','', 'Needs humidity', TRUE),
+('Aloe Vera','Aloe barbadensis miller','Bright Direct','Every 2-3 weeks','55-80°F','Low','', 'Succulent, medicinal', TRUE),
+
+('Jade Plant','Crassula ovata','Bright Direct','Every 2-3 weeks','60-75°F','Low','', 'Succulent, long lifespan', TRUE),
+('Areca Palm','Dypsis lutescens','Bright Indirect','Weekly','65-75°F','Medium','', 'Adds tropical look', TRUE),
+('Calathea','Calathea ornata','Low to Medium','Weekly','65-80°F','High','', 'Sensitive to water quality', TRUE),
+('Philodendron','Philodendron hederaceum','Low to Bright','Weekly','65-85°F','Medium','', 'Trailing plant', TRUE),
+('Chinese Evergreen','Aglaonema','Low to Medium','Weekly','65-80°F','Medium','', 'Tolerates low light', TRUE),
+('Dracaena','Dracaena marginata','Low to Bright','Every 1-2 weeks','65-80°F','Low','', 'Tall indoor plant', TRUE),
+('Parlor Palm','Chamaedorea elegans','Low to Medium','Weekly','65-80°F','Medium','', 'Classic indoor palm', TRUE),
+('Croton','Codiaeum variegatum','Bright Light','Weekly','65-85°F','Medium','', 'Colorful leaves', TRUE),
+('Bamboo Palm','Chamaedorea seifrizii','Indirect','Weekly','65-80°F','Medium','', 'Air purifying', TRUE),
+('Kentia Palm','Howea forsteriana','Indirect','Weekly','60-80°F','Medium','', 'Slow growing', TRUE),
+
+('Anthurium','Anthurium andraeanum','Bright Indirect','Weekly','65-80°F','High','', 'Red waxy flowers', TRUE),
+('Orchid','Phalaenopsis','Bright Indirect','Weekly','65-80°F','High','', 'Needs careful watering', TRUE),
+('Lavender','Lavandula','Full Sun','Weekly','60-85°F','Low','', 'Fragrant herb', TRUE),
+('Rosemary','Rosmarinus officinalis','Full Sun','Weekly','60-80°F','Low','', 'Herb plant', TRUE),
+('Mint','Mentha','Partial Sun','2-3 times weekly','60-75°F','Medium','', 'Fast growing herb', TRUE),
+('Basil','Ocimum basilicum','Full Sun','Weekly','65-85°F','Medium','', 'Common herb', TRUE),
+('Thyme','Thymus vulgaris','Full Sun','Weekly','60-80°F','Low','', 'Drought tolerant herb', TRUE),
+('Cactus','Various','Full Sun','Every 3-4 weeks','60-90°F','Low','', 'Minimal water needed', TRUE),
+('Succulent Mix','Various','Bright Light','Every 2-3 weeks','60-85°F','Low','', 'Assorted succulents', TRUE),
+('Air Plant','Tillandsia','Indirect','Mist weekly','60-80°F','Medium','', 'No soil required', TRUE),
+
+('Bird of Paradise','Strelitzia reginae','Bright Light','Weekly','65-85°F','Medium','', 'Large tropical plant', TRUE),
+('Banana Plant','Musa','Bright Light','Weekly','65-85°F','High','', 'Large leaves', TRUE),
+('Yucca','Yucca elephantipes','Bright Light','Every 2 weeks','60-85°F','Low','', 'Drought tolerant', TRUE),
+('Dieffenbachia','Dieffenbachia seguine','Indirect','Weekly','65-80°F','Medium','', 'Large patterned leaves', TRUE),
+('Oxalis','Oxalis triangularis','Bright Indirect','Weekly','60-75°F','Medium','', 'Purple leaves', TRUE),
+('Coleus','Plectranthus scutellarioides','Bright Indirect','Weekly','65-80°F','Medium','', 'Colorful foliage', TRUE),
+('Begonia','Begonia rex','Indirect','Weekly','65-75°F','High','', 'Decorative leaves', TRUE),
+('Gardenia','Gardenia jasminoides','Bright Light','Weekly','65-75°F','High','', 'Fragrant flowers', TRUE),
+('Hibiscus','Hibiscus rosa-sinensis','Full Sun','Weekly','65-85°F','Medium','', 'Large flowers', TRUE),
+('Geranium','Pelargonium','Full Sun','Weekly','60-80°F','Low','', 'Outdoor/indoor plant', TRUE);
 
 INSERT INTO inventory_items (
     item_name,
@@ -705,8 +759,8 @@ INSERT INTO tasks (
     job_order_id,
     assigned_employee_id,
     task_name,
-    description,
-    status,
+    `description`,
+    `status`,
     completed_at
 ) VALUES
     ((SELECT job_order_id FROM job_orders WHERE job_order_code = 'JO-20260415-101'), 4, 'Inspect foliage and roots', 'Check for pests, root rot, and nutrient stress.', 'Scheduled', NULL),
@@ -727,7 +781,7 @@ INSERT INTO invoices (
     subtotal,
     tax_amount,
     total_amount,
-    status
+    `status`
 ) VALUES
     (
         'INV-20260420-001',
@@ -743,7 +797,7 @@ INSERT INTO invoices (
 
 INSERT INTO invoice_items (
     invoice_id,
-    description,
+    `description`,
     quantity,
     unit_price,
     line_total
@@ -793,60 +847,13 @@ INSERT INTO payroll_records (
     (1, 2, 72.00, 2.00, 55.00, 22.00, 0.00, 40.00, 1628.00, 1588.00, 'Direct Deposit');
 
 
-INSERT INTO plant_master 
-(common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, is_active)
-VALUES
-('Snake Plant','Dracaena trifasciata','Low to Bright Indirect','Every 2-3 weeks','60-85°F','Low','', 'Very hardy, good for beginners', TRUE),
-('Peace Lily','Spathiphyllum wallisii','Low to Medium','Weekly','65-80°F','Medium','', 'Flowers indoors, likes moisture', TRUE),
-('Fiddle Leaf Fig','Ficus lyrata','Bright Indirect','Weekly','65-75°F','Medium','', 'Sensitive to changes', TRUE),
-('Spider Plant','Chlorophytum comosum','Bright Indirect','Weekly','60-80°F','Medium','', 'Produces baby plants', TRUE),
-('Pothos','Epipremnum aureum','Low to Bright','Every 1-2 weeks','65-85°F','Low','', 'Very easy to grow', TRUE),
-('Monstera','Monstera deliciosa','Bright Indirect','Weekly','65-85°F','Medium','', 'Large split leaves', TRUE),
-('ZZ Plant','Zamioculcas zamiifolia','Low to Bright','Every 2-3 weeks','60-85°F','Low','', 'Very drought tolerant', TRUE),
-('Rubber Plant','Ficus elastica','Bright Indirect','Weekly','60-80°F','Medium','', 'Glossy leaves', TRUE),
-('Boston Fern','Nephrolepis exaltata','Indirect','2-3 times weekly','60-75°F','High','', 'Needs humidity', TRUE),
-('Aloe Vera','Aloe barbadensis miller','Bright Direct','Every 2-3 weeks','55-80°F','Low','', 'Succulent, medicinal', TRUE),
-
-('Jade Plant','Crassula ovata','Bright Direct','Every 2-3 weeks','60-75°F','Low','', 'Succulent, long lifespan', TRUE),
-('Areca Palm','Dypsis lutescens','Bright Indirect','Weekly','65-75°F','Medium','', 'Adds tropical look', TRUE),
-('Calathea','Calathea ornata','Low to Medium','Weekly','65-80°F','High','', 'Sensitive to water quality', TRUE),
-('Philodendron','Philodendron hederaceum','Low to Bright','Weekly','65-85°F','Medium','', 'Trailing plant', TRUE),
-('Chinese Evergreen','Aglaonema','Low to Medium','Weekly','65-80°F','Medium','', 'Tolerates low light', TRUE),
-('Dracaena','Dracaena marginata','Low to Bright','Every 1-2 weeks','65-80°F','Low','', 'Tall indoor plant', TRUE),
-('Parlor Palm','Chamaedorea elegans','Low to Medium','Weekly','65-80°F','Medium','', 'Classic indoor palm', TRUE),
-('Croton','Codiaeum variegatum','Bright Light','Weekly','65-85°F','Medium','', 'Colorful leaves', TRUE),
-('Bamboo Palm','Chamaedorea seifrizii','Indirect','Weekly','65-80°F','Medium','', 'Air purifying', TRUE),
-('Kentia Palm','Howea forsteriana','Indirect','Weekly','60-80°F','Medium','', 'Slow growing', TRUE),
-
-('Anthurium','Anthurium andraeanum','Bright Indirect','Weekly','65-80°F','High','', 'Red waxy flowers', TRUE),
-('Orchid','Phalaenopsis','Bright Indirect','Weekly','65-80°F','High','', 'Needs careful watering', TRUE),
-('Lavender','Lavandula','Full Sun','Weekly','60-85°F','Low','', 'Fragrant herb', TRUE),
-('Rosemary','Rosmarinus officinalis','Full Sun','Weekly','60-80°F','Low','', 'Herb plant', TRUE),
-('Mint','Mentha','Partial Sun','2-3 times weekly','60-75°F','Medium','', 'Fast growing herb', TRUE),
-('Basil','Ocimum basilicum','Full Sun','Weekly','65-85°F','Medium','', 'Common herb', TRUE),
-('Thyme','Thymus vulgaris','Full Sun','Weekly','60-80°F','Low','', 'Drought tolerant herb', TRUE),
-('Cactus','Various','Full Sun','Every 3-4 weeks','60-90°F','Low','', 'Minimal water needed', TRUE),
-('Succulent Mix','Various','Bright Light','Every 2-3 weeks','60-85°F','Low','', 'Assorted succulents', TRUE),
-('Air Plant','Tillandsia','Indirect','Mist weekly','60-80°F','Medium','', 'No soil required', TRUE),
-
-('Bird of Paradise','Strelitzia reginae','Bright Light','Weekly','65-85°F','Medium','', 'Large tropical plant', TRUE),
-('Banana Plant','Musa','Bright Light','Weekly','65-85°F','High','', 'Large leaves', TRUE),
-('Yucca','Yucca elephantipes','Bright Light','Every 2 weeks','60-85°F','Low','', 'Drought tolerant', TRUE),
-('Dieffenbachia','Dieffenbachia seguine','Indirect','Weekly','65-80°F','Medium','', 'Large patterned leaves', TRUE),
-('Oxalis','Oxalis triangularis','Bright Indirect','Weekly','60-75°F','Medium','', 'Purple leaves', TRUE),
-('Coleus','Plectranthus scutellarioides','Bright Indirect','Weekly','65-80°F','Medium','', 'Colorful foliage', TRUE),
-('Begonia','Begonia rex','Indirect','Weekly','65-75°F','High','', 'Decorative leaves', TRUE),
-('Gardenia','Gardenia jasminoides','Bright Light','Weekly','65-75°F','High','', 'Fragrant flowers', TRUE),
-('Hibiscus','Hibiscus rosa-sinensis','Full Sun','Weekly','65-85°F','Medium','', 'Large flowers', TRUE),
-('Geranium','Pelargonium','Full Sun','Weekly','60-80°F','Low','', 'Outdoor/indoor plant', TRUE);
-
 
 INSERT INTO material_requests (
     request_code,
     employee_id,
     task_id,
     note,
-    status,
+    `status`,
     created_at
 ) VALUES
     (
