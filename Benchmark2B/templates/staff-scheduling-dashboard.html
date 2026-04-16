@@ -957,17 +957,23 @@
       availabilityModalElement.addEventListener("show.bs.modal", function () {
         setMessage("", "");
         setupAvailabilityForm();
-        // Update week label
+        // Update week label and day dates
         var weekLabel = document.getElementById("availability-week-label");
+        var ws = getWeekStartDate();
+        var monday = new Date(ws + "T00:00:00");
+        var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
         if (weekLabel) {
-          var ws = getWeekStartDate();
-          var start = new Date(ws + "T00:00:00");
-          var end = new Date(start);
-          end.setDate(start.getDate() + 6);
-          var fmt = { month: "short", day: "numeric", year: "numeric" };
-          weekLabel.textContent = start.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
-            " - " + end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          weekLabel.textContent = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+            " - " + sunday.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
         }
+        var dayKeys = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+        dayKeys.forEach(function(key, i) {
+          var el = document.getElementById("avail-date-" + key);
+          if (el) {
+            var d = new Date(monday); d.setDate(monday.getDate() + i);
+            el.textContent = (d.getMonth()+1) + "/" + d.getDate();
+          }
+        });
       });
 
       availabilityModalElement.addEventListener("hidden.bs.modal", function () {

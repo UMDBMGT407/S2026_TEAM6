@@ -1555,6 +1555,173 @@ def api_plant_master():
         cur.close()
 
 
+@app.route('/api/plant_master/<int:plant_id>', methods=['PUT'])
+@login_required
+@role_required('Management')
+def update_plant(plant_id):
+    data = request.get_json() or {}
+    fields = {}
+    for col in ('common_name', 'scientific_name', 'light_level', 'watering_frequency', 'temperature_range', 'humidity_range', 'photo_url', 'notes'):
+        if col in data:
+            fields[col] = data[col] or None
+    if not fields:
+        return jsonify(error='No fields to update'), 400
+    set_clause = ', '.join(f'{k} = %s' for k in fields)
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(f"UPDATE plant_master SET {set_clause} WHERE plant_id = %s", (*fields.values(), plant_id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Plant updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/plant_master/<int:plant_id>', methods=['DELETE'])
+@login_required
+@role_required('Management')
+def delete_plant(plant_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE plant_master SET is_active = FALSE WHERE plant_id = %s", (plant_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Plant removed')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/inventory/<int:item_id>', methods=['PUT'])
+@login_required
+@role_required('Management')
+def update_inventory_item(item_id):
+    data = request.get_json() or {}
+    col_map = {
+        'item_name': data.get('item_name'),
+        'item_type': data.get('item_type'),
+        'sku': data.get('sku'),
+        'unit_label': data.get('unit_label'),
+        'unit_price': data.get('unit_price'),
+        'reorder_level': data.get('reorder_level'),
+        'supplier_id': data.get('supplier_id'),
+    }
+    fields = {k: v for k, v in col_map.items() if k in data}
+    if not fields:
+        return jsonify(error='No fields to update'), 400
+    set_clause = ', '.join(f'{k} = %s' for k in fields)
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(f"UPDATE inventory_items SET {set_clause} WHERE item_id = %s", (*fields.values(), item_id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Item updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/inventory/<int:item_id>', methods=['DELETE'])
+@login_required
+@role_required('Management')
+def delete_inventory_item(item_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE inventory_items SET is_active = FALSE WHERE item_id = %s", (item_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Item removed')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/suppliers/<int:supplier_id>', methods=['PUT'])
+@login_required
+@role_required('Management')
+def update_supplier(supplier_id):
+    data = request.get_json() or {}
+    fields = {}
+    for col in ('supplier_name', 'email', 'phone'):
+        if col in data:
+            fields[col] = (data[col] or '').strip() or None
+    if not fields:
+        return jsonify(error='No fields to update'), 400
+    set_clause = ', '.join(f'{k} = %s' for k in fields)
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(f"UPDATE suppliers SET {set_clause} WHERE supplier_id = %s", (*fields.values(), supplier_id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Supplier updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/employees/<int:user_id>', methods=['PATCH'])
+@login_required
+@role_required('Management')
+def update_employee(user_id):
+    data = request.get_json() or {}
+    try:
+        cur = mysql.connection.cursor()
+        if 'first_name' in data or 'last_name' in data or 'phone' in data:
+            user_fields = {}
+            for col in ('first_name', 'last_name', 'phone'):
+                if col in data:
+                    user_fields[col] = (data[col] or '').strip() or None
+            if user_fields:
+                set_clause = ', '.join(f'{k} = %s' for k in user_fields)
+                cur.execute(f"UPDATE users SET {set_clause} WHERE user_id = %s", (*user_fields.values(), user_id))
+        if 'job_title' in data or 'pay_rate_hourly' in data:
+            emp_fields = {}
+            if 'job_title' in data:
+                emp_fields['job_title'] = (data['job_title'] or '').strip() or None
+            if 'pay_rate_hourly' in data:
+                emp_fields['pay_rate_hourly'] = float(data['pay_rate_hourly']) if data['pay_rate_hourly'] else None
+            if emp_fields:
+                set_clause = ', '.join(f'{k} = %s' for k in emp_fields)
+                cur.execute(f"UPDATE employees SET {set_clause} WHERE user_id = %s", (*emp_fields.values(), user_id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Employee updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/management/job-orders/<int:job_id>/cancel', methods=['POST'])
+@login_required
+@role_required('Management')
+def cancel_job_order(job_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT job_order_id, status FROM job_orders WHERE job_order_id = %s", (job_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Job order not found'), 404
+        if row[1] == 'Completed':
+            cur.close()
+            return jsonify(error='Cannot cancel a completed job order'), 400
+        cur.execute("UPDATE job_orders SET status = 'Cancelled', assigned_employee_id = NULL WHERE job_order_id = %s", (job_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Job order cancelled')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
 @app.route('/job-order.html')
 @login_required
 @role_required('Management')
@@ -3496,6 +3663,115 @@ def get_clients_api():
         if 'cur' in locals():
             cur.close()
         return jsonify(error=f'Failed to load clients: {str(e)}'), 500
+
+
+@app.route('/api/clients', methods=['POST'])
+@login_required
+@role_required('Management')
+def create_client():
+    data = request.get_json() or {}
+    company_name = (data.get('company_name') or '').strip()
+    first_name = (data.get('first_name') or '').strip()
+    last_name = (data.get('last_name') or '').strip()
+    email = (data.get('email') or '').strip()
+    phone = (data.get('phone') or '').strip() or None
+    if not company_name:
+        return jsonify(error='Company name is required'), 400
+    if not first_name or not last_name:
+        return jsonify(error='Contact first and last name are required'), 400
+    if not email:
+        return jsonify(error='Contact email is required'), 400
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+        if cur.fetchone():
+            cur.close()
+            return jsonify(error='A user with that email already exists'), 409
+        password = generate_password_hash('client123')
+        cur.execute("""
+            INSERT INTO users (first_name, last_name, email, password, role, phone, is_active)
+            VALUES (%s, %s, %s, %s, 'Client', %s, TRUE)
+        """, (first_name, last_name, email, password, phone))
+        user_id = cur.lastrowid
+        cur.execute("""
+            INSERT INTO clients (contact_user_id, company_name, member_since, account_status)
+            VALUES (%s, %s, NOW(), 'Active')
+        """, (user_id, company_name))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Client created successfully'), 201
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/clients/<int:client_id>', methods=['PUT'])
+@login_required
+@role_required('Management')
+def update_client(client_id):
+    data = request.get_json() or {}
+    company_name = (data.get('company_name') or '').strip()
+    account_status = (data.get('account_status') or '').strip()
+    first_name = (data.get('first_name') or '').strip()
+    last_name = (data.get('last_name') or '').strip()
+    phone = (data.get('phone') or '').strip()
+    try:
+        cur = mysql.connection.cursor()
+        if company_name:
+            cur.execute("UPDATE clients SET company_name = %s WHERE client_id = %s", (company_name, client_id))
+        if account_status:
+            cur.execute("UPDATE clients SET account_status = %s WHERE client_id = %s", (account_status, client_id))
+        if first_name or last_name or phone:
+            cur.execute("SELECT contact_user_id FROM clients WHERE client_id = %s", (client_id,))
+            row = cur.fetchone()
+            if row and row[0]:
+                uid = row[0]
+                if first_name:
+                    cur.execute("UPDATE users SET first_name = %s WHERE user_id = %s", (first_name, uid))
+                if last_name:
+                    cur.execute("UPDATE users SET last_name = %s WHERE user_id = %s", (last_name, uid))
+                if phone:
+                    cur.execute("UPDATE users SET phone = %s WHERE user_id = %s", (phone, uid))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Client updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/clients/<int:client_id>/deactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def deactivate_client(client_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE clients SET account_status = 'Inactive' WHERE client_id = %s", (client_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Client deactivated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/clients/<int:client_id>/reactivate', methods=['POST'])
+@login_required
+@role_required('Management')
+def reactivate_client(client_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE clients SET account_status = 'Active' WHERE client_id = %s", (client_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Client reactivated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
 
 
 @app.route('/api/clients/<int:client_id>/locations', methods=['GET'])

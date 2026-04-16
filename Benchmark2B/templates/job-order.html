@@ -362,6 +362,9 @@
                   '<p class="mb-0"><strong>Assigned to:</strong> ' + escapeHtml(assignedTo) + '</p>' +
                 '</div>' +
               '</div>' +
+              (String(job.status || '').toLowerCase() !== 'completed' && String(job.status || '').toLowerCase() !== 'cancelled'
+                ? '<div class="mt-3"><button type="button" class="btn btn-outline-danger btn-sm cancel-job-btn" data-job-id="' + job.id + '">Cancel Job</button></div>'
+                : '') +
             '</div>' +
           '</div>'
         );
@@ -601,6 +604,20 @@
     refreshButton.addEventListener('click', function () {
       setStatus('', false);
       loadDashboard();
+    });
+
+    jobList.addEventListener('click', async function(event) {
+      var cancelBtn = event.target.closest('.cancel-job-btn');
+      if (!cancelBtn) return;
+      if (!confirm('Cancel this job order? The assigned employee will be freed.')) return;
+      var jobId = cancelBtn.dataset.jobId;
+      try {
+        await fetchJson('/api/management/job-orders/' + jobId + '/cancel', { method: 'POST' });
+        setStatus('Job order cancelled.', false);
+        await loadDashboard();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
     });
 
     approveConfirmBtn.addEventListener('click', function () {
