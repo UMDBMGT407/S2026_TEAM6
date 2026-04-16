@@ -30,7 +30,7 @@
   <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Inventory Value</h6><p class="stat-number" id="stat-value">&mdash;</p></div></div>
 </div>
 
-<div class="inventory-alert alert d-flex align-items-center border border-warning rounded mt-3" id="low-stock-alert" style="display:none!important">
+<div class="inventory-alert alert align-items-center border border-warning rounded mt-3" id="low-stock-alert" hidden>
   <i class="bi bi-exclamation-triangle me-2"></i>
   <strong class="me-2">Low Stock Alert</strong>
   <span class="text-danger" id="low-stock-alert-text"></span>
@@ -249,6 +249,33 @@
     return 'bg-warning-subtle text-warning border border-warning-subtle';
   }
 
+  function isLowStock(item) {
+    var qty = Number(item.quantity_on_hand || 0);
+    var reorderLevel = Number(item.reorder_level || 0);
+    return reorderLevel > 0 && qty < reorderLevel;
+  }
+
+  function setLowStockAlertVisibility(visible, message) {
+    if (!lowStockAlert) {
+      return;
+    }
+
+    if (visible) {
+      lowStockAlert.hidden = false;
+      lowStockAlert.classList.add('d-flex');
+      if (lowStockAlertText) {
+        lowStockAlertText.textContent = message || '';
+      }
+      return;
+    }
+
+    lowStockAlert.hidden = true;
+    lowStockAlert.classList.remove('d-flex');
+    if (lowStockAlertText) {
+      lowStockAlertText.textContent = '';
+    }
+  }
+
   async function loadInventory() {
     var url = '/api/inventory';
     if (currentSearch) {
@@ -267,7 +294,7 @@
 
   function renderStats(items) {
     var lowCount = items.filter(function (item) {
-      return Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
+      return isLowStock(item);
     }).length;
 
     var inventoryValue = items.reduce(function (sum, item) {
@@ -280,12 +307,10 @@
     statLow.textContent = lowCount;
     statValue.textContent = '$' + inventoryValue.toFixed(2);
 
-    if (lowCount > 0) {
-      lowStockAlert.style.removeProperty('display');
-      lowStockAlertText.textContent = lowCount + ' item' + (lowCount === 1 ? '' : 's') + ' need reorder attention';
-    } else {
-      lowStockAlert.style.display = 'none';
-    }
+    setLowStockAlertVisibility(
+      lowCount > 0,
+      lowCount + ' item' + (lowCount === 1 ? '' : 's') + ' need reorder attention'
+    );
   }
 
   function renderItems(items) {
@@ -295,7 +320,7 @@
     }
 
     inventoryList.innerHTML = items.map(function (item) {
-      var lowStock = Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
+      var lowStock = isLowStock(item);
       var lowBadge = lowStock
         ? '<span class="low-stock-badge"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>'
         : '';
