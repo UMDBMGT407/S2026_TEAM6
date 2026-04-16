@@ -155,7 +155,7 @@ def ensure_plant_master_schema():
             """)
 
         try:
-            cur.execute("ALTER TABLE plant_master ADD COLUMN price DECIMAL(10,2) DEFAULT 0.00")
+            cur.execute("ALTER TABLE plant_master ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
         except:
             pass
         try:
@@ -784,79 +784,6 @@ def get_invoices_json():
                 'company_name': r[9] or ''
             })
         return jsonify(invoices)
-    finally:
-        cur.close()
-
-
-@app.route('/api/invoices/<int:invoice_id>', methods=['GET'])
-@login_required
-def get_invoice_details(invoice_id):
-    cur = mysql.connection.cursor()
-    try:
-        # Check if user can access this invoice
-        if getattr(current_user, 'role', '') == 'Client':
-            cur.execute("SELECT client_id FROM clients WHERE contact_user_id = %s", (current_user.id,))
-            row = cur.fetchone()
-            if not row:
-                return jsonify(error='Client not found'), 404
-            client_id = row[0]
-            cur.execute("""
-                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
-                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
-                FROM invoices inv
-                LEFT JOIN clients c ON c.client_id = inv.client_id
-                WHERE inv.invoice_id = %s AND inv.client_id = %s
-                LIMIT 1
-            """, (invoice_id, client_id))
-        else:
-            cur.execute("""
-                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
-                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
-                FROM invoices inv
-                LEFT JOIN clients c ON c.client_id = inv.client_id
-                WHERE inv.invoice_id = %s
-                LIMIT 1
-            """, (invoice_id,))
-
-        invoice_row = cur.fetchone()
-        if not invoice_row:
-            return jsonify(error='Invoice not found'), 404
-
-        # Get invoice items
-        cur.execute("""
-            SELECT description, quantity, unit_price, line_total
-            FROM invoice_items
-            WHERE invoice_id = %s
-            ORDER BY invoice_item_id
-        """, (invoice_id,))
-        item_rows = cur.fetchall()
-
-        items = []
-        for r in item_rows:
-            items.append({
-                'description': r[0],
-                'quantity': float(r[1]) if r[1] is not None else 0,
-                'unit_price': float(r[2]) if r[2] is not None else 0,
-                'line_total': float(r[3]) if r[3] is not None else 0
-            })
-
-        issue_date = invoice_row[3].strftime('%Y-%m-%d') if hasattr(invoice_row[3], 'strftime') else (invoice_row[3] and str(invoice_row[3]))
-        due_date = invoice_row[4].strftime('%Y-%m-%d') if hasattr(invoice_row[4], 'strftime') else (invoice_row[4] and str(invoice_row[4]))
-
-        invoice = {
-            'invoice_id': invoice_row[0],
-            'invoice_number': invoice_row[1],
-            'client_id': invoice_row[2],
-            'issue_date': issue_date,
-            'due_date': due_date,
-            'subtotal': float(invoice_row[5]) if invoice_row[5] is not None else 0,
-            'tax_amount': float(invoice_row[6]) if invoice_row[6] is not None else 0,
-            'total_amount': float(invoice_row[7]) if invoice_row[7] is not None else 0,
-            'status': invoice_row[8],
-            'company_name': invoice_row[9] or 'Planted Services',
-            'items': items
-        }
-        return jsonify(invoice)
     finally:
         cur.close()
 
@@ -1801,7 +1728,7 @@ def api_plant_master():
     cur = mysql.connection.cursor()
     if request.method == 'GET':
         try:
-            cur.execute("SELECT plant_id, common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, price FROM plant_master WHERE is_active = TRUE ORDER BY common_name")
+            cur.execute("SELECT plant_id, common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes FROM plant_master WHERE is_active = TRUE ORDER BY common_name")
             rows = cur.fetchall()
             plants = []
             for r in rows:
@@ -1814,8 +1741,7 @@ def api_plant_master():
                     'temperature_range': r[5] or '',
                     'humidity_range': r[6] or '',
                     'photo_url': r[7] or '',
-                    'notes': r[8] or '',
-                    'price': float(r[9]) if r[9] is not None else 0.0
+                    'notes': r[8] or ''
                 })
             return jsonify(plants=plants)
         finally:
@@ -1834,14 +1760,13 @@ def api_plant_master():
     humidity_range = data.get('humidity_range') or None
     photo_url = data.get('photo_url') or None
     notes = data.get('notes') or None
-    price = data.get('price') or 0.0
 
     try:
         cur.execute("""
             INSERT INTO plant_master
-                (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, price, is_active)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
-        """, (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, price))
+                (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+        """, (common_name, scientific_name, light_level, watering_frequency, temperature_range, humidity_range, photo_url, notes))
         mysql.connection.commit()
         plant_id = cur.lastrowid if hasattr(cur, 'lastrowid') else None
         plant = {
@@ -1853,8 +1778,7 @@ def api_plant_master():
             'temperature_range': temperature_range or '',
             'humidity_range': humidity_range or '',
             'photo_url': photo_url or '',
-            'notes': notes or '',
-            'price': float(price) if price is not None else 0.0
+            'notes': notes or ''
         }
         return jsonify(plant=plant), 201
     finally:
@@ -1867,7 +1791,7 @@ def api_plant_master():
 def update_plant(plant_id):
     data = request.get_json() or {}
     fields = {}
-    for col in ('common_name', 'scientific_name', 'light_level', 'watering_frequency', 'temperature_range', 'humidity_range', 'photo_url', 'notes', 'price'):
+    for col in ('common_name', 'scientific_name', 'light_level', 'watering_frequency', 'temperature_range', 'humidity_range', 'photo_url', 'notes'):
         if col in data:
             fields[col] = data[col] or None
     if not fields:
@@ -2004,33 +1928,6 @@ def update_employee(user_id):
         return jsonify(error=str(e)), 500
 
 
-@app.route('/api/employees', methods=['GET'])
-@login_required
-@role_required('Management')
-def get_employees_api():
-    cur = mysql.connection.cursor()
-    try:
-        cur.execute("""
-            SELECT e.employee_id, u.first_name, u.last_name, e.job_title
-            FROM employees e
-            JOIN users u ON u.user_id = e.user_id
-            WHERE COALESCE(e.is_active, TRUE) = TRUE
-            ORDER BY u.first_name, u.last_name
-        """)
-        rows = cur.fetchall()
-        employees = []
-        for r in rows:
-            employees.append({
-                'employee_id': r[0],
-                'first_name': r[1],
-                'last_name': r[2],
-                'job_title': r[3] or ''
-            })
-        return jsonify(employees)
-    finally:
-        cur.close()
-
-
 @app.route('/api/management/job-orders/<int:job_id>/cancel', methods=['POST'])
 @login_required
 @role_required('Management')
@@ -2067,13 +1964,6 @@ def job_order_page():
 @role_required('Management')
 def services_page():
     return render_template('services.html')
-
-
-@app.route('/service-request-approvals.html')
-@login_required
-@role_required('Management')
-def service_request_approvals_page():
-    return render_template('service-request-approvals.html')
 
 
 @app.route('/staff-scheduling-dashboard.html')
@@ -3651,141 +3541,6 @@ def create_client_service_request_api():
         return jsonify(error=f'Failed to submit service request: {str(e)}'), 500
 
 
-@app.route('/api/client/plant-purchases', methods=['POST'])
-@login_required
-@role_required('Client')
-def create_client_plant_purchase_api():
-    if not request.is_json:
-        return jsonify(error='Request must be JSON'), 400
-
-    data = request.get_json()
-    plant_id_raw = data.get('plant_id')
-    location_id_raw = data.get('location_id')
-    quantity_raw = data.get('quantity') or 1
-
-    if plant_id_raw in (None, ''):
-        return jsonify(error='plant_id is required'), 400
-    if location_id_raw in (None, ''):
-        return jsonify(error='location_id is required'), 400
-
-    try:
-        plant_id = int(plant_id_raw)
-        location_id = int(location_id_raw)
-        quantity = int(quantity_raw)
-        if quantity < 1:
-            quantity = 1
-    except Exception:
-        return jsonify(error='plant_id, location_id, and quantity must be integers'), 400
-
-    try:
-        cur = mysql.connection.cursor()
-        client_id = ensure_client_record(cur, current_user.id)
-
-        cur.execute(
-            """
-            SELECT cl.location_id,
-                   cl.location_name,
-                   a.street_1,
-                   a.city,
-                   a.state,
-                   a.zip_code
-            FROM client_locations cl
-            JOIN addresses a ON a.address_id = cl.address_id
-            WHERE cl.location_id = %s
-              AND cl.client_id = %s
-              AND COALESCE(cl.is_active, TRUE) = TRUE
-            LIMIT 1
-            """,
-            (location_id, client_id)
-        )
-        location_row = cur.fetchone()
-        if not location_row:
-            cur.close()
-            return jsonify(error='Selected location was not found for your account'), 404
-
-        cur.execute(
-            """
-            SELECT plant_id, common_name, scientific_name, price
-            FROM plant_master
-            WHERE plant_id = %s
-              AND COALESCE(is_active, TRUE) = TRUE
-            LIMIT 1
-            """,
-            (plant_id,)
-        )
-        plant_row = cur.fetchone()
-        if not plant_row:
-            cur.close()
-            return jsonify(error='Selected plant is not available'), 404
-
-        # Create invoice for the plant purchase
-        invoice_number = f"PLANT-{client_id}-{plant_id}-{int(datetime.now().timestamp())}"
-        issue_date = datetime.now().date()
-        due_date = issue_date  # instant due date for plant purchases
-        unit_price = float(plant_row[3]) if plant_row[3] is not None else 0.0
-        subtotal = unit_price * quantity
-        tax_rate = 0.1  # 10% tax
-        tax_amount = subtotal * tax_rate
-        total_amount = subtotal + tax_amount
-        status = 'Pending'
-
-        cur.execute(
-            """
-            INSERT INTO invoices (invoice_number, client_id, issue_date, due_date, subtotal, tax_amount, total_amount, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (invoice_number, client_id, issue_date, due_date, subtotal, tax_amount, total_amount, status)
-        )
-        invoice_id = cur.lastrowid
-
-        # Create invoice item
-        description = f"{plant_row[1]} ({plant_row[2] or ''})".strip()
-        line_total = unit_price * quantity
-
-        cur.execute(
-            """
-            INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (invoice_id, description, quantity, unit_price, line_total)
-        )
-
-        mysql.connection.commit()
-        cur.close()
-
-        full_location = location_row[2] or ''
-        if location_row[3]:
-            full_location += ', ' + location_row[3]
-        if location_row[4]:
-            full_location += ', ' + location_row[4]
-        if location_row[5]:
-            full_location += ' ' + location_row[5]
-
-        return jsonify(
-            message='Plant purchase completed successfully',
-            invoice_id=invoice_id,
-            invoice_number=invoice_number,
-            status='Pending',
-            client_id=client_id,
-            plant_id=plant_id,
-            plant_name=plant_row[1],
-            quantity=quantity,
-            unit_price=float(unit_price),
-            subtotal=float(subtotal),
-            tax_amount=float(tax_amount),
-            total_amount=float(total_amount),
-            due_date=due_date.isoformat(),
-            location_id=location_id,
-            location_name=location_row[1] or '',
-            location_address=full_location.strip()
-        ), 201
-    except Exception as e:
-        if 'cur' in locals():
-            cur.close()
-        mysql.connection.rollback()
-        return jsonify(error=f'Failed to complete plant purchase: {str(e)}'), 500
-
-
 @app.route('/api/client/service-requests', methods=['GET'])
 @login_required
 @role_required('Client')
@@ -4117,39 +3872,6 @@ def approve_management_service_request_api(service_request_id):
             WHERE service_request_id = %s
             """,
             ('Approved', current_user.id, service_request_id)
-        )
-
-        # Create invoice for the approved service request
-        invoice_number = f"INV-{service_request_id}"
-        issue_date = datetime.now().date()
-        due_date = scheduled_date + timedelta(days=14)
-        subtotal = float(row[9]) if row[9] is not None else 0.0  # base_price
-        tax_rate = 0.1  # 10% tax
-        tax_amount = subtotal * tax_rate
-        total_amount = subtotal + tax_amount
-        status = 'Pending'
-
-        cur.execute(
-            """
-            INSERT INTO invoices (invoice_number, client_id, job_order_id, issue_date, due_date, subtotal, tax_amount, total_amount, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (invoice_number, row[1], job_order_id, issue_date, due_date, subtotal, tax_amount, total_amount, status)
-        )
-        invoice_id = cur.lastrowid
-
-        # Create invoice item
-        description = row[7]  # service_name
-        quantity = 1  # assuming 1 hour
-        unit_price = subtotal
-        line_total = subtotal
-
-        cur.execute(
-            """
-            INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (invoice_id, description, quantity, unit_price, line_total)
         )
 
         mysql.connection.commit()
