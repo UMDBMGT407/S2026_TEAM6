@@ -454,6 +454,40 @@ INSERT INTO services (service_name, description, base_price, is_active) VALUES
     ('Office Plant Installation', 'Install and stage new office plants', 350.00, 1),
     ('Seasonal Decor Refresh', 'Rotate seasonal plant decor package', 250.00, 0);
 
+INSERT INTO invoices (
+    invoice_number,
+    client_id,
+    job_order_id,
+    issue_date,
+    due_date,
+    subtotal,
+    tax_amount,
+    total_amount,
+    status
+) VALUES
+    ('INV-1001', 1, 1, '2026-04-10', '2026-04-25', 150.00, 30.00, 180.00, 'Unpaid'),
+    ('INV-1002', 1, 2, '2026-03-20', '2026-04-04', 100.00, 20.00, 120.00, 'Paid');
+
+INSERT INTO invoice_items (
+    invoice_id,
+    description,
+    quantity,
+    unit_price,
+    line_total
+) VALUES
+    (1, 'Lobby plant maintenance service', 1, 150.00, 150.00),
+    (2, 'Warehouse plant health check', 1, 100.00, 100.00);
+
+INSERT INTO payments (
+    invoice_id,
+    payment_date,
+    amount,
+    payment_method,
+    reference_number,
+    notes
+) VALUES
+    (2, '2026-04-02', 120.00, 'Credit Card', 'CC-20260402-001', 'Payment for invoice INV-1002');
+
 INSERT INTO service_requests (
     client_id,
     location_id,
