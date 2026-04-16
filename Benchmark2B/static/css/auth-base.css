@@ -118,6 +118,9 @@ body {
 
 .sign-in-button,
 .create-account-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 50px;
   border: none;
@@ -125,105 +128,8 @@ body {
   font-size: 17px;
   font-family: var(--font-family-primary);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.sign-in-button {
-  background: var(--color-primary);
-  color: var(--color-white);
-}
-
-.sign-in-button:hover {
-  background: #74774f;
-}
-
-.create-account-button {
-  background: #ddd4cb;
-  color: var(--color-dark);
-  margin-top: 8px;
-}
-
-.create-account-button:hover {
-  background: #cfc5bb;
-}
-
-.forgot-password,
-.sign-in-link,
-.back-to-login {
-  display: inline-block;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  font-size: 15px;
+  line-height: 1.2;
   text-align: center;
-}
-
-.forgot-password:hover,
-.sign-in-link:hover,
-.back-to-login:hover {
-  text-decoration: underline;
-}
-
-.forgot-password {
-  align-self: flex-start;
-}
-
-.sign-in-link {
-  margin-top: 12px;
-}
-
-.back-to-login {
-  margin-top: 6px;
-}
-
-.error-messages {
-  min-height: 36px;
-}
-
-.error-text,
-.form-message {
-  margin: 0;
-  font-size: 14px;
-}
-
-.error-text {
-  color: #c53b3b;
-  display: none;
-}
-
-.error-text.show {
-  display: block;
-}
-
-.error-message {
-  color: #c53b3b;
-}
-
-.success-message {
-  color: #0d5e28;
-}
-
-.auth-reset-card {
-  max-width: 560px;
-}
-
-.auth-reset-form {
-  margin-top: 8px;
-}
-
-.reset-password-label {
-  pointer-events: none;
-}
-
-@media (max-width: 640px) {
-  .landing-page,
-  .auth-reset-page {
-    padding: 20px 14px;
-  }
-
-  .rectangle-1.login-card,
-  .auth-reset-card {
-    padding: 22px 18px;
-    border-radius: 22px;
-  }
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
