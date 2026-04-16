@@ -198,13 +198,22 @@
 <script>
   var plantSearchForm = document.getElementById('plant-search-form');
   var plantSearchInput = document.getElementById('plant-search-input');
-  var plantCards = Array.from(document.querySelectorAll('[data-plant-card]'));
   var plantCardList = document.getElementById('plant-card-list');
   var plantModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('plantModal'));
   var editPlantModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editPlantModal'));
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function filterPlants() {
     var query = plantSearchInput.value.trim().toLowerCase();
+    var plantCards = Array.from(document.querySelectorAll('[data-plant-card]'));
     plantCards.forEach(function(card) {
       card.style.display = card.dataset.plantName.toLowerCase().includes(query) ? '' : 'none';
     });
@@ -240,6 +249,7 @@
         .then(function() {
           var card = deleteBtn.closest('[data-plant-card]');
           if (card) card.remove();
+          filterPlants();
         })
         .catch(function(err) { alert('Error removing plant: ' + err.message); });
     }
@@ -301,23 +311,34 @@
       wrapper.className = 'col-md-4';
       wrapper.dataset.plantCard = '';
       wrapper.dataset.plantName = plant.common_name || commonName;
+      wrapper.setAttribute('data-plant-name', plant.common_name || commonName);
       wrapper.innerHTML = `
         <div class="plant-card surface-card">
           <div class="d-flex align-items-center mb-3">
             <div class="plant-icon"><i class="bi bi-tree"></i></div>
             <div>
-              <div class="plant-title">${plant.common_name || commonName}</div>
-              <div class="plant-sub">${plant.scientific_name || scientificName}</div>
+              <div class="plant-title">${escapeHtml(plant.common_name || commonName)}</div>
+              <div class="plant-sub">${escapeHtml(plant.scientific_name || scientificName)}</div>
             </div>
           </div>
-          <div class="info-row"><i class="bi bi-sun text-warning"></i>${plant.light_level || sunlight}</div>
-          <div class="info-row"><i class="bi bi-droplet text-primary"></i>${plant.watering_frequency || water}</div>
-          <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>${plant.temperature_range || temperature}</div>
-          <div class="info-row"><i class="bi bi-wind text-info"></i>${plant.humidity_range || humidity}</div>
+          <div class="info-row"><i class="bi bi-sun text-warning"></i>${escapeHtml(plant.light_level || sunlight)}</div>
+          <div class="info-row"><i class="bi bi-droplet text-primary"></i>${escapeHtml(plant.watering_frequency || water)}</div>
+          <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>${escapeHtml(plant.temperature_range || temperature)}</div>
+          <div class="info-row"><i class="bi bi-wind text-info"></i>${escapeHtml(plant.humidity_range || humidity)}</div>
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-outline-success btn-sm flex-grow-1 edit-plant-btn"
+              data-plant-id="${plant.plant_id || ''}"
+              data-common-name="${escapeHtml(plant.common_name || commonName)}"
+              data-scientific-name="${escapeHtml(plant.scientific_name || scientificName)}"
+              data-light="${escapeHtml(plant.light_level || sunlight)}"
+              data-water="${escapeHtml(plant.watering_frequency || water)}"
+              data-temp="${escapeHtml(plant.temperature_range || temperature)}"
+              data-humidity="${escapeHtml(plant.humidity_range || humidity)}">Edit</button>
+            <button class="btn btn-outline-danger btn-sm delete-plant-btn" data-plant-id="${plant.plant_id || ''}">Remove</button>
+          </div>
         </div>
       `;
       plantCardList.prepend(wrapper);
-      plantCards.unshift(wrapper);
       plantModal.hide();
       document.getElementById('plant-name-input').value = '';
       document.getElementById('plant-scientific-name-input').value = '';
@@ -325,6 +346,7 @@
       document.getElementById('plant-water-input').selectedIndex = 0;
       document.getElementById('plant-temperature-input').selectedIndex = 0;
       document.getElementById('plant-humidity-input').selectedIndex = 0;
+      filterPlants();
     }).catch(function(err){
       console.error('Failed to save plant', err);
     });

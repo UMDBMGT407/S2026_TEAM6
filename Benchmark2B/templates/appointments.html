@@ -17,50 +17,24 @@
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Total Appointments</div>
-      <div class="stat-number" id="appt-total">10</div>
+      <div class="stat-number" id="appt-total">0</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Upcoming</div>
-      <div class="stat-number stat-unassigned" id="appt-upcoming">4</div>
+      <div class="stat-number stat-unassigned" id="appt-upcoming">0</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="stat-card text-center p-4">
       <div class="stat-label">Completed</div>
-      <div class="stat-number stat-scheduled">6</div>
+      <div class="stat-number stat-scheduled" id="appt-completed">0</div>
     </div>
   </div>
 </div>
 
-<div class="job-card mb-3" data-appointment-card data-service="Weekly Maintenance" data-technician="Peter Smith" data-date="2026-03-15" data-time="12:00 pm" data-location="123 Rainbow Road" data-status="Scheduled">
-  <div class="row align-items-start">
-    <div class="col-md-9">
-      <p class="detail-label mb-1">Next Appointment</p>
-      <h2 class="job-title">Weekly Maintenance</h2>
-      <p class="job-client">With Peter Smith</p>
-      <div class="row mt-2">
-        <div class="col-md-6">
-          <p class="job-detail"><span class="detail-label">Date:</span> <span data-date-label>2026-03-15</span></p>
-          <p class="job-detail"><span class="detail-label">Time:</span> <span data-time-label>12:00 pm</span></p>
-        </div>
-        <div class="col-md-6">
-          <p class="job-detail"><span class="detail-label">Location:</span> <span data-location-label>123 Rainbow Road</span></p>
-        </div>
-      </div>
-      <div class="d-flex gap-2 mt-3">
-        <button class="btn-action appointment-reassign-btn" type="button">Reassign</button>
-        <button class="btn-action appointment-details-btn" type="button">Details</button>
-      </div>
-    </div>
-    <div class="col-md-3 text-end">
-      <span class="status-badge status-scheduled" data-status-label>Scheduled</span>
-    </div>
-  </div>
-</div>
-
-<div id="saved-appointments"></div>
+<div id="appointments-list"></div>
 
 <div class="cta-banner d-flex align-items-center justify-content-between">
   <div>
@@ -100,96 +74,159 @@
 
 {% block page_js %}
 <script>
-  var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
-  var savedAppts = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
-  var container = document.getElementById('saved-appointments');
-  var modalService = document.getElementById('appt-modal-service');
-  var modalTechnician = document.getElementById('appt-modal-technician');
-  var modalDate = document.getElementById('appt-modal-date');
-  var modalTime = document.getElementById('appt-modal-time');
-  var modalLocation = document.getElementById('appt-modal-location');
-  var modalStatus = document.getElementById('appt-modal-status');
+  (function () {
+    var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
+    var listEl = document.getElementById('appointments-list');
 
-  function openAppointmentModal(card) {
-    var service = card.dataset.service || 'Service Request';
-    var technician = card.dataset.technician || 'Pending assignment';
-    var date = card.dataset.date || 'TBD';
-    var time = card.dataset.time || 'TBD';
-    var location = card.dataset.location || 'Pending confirmation';
-    var status = card.dataset.status || 'Pending';
-
-    modalService.textContent = service;
-    modalTechnician.textContent = technician;
-    modalDate.textContent = date;
-    modalTime.textContent = time;
-    modalLocation.textContent = location;
-    modalStatus.innerHTML = '&#x25CF; ' + status;
-    modalStatus.className = 'inv-status modal-status-inline ' + (status === 'Scheduled' ? 'status-scheduled' : 'status-unassigned');
-    apptModal.show();
-  }
-
-  function bindAppointmentCard(card) {
-    var detailsButton = card.querySelector('.appointment-details-btn');
-    var reassignButton = card.querySelector('.appointment-reassign-btn');
-
-    if (detailsButton) {
-      detailsButton.addEventListener('click', function() {
-        openAppointmentModal(card);
-      });
+    function parseDateOnly(dateText) {
+      if (!dateText) {
+        return null;
+      }
+      var dateValue = new Date(dateText + 'T00:00:00');
+      return Number.isNaN(dateValue.getTime()) ? null : dateValue;
     }
 
-    if (reassignButton) {
-      reassignButton.addEventListener('click', function() {
+    function formatDate(dateText) {
+      var dt = parseDateOnly(dateText);
+      if (!dt) {
+        return 'Date pending';
+      }
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function statusClass(statusText) {
+      var normalized = String(statusText || '').toLowerCase();
+      if (normalized === 'completed') {
+        return 'status-scheduled';
+      }
+      if (normalized === 'approved' || normalized === 'scheduled') {
+        return 'status-scheduled';
+      }
+      return 'status-unassigned';
+    }
+
+    function renderCard(item) {
+      var statusText = item.status || 'Pending';
+      var dateText = formatDate(item.appointment_date);
+      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' - ' + item.end_time) : '')) : 'Pending confirmation';
+      var technicianText = item.technician_name || 'Pending assignment';
+      var locationText = item.location_name || item.location_address || 'Pending confirmation';
+      var label = item.kind === 'appointment' ? 'Scheduled Service' : 'Requested Service';
+
+      return (
+        '<div class="job-card mb-3" data-appt-item="' + encodeURIComponent(JSON.stringify(item)) + '">' +
+          '<div class="row align-items-start">' +
+            '<div class="col-md-9">' +
+              '<p class="detail-label mb-1">' + label + '</p>' +
+              '<h2 class="job-title">' + (item.service_name || 'Service') + '</h2>' +
+              '<p class="job-client">With ' + technicianText + '</p>' +
+              '<div class="row mt-2">' +
+                '<div class="col-md-6">' +
+                  '<p class="job-detail"><span class="detail-label">Date:</span> ' + dateText + '</p>' +
+                  '<p class="job-detail"><span class="detail-label">Time:</span> ' + timeText + '</p>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                  '<p class="job-detail"><span class="detail-label">Location:</span> ' + locationText + '</p>' +
+                  '<p class="job-detail"><span class="detail-label">Reference:</span> ' + (item.reference_code || '-') + '</p>' +
+                '</div>' +
+              '</div>' +
+              '<div class="d-flex gap-2 mt-3">' +
+                '<button class="btn-action appointment-reassign-btn" type="button">Request Another</button>' +
+                '<button class="btn-action appointment-details-btn" type="button">Details</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="col-md-3 text-end">' +
+              '<span class="status-badge ' + statusClass(statusText) + '">' + statusText + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    function setStats(items) {
+      var today = new Date(new Date().toDateString());
+      var completed = 0;
+      var upcoming = 0;
+
+      items.forEach(function (item) {
+        var status = String(item.status || '').toLowerCase();
+        var when = parseDateOnly(item.appointment_date);
+        if (status === 'completed') {
+          completed += 1;
+          return;
+        }
+        if (when && when >= today && status !== 'cancelled' && status !== 'canceled' && status !== 'rejected') {
+          upcoming += 1;
+        }
+      });
+
+      document.getElementById('appt-total').textContent = String(items.length);
+      document.getElementById('appt-upcoming').textContent = String(upcoming);
+      document.getElementById('appt-completed').textContent = String(completed);
+    }
+
+    function openDetails(item) {
+      var dateText = formatDate(item.appointment_date);
+      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' - ' + item.end_time) : '')) : 'Pending confirmation';
+      var locationText = item.location_name || item.location_address || 'Pending confirmation';
+      var statusText = item.status || 'Pending';
+
+      document.getElementById('appt-modal-service').textContent = item.service_name || 'Service';
+      document.getElementById('appt-modal-technician').textContent = item.technician_name || 'Pending assignment';
+      document.getElementById('appt-modal-date').textContent = dateText;
+      document.getElementById('appt-modal-time').textContent = timeText;
+      document.getElementById('appt-modal-location').textContent = locationText;
+
+      var modalStatus = document.getElementById('appt-modal-status');
+      modalStatus.innerHTML = '&#x25CF; ' + statusText;
+      modalStatus.className = 'inv-status modal-status-inline ' + statusClass(statusText);
+      apptModal.show();
+    }
+
+    listEl.addEventListener('click', function (event) {
+      var detailsBtn = event.target.closest('.appointment-details-btn');
+      var reassignBtn = event.target.closest('.appointment-reassign-btn');
+      if (!detailsBtn && !reassignBtn) {
+        return;
+      }
+
+      var card = event.target.closest('[data-appt-item]');
+      if (!card) {
+        return;
+      }
+      var item = JSON.parse(decodeURIComponent(card.getAttribute('data-appt-item')));
+
+      if (detailsBtn) {
+        openDetails(item);
+      }
+      if (reassignBtn) {
         window.location.href = '{{ url_for("service_request_page") }}';
-      });
+      }
+    });
+
+    async function loadAppointments() {
+      try {
+        var response = await fetch('/api/client/appointments');
+        var payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to load appointments');
+        }
+
+        var items = Array.isArray(payload) ? payload : [];
+        setStats(items);
+
+        if (!items.length) {
+          listEl.innerHTML = '<div class="job-card"><p class="mb-0">No appointments or requests yet. Start by requesting a service.</p></div>';
+          return;
+        }
+
+        listEl.innerHTML = items.map(renderCard).join('');
+      } catch (error) {
+        listEl.innerHTML = '<div class="job-card"><p class="mb-0 text-danger">' + (error.message || 'Unable to load appointments.') + '</p></div>';
+      }
     }
-  }
 
-  savedAppts.forEach(function(appt) {
-    var statusText = appt.status || 'Pending';
-    var statusClass = statusText === 'Scheduled' ? 'status-scheduled' : 'status-unassigned';
-    var locationText = appt.location || 'Pending confirmation';
-
-    var card = document.createElement('div');
-    card.className = 'job-card mb-3';
-    card.setAttribute('data-appointment-card', '');
-    card.dataset.service = appt.service;
-    card.dataset.technician = 'Pending assignment';
-    card.dataset.date = appt.date;
-    card.dataset.time = 'Pending confirmation';
-    card.dataset.location = locationText;
-    card.dataset.status = statusText;
-    card.innerHTML =
-      '<div class="row align-items-start">' +
-        '<div class="col-md-9">' +
-          '<p class="detail-label mb-1">Requested Service</p>' +
-          '<h2 class="job-title">' + appt.service + '</h2>' +
-          '<div class="row mt-2">' +
-            '<div class="col-md-6">' +
-              '<p class="job-detail"><span class="detail-label">Requested Date:</span> ' + appt.date + '</p>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-              '<p class="job-detail"><span class="detail-label">Location:</span> ' + locationText + '</p>' +
-            '</div>' +
-          '</div>' +
-          '<div class="d-flex gap-2 mt-3">' +
-            '<button class="btn-action appointment-reassign-btn" type="button">Edit Request</button>' +
-            '<button class="btn-action appointment-details-btn" type="button">Details</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="col-md-3 text-end">' +
-          '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
-        '</div>' +
-      '</div>';
-    container.appendChild(card);
-    bindAppointmentCard(card);
-  });
-
-  if (savedAppts.length > 0) {
-    document.getElementById('appt-upcoming').textContent = 4 + savedAppts.length;
-    document.getElementById('appt-total').textContent = 10 + savedAppts.length;
-  }
-
-  document.querySelectorAll('[data-appointment-card]').forEach(bindAppointmentCard);
+    loadAppointments();
+  })();
 </script>
 {% endblock %}

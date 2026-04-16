@@ -685,19 +685,6 @@ INSERT INTO suppliers (
     ('GreenGrow Supply', '555-200-0001', 'orders@greengrow.test', 9, 12, '2026-04-01', 'Delivered'),
     ('Urban Soil Partners', '555-200-0002', 'sales@urbansoil.test', 10, 7, '2026-03-28', 'Shipped');
 
-INSERT INTO plant_master (
-    common_name,
-    scientific_name,
-    light_level,
-    watering_frequency,
-    temperature_range,
-    humidity_range,
-    photo_url,
-    notes
-) VALUES
-    ('Fiddle Leaf Fig', 'Ficus lyrata', 'Bright indirect', 'Weekly', '65-80F', '40-60%', NULL, 'Rotate weekly for even growth'),
-    ('Snake Plant', 'Sansevieria trifasciata', 'Low to bright indirect', 'Bi-weekly', '60-85F', '30-50%', NULL, 'Avoid overwatering');
-
 INSERT INTO inventory_items (
     item_name,
     item_type,

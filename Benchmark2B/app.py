@@ -129,6 +129,46 @@ def ensure_inventory_schema():
 ensure_inventory_schema()
 
 
+def ensure_plant_master_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("SHOW TABLES LIKE 'plant_master'")
+            table_exists = cur.fetchone() is not None
+        except:
+            table_exists = True
+
+        if not table_exists:
+            cur.execute("""
+                CREATE TABLE plant_master (
+                    plant_id INT PRIMARY KEY AUTO_INCREMENT,
+                    common_name VARCHAR(255) NOT NULL,
+                    scientific_name VARCHAR(255),
+                    light_level VARCHAR(100),
+                    watering_frequency VARCHAR(100),
+                    temperature_range VARCHAR(100),
+                    humidity_range VARCHAR(100),
+                    photo_url TEXT,
+                    notes TEXT,
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """)
+
+        try:
+            cur.execute("ALTER TABLE plant_master ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+        except:
+            pass
+        try:
+            cur.execute("UPDATE plant_master SET is_active = TRUE WHERE is_active IS NULL")
+        except:
+            pass
+        mysql.connection.commit()
+        cur.close()
+
+
+ensure_plant_master_schema()
+
+
 def ensure_material_request_schema():
     with app.app_context():
         cur = mysql.connection.cursor()
@@ -915,6 +955,21 @@ def management_dashboard():
     return render_template('manage-employee.html')
 
 
+@app.route('/managementindex.html')
+@login_required
+@role_required('Management')
+def management_index_page():
+    # Legacy management landing page path; keep it mapped to the active dashboard.
+    return redirect(url_for('management_dashboard'))
+
+
+@app.route('/manage-employee.html')
+@login_required
+@role_required('Management')
+def manage_employee_page():
+    return redirect(url_for('management_dashboard'))
+
+
 # --- Client Portal (User) ---
 @app.route('/client')
 @login_required
@@ -963,6 +1018,7 @@ def invoices_page():
 
 @app.route('/profile.html')
 @login_required
+@role_required('Client')
 def profile_page():
     return render_template('profile.html')
 
@@ -974,11 +1030,25 @@ def clients_page():
     return render_template('clients.html')
 
 
+@app.route('/clients')
+@login_required
+@role_required('Management')
+def clients_page_alias():
+    return redirect(url_for('clients_page'))
+
+
 @app.route('/scheduling.html')
 @login_required
 @role_required('Management')
 def scheduling_page():
     return render_template('scheduling.html')
+
+
+@app.route('/scheduling')
+@login_required
+@role_required('Management')
+def scheduling_page_alias():
+    return redirect(url_for('scheduling_page'))
 
 
 @app.route('/suppliers.html')
@@ -988,11 +1058,25 @@ def suppliers_page():
     return render_template('suppliers.html')
 
 
+@app.route('/suppliers-page')
+@login_required
+@role_required('Management')
+def suppliers_page_alias():
+    return redirect(url_for('suppliers_page'))
+
+
 @app.route('/inventory.html')
 @login_required
 @role_required('Management')
 def inventory_page():
     return render_template('inventory.html')
+
+
+@app.route('/inventory-page')
+@login_required
+@role_required('Management')
+def inventory_page_alias():
+    return redirect(url_for('inventory_page'))
 
 
 @app.route('/api/inventory', methods=['GET'])
@@ -2911,6 +2995,143 @@ def assign_job(job_id):
 # ========================
 # CLIENT PROFILE + LOCATION API
 # ========================
+
+def get_client_appointments_payload(client_user_id):
+    cur = mysql.connection.cursor()
+    client_id = ensure_client_record(cur, client_user_id)
+
+    cur.execute(
+        """
+        SELECT jo.job_order_id,
+               jo.job_order_code,
+               jo.scheduled_date,
+               jo.start_time,
+               jo.end_time,
+               COALESCE(jo.status, 'Scheduled') AS status,
+               COALESCE(s.service_name, jo.title, 'Service Appointment') AS service_name,
+               COALESCE(cl.location_name, '') AS location_name,
+               COALESCE(a.street_1, '') AS street_1,
+               COALESCE(a.city, '') AS city,
+               COALESCE(a.state, '') AS state,
+               COALESCE(a.zip_code, '') AS zip_code,
+               CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS technician_name,
+               jo.service_request_id
+        FROM job_orders jo
+        LEFT JOIN services s ON s.service_id = jo.service_id
+        LEFT JOIN client_locations cl ON cl.location_id = jo.location_id
+        LEFT JOIN addresses a ON a.address_id = cl.address_id
+        LEFT JOIN employees e ON e.employee_id = jo.assigned_employee_id
+        LEFT JOIN users u ON u.user_id = e.user_id
+        WHERE jo.client_id = %s
+        ORDER BY jo.scheduled_date ASC, jo.start_time ASC, jo.job_order_id DESC
+        """,
+        (client_id,)
+    )
+    job_rows = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT sr.service_request_id,
+               sr.requested_date,
+               COALESCE(sr.status, 'Pending') AS status,
+               COALESCE(s.service_name, 'Service Request') AS service_name,
+               COALESCE(cl.location_name, '') AS location_name,
+               COALESCE(a.street_1, '') AS street_1,
+               COALESCE(a.city, '') AS city,
+               COALESCE(a.state, '') AS state,
+               COALESCE(a.zip_code, '') AS zip_code,
+               COALESCE(sr.requested_notes, '') AS requested_notes
+        FROM service_requests sr
+        LEFT JOIN services s ON s.service_id = sr.service_id
+        LEFT JOIN client_locations cl ON cl.location_id = sr.location_id
+        LEFT JOIN addresses a ON a.address_id = cl.address_id
+        WHERE sr.client_id = %s
+          AND NOT EXISTS (
+              SELECT 1
+              FROM job_orders jo
+              WHERE jo.service_request_id = sr.service_request_id
+          )
+        ORDER BY sr.requested_date ASC, sr.service_request_id DESC
+        """,
+        (client_id,)
+    )
+    request_rows = cur.fetchall()
+    cur.close()
+
+    appointments = []
+    for row in job_rows:
+        address = ', '.join([part for part in [row[8], row[9], row[10]] if part])
+        if row[11]:
+            address = (address + ' ' + row[11]).strip()
+
+        appointments.append({
+            'kind': 'appointment',
+            'appointment_id': row[0],
+            'reference_code': row[1] or f'JOB-{row[0]}',
+            'appointment_date': row[2].isoformat() if row[2] else None,
+            'start_time': format_time_hhmm(row[3]),
+            'end_time': format_time_hhmm(row[4]),
+            'status': row[5] or 'Scheduled',
+            'service_name': row[6] or 'Service Appointment',
+            'location_name': row[7] or '',
+            'location_address': address,
+            'technician_name': (row[12] or '').strip(),
+            'service_request_id': row[13]
+        })
+
+    for row in request_rows:
+        address = ', '.join([part for part in [row[5], row[6], row[7]] if part])
+        if row[8]:
+            address = (address + ' ' + row[8]).strip()
+
+        appointments.append({
+            'kind': 'request',
+            'appointment_id': row[0],
+            'reference_code': f'SR-{row[0]}',
+            'appointment_date': row[1].isoformat() if row[1] else None,
+            'start_time': None,
+            'end_time': None,
+            'status': row[2] or 'Pending',
+            'service_name': row[3] or 'Service Request',
+            'location_name': row[4] or '',
+            'location_address': address,
+            'technician_name': '',
+            'requested_notes': row[9] or '',
+            'service_request_id': row[0]
+        })
+
+    appointments.sort(
+        key=lambda item: (
+            item.get('appointment_date') is None,
+            item.get('appointment_date') or '9999-12-31',
+            str(item.get('reference_code') or '')
+        )
+    )
+
+    return appointments
+
+
+@app.route('/api/client/appointments', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_appointments_api():
+    try:
+        appointments = get_client_appointments_payload(current_user.id)
+        return jsonify(appointments)
+    except Exception as e:
+        return jsonify(error=f'Failed to load appointments: {str(e)}'), 500
+
+
+@app.route('/appointments', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_appointments_legacy():
+    # Legacy endpoint kept for existing client dashboard scripts.
+    try:
+        appointments = get_client_appointments_payload(current_user.id)
+        return jsonify(appointments)
+    except Exception as e:
+        return jsonify(error=f'Failed to load appointments: {str(e)}'), 500
 
 @app.route('/api/client/profile', methods=['GET'])
 @login_required

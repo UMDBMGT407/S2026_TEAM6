@@ -350,11 +350,7 @@
 
   function renderStats(items) {
     var lowCount = items.filter(function (item) {
-<<<<<<< HEAD
       return isLowStock(item);
-=======
-      return Number(item.reorder_level || 0) > 0 && Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
->>>>>>> b12a424 (fixed reorder and low stock functionality)
     }).length;
 
     var inventoryValue = items.reduce(function (sum, item) {
@@ -367,19 +363,10 @@
     statLow.textContent = lowCount;
     statValue.textContent = '$' + inventoryValue.toFixed(2);
 
-<<<<<<< HEAD
     setLowStockAlertVisibility(
       lowCount > 0,
       lowCount + ' item' + (lowCount === 1 ? '' : 's') + ' need reorder attention'
     );
-=======
-    if (lowCount > 0) {
-      lowStockAlert.style.removeProperty('display');
-      lowStockAlertText.textContent = lowCount + ' item' + (lowCount === 1 ? '' : 's') + ' need reorder attention';
-    } else {
-      lowStockAlert.style.setProperty('display', 'none', 'important');
-    }
->>>>>>> b12a424 (fixed reorder and low stock functionality)
   }
 
   function renderItems(items) {
@@ -389,11 +376,7 @@
     }
 
     inventoryList.innerHTML = items.map(function (item) {
-<<<<<<< HEAD
       var lowStock = isLowStock(item);
-=======
-      var lowStock = Number(item.reorder_level || 0) > 0 && Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
->>>>>>> b12a424 (fixed reorder and low stock functionality)
       var lowBadge = lowStock
         ? '<span class="low-stock-badge"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>'
         : '';
