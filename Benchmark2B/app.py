@@ -1444,7 +1444,10 @@ def get_management_material_usage():
 
 
 @app.route('/plant-master.html')
-cur = mysql.connection.cursor()
+@login_required
+@role_required('Management')
+def plant_master_page():
+    cur = mysql.connection.cursor()
     try:
         cur.execute("""
             SELECT plant_id, common_name, scientific_name, light_level,
