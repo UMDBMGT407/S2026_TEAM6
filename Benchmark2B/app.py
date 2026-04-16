@@ -895,6 +895,7 @@ def add_inventory_item():
     if not item_name:
         return jsonify(error='Item name is required'), 400
     cur = mysql.connection.cursor()
+    supplier_id = data.get('supplier_id') or None
     cur.execute("""
         INSERT INTO inventory_items
             (item_name, item_type, supplier_id, sku, unit_price,
@@ -903,13 +904,25 @@ def add_inventory_item():
     """, (
         item_name,
         data.get('item_type') or None,
-        data.get('supplier_id') or None,
+        supplier_id,
         data.get('sku') or None,
         data.get('unit_price') or None,
         data.get('quantity_on_hand') or 0,
         data.get('reorder_level') or 0,
         data.get('unit_label') or 'units',
     ))
+    
+    if supplier_id:
+        try:
+            cur.execute("""
+                UPDATE suppliers
+                SET total_orders = IFNULL(total_orders, 0) + 1,
+                    last_order_date = %s
+                WHERE supplier_id = %s
+            """, (datetime.today().date(), supplier_id))
+        except Exception:
+            pass
+
     mysql.connection.commit()
     cur.close()
     return jsonify(message='Item added successfully'), 201
