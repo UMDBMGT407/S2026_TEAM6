@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'secret-key-change-this'
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
+app.config['MYSQL_PASSWORD'] = '20031031'
 app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
