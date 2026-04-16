@@ -748,6 +748,102 @@ def get_invoices_json():
         cur.close()
 
 
+@app.route('/client/me', methods=['GET'])
+@login_required
+@role_required('Client')
+def client_me():
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+
+        cur.execute(
+            """
+            SELECT u.user_id,
+                   u.first_name,
+                   u.last_name,
+                   u.email,
+                   u.phone,
+                   c.client_id,
+                   c.company_name,
+                   c.member_since,
+                   c.account_status
+            FROM users u
+            LEFT JOIN clients c ON c.contact_user_id = u.user_id
+            WHERE u.user_id = %s
+            LIMIT 1
+            """,
+            (current_user.id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Client profile not found'), 404
+
+        profile = {
+            'user_id': row[0],
+            'first_name': row[1] or '',
+            'last_name': row[2] or '',
+            'email': row[3] or '',
+            'phone': row[4] or '',
+            'client_id': row[5] or client_id,
+            'company_name': row[6] or '',
+            'member_since': row[7].isoformat() if row[7] else None,
+            'account_status': row[8] or 'Active'
+        }
+
+        cur.execute(
+            """
+            SELECT cl.location_id,
+                   cl.location_name,
+                   a.street_1,
+                   a.city,
+                   a.state,
+                   a.zip_code,
+                   COALESCE(cl.is_active, TRUE) AS is_active
+            FROM client_locations cl
+            JOIN addresses a ON a.address_id = cl.address_id
+            WHERE cl.client_id = %s
+              AND COALESCE(cl.is_active, TRUE) = TRUE
+            ORDER BY cl.location_id DESC
+            """,
+            (profile['client_id'],)
+        )
+        locations_rows = cur.fetchall()
+        locations = []
+        for row_loc in locations_rows:
+            locations.append({
+                'location_id': row_loc[0],
+                'location_name': row_loc[1] or '',
+                'street_1': row_loc[2] or '',
+                'city': row_loc[3] or '',
+                'state': row_loc[4] or '',
+                'zip_code': row_loc[5] or '',
+                'is_active': bool(row_loc[6])
+            })
+
+        cur.close()
+        profile['locations'] = locations
+        return jsonify(profile)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=f'Failed to load client info: {str(e)}'), 500
+
+
+@app.route('/service-requests', methods=['GET'])
+@login_required
+@role_required('Client')
+def client_service_requests_alias():
+    return get_client_service_requests_api()
+
+
+@app.route('/appointments', methods=['GET'])
+@login_required
+@role_required('Client')
+def client_appointments_alias():
+    return jsonify([])
+
+
 # --- Logout ---
 @app.route('/logout')
 @login_required
