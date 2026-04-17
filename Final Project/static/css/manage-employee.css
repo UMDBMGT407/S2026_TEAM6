@@ -1,0 +1,326 @@
+.employee-info-line {
+  display: block;
+  margin: 0;
+}
+
+.employee-modal {
+  border: none;
+  border-radius: 20px;
+  background: #f4efe9;
+  overflow: hidden;
+}
+
+.employee-modal-header {
+  background: var(--color-primary);
+  color: white;
+  padding: 1.25rem 1.5rem;
+}
+
+.employee-modal-header .modal-title {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-family-primary);
+}
+
+.employee-modal-subtitle {
+  font-size: 1.1rem;
+  color: #f4f0df;
+}
+
+.custom-close {
+  background-color: #c4c9a4;
+  border-radius: 50%;
+  opacity: 1;
+  padding: 0.75rem;
+}
+
+.add-employee-btn {
+  border: 2px dashed var(--color-primary);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  padding: 0.85rem 1rem;
+}
+
+.add-employee-btn:hover {
+  background: var(--color-main-bg);
+  color: #74774f;
+  border-color: #74774f;
+}
+
+.employee-section-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.employee-row {
+  background: var(--color-light-bg-tertiary);
+  border: 1px solid #c9c79c;
+  border-radius: 20px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+
+.employee-name {
+  font-size: 1.35rem;
+  color: var(--color-dark);
+  font-family: var(--font-family-primary);
+}
+
+.employee-role {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.employee-contact {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.remove-employee-btn {
+  background: #f8dede;
+  color: #c53b3b;
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.remove-employee-btn:hover {
+  background: #f3cfcf;
+  color: #b42d2d;
+}
+
+.status-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+.active-pill {
+  background: #abd7bc;
+  color: #0d5e28;
+}
+
+.availability-modal {
+  background: #f4efe9;
+  border: none;
+  border-radius: 20px;
+}
+
+.availability-label {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.availability-name {
+  color: var(--color-dark);
+  font-size: 2rem;
+  font-weight: 500;
+  font-family: var(--font-family-primary);
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: 70px repeat(7, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.schedule-header-empty {
+  height: 32px;
+}
+
+.schedule-day {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-dark);
+}
+
+.schedule-time {
+  font-size: 0.95rem;
+  color: var(--color-dark);
+}
+
+.schedule-cell {
+  height: 28px;
+  border: 1px solid #c8c2b6;
+  border-radius: 6px;
+  background: #ffffff;
+  transition: 0.15s ease;
+}
+
+.schedule-cell:hover {
+  background: var(--color-main-bg);
+}
+
+.schedule-cell.active {
+  background: #abd7bc;
+  border-color: #8ab08d;
+}
+
+.schedule-cell.active:hover {
+  background: #95bb99;
+}
+
+.payroll-modal {
+  background: #f4efe9;
+  border: none;
+  border-radius: 20px;
+}
+
+.payroll-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  font-family: var(--font-family-primary);
+}
+
+.payroll-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.payroll-divider {
+  border: 0;
+  border-top: 1px solid #c8c19f;
+  margin: 1.5rem 0;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.info-box,
+.hours-box,
+.pay-period-box,
+.summary-box {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.9rem 1rem;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.info-value {
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--color-dark);
+}
+
+.pay-period-box {
+  padding: 1.1rem 1.25rem;
+}
+
+.pay-period-label {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-right: 0.5rem;
+}
+
+.pay-period-value {
+  font-size: 1.9rem;
+  color: var(--color-dark);
+}
+
+.hours-value {
+  font-size: 2rem;
+  text-align: center;
+  color: var(--color-dark);
+}
+
+.pay-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0.35rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.7rem;
+  font-size: 1.05rem;
+}
+
+.neutral-row {
+  background: #ddd4cb;
+  color: var(--color-dark);
+}
+
+.positive-row {
+  background: #d1dfd0;
+  color: #0d7a39;
+}
+
+.negative-row {
+  background: #ecd2ce;
+  color: #b42318;
+}
+
+.summary-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.15rem;
+}
+
+.gross-box {
+  background: #ddd4cb;
+  color: var(--color-dark);
+}
+
+.net-box {
+  background: #ddd4cb;
+  color: var(--color-dark);
+  font-weight: 700;
+}
+
+.payment-box {
+  text-align: center;
+}
+
+.payment-title {
+  font-size: 0.9rem;
+  color: var(--color-dark);
+  margin-bottom: 0.35rem;
+}
+
+.payment-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+@media (max-width: 480px) {
+  .card .d-flex.flex-wrap .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .availability-grid {
+    grid-template-columns: 55px repeat(7, minmax(42px, 1fr));
+    gap: 0.3rem;
+    overflow-x: auto;
+  }
+  .schedule-cell { min-width: 42px; }
+  .employee-row { align-items: flex-start !important; }
+  .employee-contact span { display: block; margin-left: 0 !important; }
+  .payroll-title { font-size: 1.8rem; }
+  .pay-period-label, .pay-period-value { display: block; font-size: 1.35rem; }
+  .info-value { font-size: 1.15rem; }
+  .hours-value { font-size: 1.6rem; }
+  .pay-row, .summary-box { font-size: 1rem; }
+}
