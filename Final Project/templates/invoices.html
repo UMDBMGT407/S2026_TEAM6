@@ -1,0 +1,275 @@
+{% extends "base_client.html" %}
+{% set active_page = 'invoices' %}
+
+{% block title %}Planted - Invoices{% endblock %}
+
+{% block vendor_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="mb-4">
+  <h1 class="page-title">Your Invoices</h1>
+  <p class="page-subtitle">Review, download, and pay your Planted invoices</p>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Outstanding Balance</div><div class="stat-number" id="inv-balance">$0.00</div></div></div>
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Paid (All Time)</div><div class="stat-number" id="inv-paid-total">$0.00</div></div></div>
+  <div class="col-md-4"><div class="stat-card text-center p-4"><div class="stat-label">Total Invoices</div><div class="stat-number" id="inv-total-count">0</div></div></div>
+</div>
+
+<div class="overdue-alert d-flex align-items-center justify-content-between mb-4" id="overdue-alert">
+  <div>
+    <div class="overdue-alert-title" id="overdue-alert-title">No overdue invoices.</div>
+    <div class="overdue-alert-sub" id="overdue-alert-sub">You're all caught up.</div>
+  </div>
+  <button class="pay-now-btn" id="overdue-focus-btn" type="button">View Overdue</button>
+</div>
+
+<div class="invoice-tabs mb-3">
+  <button class="inv-tab active-tab" data-filter="all" id="tab-all">All (0)</button>
+  <button class="inv-tab" data-filter="due" id="tab-due">Due (0)</button>
+  <button class="inv-tab" data-filter="overdue" id="tab-overdue">Overdue (0)</button>
+  <button class="inv-tab" data-filter="paid" id="tab-paid">Paid (0)</button>
+</div>
+
+<div id="invoice-rows"></div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  var invoiceRows = document.getElementById('invoice-rows');
+  var tabButtons = document.querySelectorAll('.inv-tab');
+
+  function toCurrency(value) {
+    return '$' + (Number(value) || 0).toFixed(2);
+  }
+
+  function toDateLabel(dateText) {
+    if (!dateText) {
+      return 'N/A';
+    }
+    var dateValue = new Date(dateText + 'T00:00:00');
+    if (Number.isNaN(dateValue.getTime())) {
+      return dateText;
+    }
+    return dateValue.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function classifyInvoice(invoice) {
+    var status = String(invoice.status || '').toLowerCase();
+    if (status === 'paid') {
+      return 'paid';
+    }
+
+    var dueDate = invoice.due_date ? new Date(invoice.due_date + 'T00:00:00') : null;
+    var today = new Date(new Date().toDateString());
+    if (status === 'overdue' || (dueDate && dueDate < today)) {
+      return 'overdue';
+    }
+    return 'due';
+  }
+
+  function statusClass(filterValue) {
+    if (filterValue === 'paid') {
+      return 'status-paid';
+    }
+    if (filterValue === 'overdue') {
+      return 'status-overdue';
+    }
+    return 'status-due';
+  }
+
+  function statusText(filterValue) {
+    if (filterValue === 'paid') {
+      return 'Paid';
+    }
+    if (filterValue === 'overdue') {
+      return 'Overdue';
+    }
+    return 'Due';
+  }
+
+  function viewInvoiceDetails(invoiceId) {
+    fetch('/api/invoices/' + invoiceId)
+      .then(response => response.json())
+      .then(invoice => {
+        if (invoice.error) {
+          alert('Error: ' + invoice.error);
+          return;
+        }
+
+        var body = document.getElementById('invoiceModalBody');
+        body.innerHTML = `
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Invoice Number:</strong> ${invoice.invoice_number}
+            </div>
+            <div class="col-md-6">
+              <strong>Issued:</strong> ${toDateLabel(invoice.issue_date)}
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Due Date:</strong> ${toDateLabel(invoice.due_date)}
+            </div>
+            <div class="col-md-6">
+              <strong>Status:</strong> ${statusText(classifyInvoice(invoice))}
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <strong>From:</strong> ${invoice.company_name}
+            </div>
+          </div>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="text-center">Qty</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items.map(item => `
+                <tr>
+                  <td>${item.description}</td>
+                  <td class="text-center">${item.quantity}</td>
+                  <td class="text-end">${toCurrency(item.unit_price)}</td>
+                  <td class="text-end">${toCurrency(item.line_total)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                <td class="text-end">${toCurrency(invoice.subtotal)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-end"><strong>Tax:</strong></td>
+                <td class="text-end">${toCurrency(invoice.tax_amount)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                <td class="text-end"><strong>${toCurrency(invoice.total_amount)}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+
+        var modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+        modal.show();
+      })
+      .catch(error => {
+        alert('Unable to load invoice details: ' + error.message);
+      });
+  }
+    document.querySelectorAll('.invoice-row').forEach(function (row) {
+      row.style.display = (filterName === 'all' || row.dataset.status === filterName) ? '' : 'none';
+    });
+  }
+
+  function renderInvoiceRow(invoice, filterValue) {
+    var row = document.createElement('div');
+    row.className = 'invoice-row mb-3';
+    row.dataset.status = filterValue;
+
+    row.innerHTML =
+      '<div class="row align-items-center">' +
+        '<div class="col-md-7">' +
+          '<div class="inv-number">' + (invoice.invoice_number || ('Invoice #' + String(invoice.invoice_id))) + '</div>' +
+          '<div class="inv-service">' + (invoice.company_name || 'Planted Service') + '</div>' +
+          '<div class="inv-dates">Due ' + toDateLabel(invoice.due_date) + ' &middot; Issued ' + toDateLabel(invoice.issue_date) + '</div>' +
+        '</div>' +
+        '<div class="col-md-2 text-center"><span class="inv-status ' + statusClass(filterValue) + '">&#x25CF; ' + statusText(filterValue) + '</span></div>' +
+        '<div class="col-md-2 text-center"><div class="inv-amount">' + toCurrency(invoice.total_amount) + '</div><div class="inv-currency">AUD incl. GST</div></div>' +
+        '<div class="col-md-1 text-end"><button class="inv-pay-btn" type="button">View</button></div>' +
+      '</div>';
+
+    row.querySelector('.inv-pay-btn').addEventListener('click', function () {
+      alert('Invoice ' + (invoice.invoice_number || invoice.invoice_id) + '\nStatus: ' + statusText(filterValue) + '\nAmount: ' + toCurrency(invoice.total_amount));
+    });
+
+    return row;
+  }
+
+  async function loadInvoices() {
+    try {
+      var response = await fetch('/invoices');
+      var invoices = await response.json();
+      if (!response.ok) {
+        throw new Error(invoices.error || 'Unable to load invoices.');
+      }
+
+      invoices = Array.isArray(invoices) ? invoices : [];
+      var counts = { all: invoices.length, due: 0, overdue: 0, paid: 0 };
+      var totals = { outstanding: 0, paid: 0 };
+
+      invoiceRows.innerHTML = '';
+      invoices.forEach(function (invoice) {
+        var filterValue = classifyInvoice(invoice);
+        counts[filterValue] += 1;
+        if (filterValue === 'paid') {
+          totals.paid += Number(invoice.total_amount) || 0;
+        } else {
+          totals.outstanding += Number(invoice.total_amount) || 0;
+        }
+        invoiceRows.appendChild(renderInvoiceRow(invoice, filterValue));
+      });
+
+      if (!invoices.length) {
+        invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">No invoices found.</div></div></div>';
+      }
+
+      document.getElementById('inv-balance').textContent = toCurrency(totals.outstanding);
+      document.getElementById('inv-paid-total').textContent = toCurrency(totals.paid);
+      document.getElementById('inv-total-count').textContent = String(counts.all);
+
+      document.getElementById('tab-all').textContent = 'All (' + counts.all + ')';
+      document.getElementById('tab-due').textContent = 'Due (' + counts.due + ')';
+      document.getElementById('tab-overdue').textContent = 'Overdue (' + counts.overdue + ')';
+      document.getElementById('tab-paid').textContent = 'Paid (' + counts.paid + ')';
+
+      var overdueAlert = document.getElementById('overdue-alert');
+      var overdueTitle = document.getElementById('overdue-alert-title');
+      var overdueSub = document.getElementById('overdue-alert-sub');
+      if (counts.overdue > 0) {
+        overdueAlert.classList.remove('d-none');
+        overdueTitle.textContent = 'You have ' + counts.overdue + ' overdue invoice' + (counts.overdue === 1 ? '' : 's') + '.';
+        overdueSub.textContent = 'Please settle overdue balances to avoid service interruptions.';
+      } else {
+        overdueAlert.classList.add('d-none');
+      }
+
+      applyFilter('all');
+    } catch (error) {
+      invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">' + (error.message || 'Unable to load invoices.') + '</div></div></div>';
+    }
+  }
+
+  tabButtons.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabButtons.forEach(function (item) { item.classList.remove('active-tab'); });
+      tab.classList.add('active-tab');
+      applyFilter(tab.dataset.filter);
+    });
+  });
+
+  document.getElementById('overdue-focus-btn').addEventListener('click', function () {
+    document.getElementById('tab-overdue').click();
+  });
+
+  loadInvoices();
+</script>
+{% endblock %}
+

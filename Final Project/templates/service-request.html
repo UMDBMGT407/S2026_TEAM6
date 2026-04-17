@@ -1,0 +1,301 @@
+{% extends "base_client.html" %}
+{% set active_page = 'service-request' %}
+
+{% block title %}Planted - Service Request{% endblock %}
+
+{% block vendor_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="mb-4">
+  <h1 class="page-title">Service Request</h1>
+  <p class="page-subtitle">Schedule a service for your location</p>
+</div>
+
+<div class="date-picker-bar mb-4">
+  <h2 class="date-picker-title mb-3">Select a Date</h2>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label for="selectMonth" class="form-label picker-label">Month</label>
+      <select id="selectMonth" class="form-select picker-select">
+        <option value="">-- Month --</option>
+        <option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="selectDay" class="form-label picker-label">Day</label>
+      <select id="selectDay" class="form-select picker-select">
+        <option value="">-- Day --</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="selectYear" class="form-label picker-label">Year</label>
+      <select id="selectYear" class="form-select picker-select">
+        <option value="">-- Year --</option>
+        <option>2026</option><option>2027</option><option>2028</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="mb-4">
+  <label for="requestLocation" class="form-label picker-label">Select a Location</label>
+  <select id="requestLocation" class="form-select picker-select">
+    <option value="">-- Choose a location --</option>
+  </select>
+</div>
+
+<h2 class="services-heading mb-3">Available Services</h2>
+<p id="service-load-message" class="mb-2"></p>
+<div class="row g-3" id="service-grid"></div>
+
+<div class="mt-4">
+  <label for="requestNotes" class="form-label picker-label">Notes (optional)</label>
+  <textarea id="requestNotes" class="form-control" rows="3" placeholder="Add access details, preferred time window, or special instructions"></textarea>
+</div>
+
+<div class="mt-4 text-end">
+  <button id="submit-request" class="book-appt-btn">Request Service</button>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Request Submitted!</h3>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Your request has been received. A specialist will contact you shortly.</p>
+        <p><strong>Service:</strong> <span id="confirm-service"></span></p>
+        <p><strong>Price:</strong> <span id="confirm-price"></span></p>
+        <p><strong>Date:</strong> <span id="confirm-date"></span></p>
+        <p><strong>Location:</strong> <span id="confirm-location"></span></p>
+        <p><strong>Request #:</strong> <span id="confirm-request-id"></span></p>
+      </div>
+      <div class="modal-footer">
+        <a href="{{ url_for('appointments_page') }}" class="book-appt-btn btn-modal-secondary">View Appointments</a>
+        <button type="button" class="btn-action" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    var services = [];
+    var locations = [];
+    var selectedServiceId = null;
+    var serviceGrid = document.getElementById('service-grid');
+    var serviceMessage = document.getElementById('service-load-message');
+    var submitButton = document.getElementById('submit-request');
+    var locationSelect = document.getElementById('requestLocation');
+    var notesInput = document.getElementById('requestNotes');
+
+    var monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    function setMessage(text, isError) {
+      serviceMessage.textContent = text || '';
+      serviceMessage.className = isError ? 'text-danger mb-2' : 'text-success mb-2';
+    }
+
+    function formatPrice(price) {
+      return '$' + Number(price || 0).toFixed(2);
+    }
+
+    async function fetchServices() {
+      var response = await fetch('/services');
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data;
+    }
+
+    async function fetchLocations() {
+      var response = await fetch('/api/client/locations');
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data;
+    }
+
+    async function submitServiceRequest(payload) {
+      var response = await fetch('/api/client/service-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data;
+    }
+
+    function renderLocations() {
+      if (!locations.length) {
+        locationSelect.innerHTML = '<option value="">No active locations found. Add one in Profile first.</option>';
+        submitButton.disabled = true;
+        return;
+      }
+
+      locationSelect.innerHTML =
+        '<option value="">-- Choose a location --</option>' +
+        locations.map(function (loc) {
+          var label = (loc.location_name || 'Location') + ' - ' + [loc.street_1, loc.city, loc.state].filter(Boolean).join(', ');
+          return '<option value="' + loc.location_id + '">' + label + '</option>';
+        }).join('');
+      submitButton.disabled = false;
+    }
+
+    function renderServiceGrid() {
+      if (!services.length) {
+        serviceGrid.innerHTML = '<div class="col-12"><p class="text-muted">No active services are available right now.</p></div>';
+        return;
+      }
+
+      serviceGrid.innerHTML = services.map(function (service) {
+        return (
+          '<div class="col-md-6">' +
+            '<button type="button" class="service-btn w-100 text-start" data-service-id="' + service.service_id + '">' +
+              '<div class="fw-semibold">' + service.service_name + '</div>' +
+              '<div class="small text-muted">' + (service.description || 'No description') + '</div>' +
+              '<div class="small mt-1">' + formatPrice(service.base_price) + '</div>' +
+            '</button>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function bindServiceSelection() {
+      serviceGrid.addEventListener('click', function (event) {
+        var button = event.target.closest('.service-btn');
+        if (!button) return;
+
+        selectedServiceId = Number(button.getAttribute('data-service-id'));
+        document.querySelectorAll('.service-btn').forEach(function (b) {
+          b.classList.remove('selected-service');
+        });
+        button.classList.add('selected-service');
+      });
+    }
+
+    function buildIsoDate(month, day, year) {
+      var monthIndex = monthNames.indexOf(month);
+      if (monthIndex < 0) return null;
+      var monthNumber = String(monthIndex + 1).padStart(2, '0');
+      var dayNumber = String(day).padStart(2, '0');
+      return year + '-' + monthNumber + '-' + dayNumber;
+    }
+
+    submitButton.addEventListener('click', function() {
+      var month = document.getElementById('selectMonth').value;
+      var day = document.getElementById('selectDay').value;
+      var year = document.getElementById('selectYear').value;
+      var selectedLocationId = Number(locationSelect.value || 0);
+
+      if (!month || !day || !year) {
+        alert('Please select a full date (Month, Day, and Year).');
+        return;
+      }
+      if (!selectedLocationId) {
+        alert('Please choose a client location.');
+        return;
+      }
+      if (!selectedServiceId) {
+        alert('Please select a service from the list.');
+        return;
+      }
+
+      var selectedService = services.find(function (service) {
+        return Number(service.service_id) === Number(selectedServiceId);
+      });
+
+      if (!selectedService) {
+        alert('Selected service could not be found. Please refresh and try again.');
+        return;
+      }
+
+      var dateLabel = month + ' ' + day + ', ' + year;
+      var requestedDate = buildIsoDate(month, day, year);
+      if (!requestedDate) {
+        alert('Invalid month selected. Please try again.');
+        return;
+      }
+
+      var selectedLocation = locations.find(function (loc) {
+        return Number(loc.location_id) === Number(selectedLocationId);
+      });
+      if (!selectedLocation) {
+        alert('Selected location could not be found. Please refresh and try again.');
+        return;
+      }
+
+      var payload = {
+        service_id: selectedService.service_id,
+        location_id: selectedLocationId,
+        requested_date: requestedDate,
+        requested_notes: notesInput.value.trim()
+      };
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Submitting...';
+
+      submitServiceRequest(payload).then(function (result) {
+        document.getElementById('confirm-service').textContent = selectedService.service_name;
+        document.getElementById('confirm-price').textContent = formatPrice(selectedService.base_price);
+        document.getElementById('confirm-date').textContent = dateLabel;
+        document.getElementById('confirm-location').textContent = selectedLocation.location_name || selectedLocation.street_1 || 'Location';
+        document.getElementById('confirm-request-id').textContent = String(result.service_request_id || 'N/A');
+
+        // Keep this for compatibility with the current appointments page while backend views are expanded.
+        var appointments = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
+        appointments.push({
+          service_request_id: result.service_request_id,
+          service_id: selectedService.service_id,
+          service: selectedService.service_name,
+          price: Number(selectedService.base_price || 0),
+          date: dateLabel,
+          location: selectedLocation.location_name || selectedLocation.street_1 || 'Pending confirmation',
+          status: result.status || 'Pending'
+        });
+        localStorage.setItem('plantedAppointments', JSON.stringify(appointments));
+
+        setMessage('Service request submitted successfully.', false);
+        new bootstrap.Modal(document.getElementById('confirmModal')).show();
+      }).catch(function (error) {
+        setMessage(error.message, true);
+      }).finally(function () {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Request Service';
+      });
+    });
+
+    (async function init() {
+      try {
+        var result = await Promise.all([fetchServices(), fetchLocations()]);
+        services = result[0];
+        locations = result[1];
+        renderLocations();
+        renderServiceGrid();
+        bindServiceSelection();
+      } catch (error) {
+        setMessage(error.message, true);
+      }
+    })();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends "base_management.html" %}
+{% set active_page = 'suppliers' %}
+
+{% block title %}Planted Management Portal{% endblock %}
+
+{% block vendor_css %}
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+/>
+{% endblock %}
+
+{% block page_content %}
+<div class="row align-items-center mb-2">
+  <div class="col">
+    <h2 class="page-title mb-0">Suppliers</h2>
+    <p class="page-subtitle mb-0">Manage Your Supplies</p>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-success px-4" data-bs-toggle="modal" data-bs-target="#addSupplierModal">+ Add Supplier</button>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Suppliers</h6><p class="stat-number" id="stat-total-suppliers">—</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Active Suppliers</h6><p class="stat-number text-green" id="stat-active-suppliers">—</p></div></div>
+  <div class="col-md-4 d-flex"><div class="stat-card w-100"><h6>Total Orders</h6><p class="stat-number" id="stat-total-orders">—</p></div></div>
+</div>
+
+<div class="management-section">
+  <form id="supplier-search-form" class="management-search-form" role="search">
+    <div class="input-group">
+      <span class="input-group-text management-search-icon">
+        <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg" alt="Search" />
+      </span>
+      <input id="supplier-search-input" class="form-control management-search-input me-2" type="search" placeholder="Search" aria-label="Search" />
+      <button class="btn btn-outline-success px-4" type="submit">Search</button>
+    </div>
+  </form>
+</div>
+
+<div class="management-content-block">
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Supplier Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Total Orders</th>
+          <th>Last Order</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="supplier-table-body">
+        <!-- Suppliers will be loaded dynamically -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Supplier Modal -->
+<div class="modal fade" id="editSupplierModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="edit-supplier-form">
+        <input type="hidden" id="edit-supplier-id">
+        <div class="modal-header">
+          <h2 class="modal-title">Edit Supplier</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label for="edit-supplier-name" class="form-label">Supplier Name</label>
+          <input id="edit-supplier-name" class="form-control mb-3" required>
+          <label for="edit-supplier-email" class="form-label">Email</label>
+          <input id="edit-supplier-email" type="email" class="form-control mb-3">
+          <label for="edit-supplier-phone" class="form-label">Phone</label>
+          <input id="edit-supplier-phone" class="form-control">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="add-supplier-form">
+        <div class="modal-header">
+          <h2 class="modal-title">Add Supplier</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label for="supplier-name-input" class="form-label">Supplier Name</label>
+          <input id="supplier-name-input" class="form-control mb-3" required>
+          <label for="supplier-email-input" class="form-label">Email</label>
+          <input id="supplier-email-input" type="email" class="form-control mb-3" required>
+          <label for="supplier-phone-input" class="form-label">Phone</label>
+          <input id="supplier-phone-input" class="form-control">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Save Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  var supplierSearchForm = document.getElementById('supplier-search-form');
+  var supplierSearchInput = document.getElementById('supplier-search-input');
+  var supplierTableBody = document.getElementById('supplier-table-body');
+  var addSupplierModal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
+  var editSupplierModal = new bootstrap.Modal(document.getElementById('editSupplierModal'));
+
+  window.openEditSupplier = function(id, name, email, phone) {
+    document.getElementById('edit-supplier-id').value = id;
+    document.getElementById('edit-supplier-name').value = name;
+    document.getElementById('edit-supplier-email').value = email;
+    document.getElementById('edit-supplier-phone').value = phone;
+    editSupplierModal.show();
+  };
+
+  document.getElementById('edit-supplier-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var id = document.getElementById('edit-supplier-id').value;
+    fetch('/api/suppliers/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        supplier_name: document.getElementById('edit-supplier-name').value.trim(),
+        email: document.getElementById('edit-supplier-email').value.trim(),
+        phone: document.getElementById('edit-supplier-phone').value.trim(),
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.error) { alert(data.error); return; }
+      editSupplierModal.hide();
+      loadSuppliers();
+    }).catch(function(err) { alert('Error: ' + err.message); });
+  });
+
+  function renderSupplierRow(supplier) {
+    var row = document.createElement('tr');
+    if (!supplier.is_active) {
+      row.classList.add('table-secondary');
+    }
+
+    var nameCell = document.createElement('td');
+    nameCell.textContent = supplier.supplier_name;
+    row.appendChild(nameCell);
+
+    var emailCell = document.createElement('td');
+    emailCell.textContent = supplier.email || '—';
+    row.appendChild(emailCell);
+
+    var phoneCell = document.createElement('td');
+    phoneCell.textContent = supplier.phone || '—';
+    row.appendChild(phoneCell);
+
+    var ordersCell = document.createElement('td');
+    ordersCell.textContent = supplier.total_orders || 0;
+    row.appendChild(ordersCell);
+
+    var lastOrderCell = document.createElement('td');
+    lastOrderCell.textContent = supplier.last_order_date || '—';
+    row.appendChild(lastOrderCell);
+
+    var statusCell = document.createElement('td');
+    statusCell.innerHTML = supplier.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+    row.appendChild(statusCell);
+
+    var actionsCell = document.createElement('td');
+    var editBtn = '<button class="btn btn-sm btn-outline-secondary me-1" onclick="openEditSupplier(' + supplier.supplier_id + ',\'' + (supplier.supplier_name||'').replace(/'/g,"\\'") + '\',\'' + (supplier.email||'').replace(/'/g,"\\'") + '\',\'' + (supplier.phone||'').replace(/'/g,"\\'") + '\')">Edit</button>';
+    if (supplier.is_active) {
+      actionsCell.innerHTML = editBtn + '<button class="btn btn-sm btn-outline-danger" onclick="removeSupplier(' + supplier.supplier_id + ')">Deactivate</button>';
+    } else {
+      actionsCell.innerHTML = editBtn + '<button class="btn btn-sm btn-outline-primary" onclick="reactivateSupplier(' + supplier.supplier_id + ')">Reactivate</button>';
+    }
+    row.appendChild(actionsCell);
+
+    return row;
+  }
+
+  function loadSuppliers(search = '') {
+    var url = '{{ url_for("get_suppliers") }}';
+    if (search) url += '?search=' + encodeURIComponent(search);
+
+    fetch(url, { credentials: 'same-origin' })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load suppliers: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        supplierTableBody.innerHTML = '';
+        if (!data.length) {
+          supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No suppliers found.</td></tr>';
+          return;
+        }
+        data.forEach(supplier => {
+          supplierTableBody.appendChild(renderSupplierRow(supplier));
+        });
+        updateStats(data);
+      })
+      .catch(error => {
+        console.error('Error loading suppliers:', error);
+        supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading suppliers. Please check console.</td></tr>';
+      });
+  }
+
+  function updateStats(suppliers) {
+    var total = suppliers.length;
+    var active = suppliers.filter(s => s.is_active).length;
+    var totalOrders = suppliers.reduce((sum, s) => sum + (s.total_orders || 0), 0);
+    document.getElementById('stat-total-suppliers').textContent = total;
+    document.getElementById('stat-active-suppliers').textContent = active;
+    document.getElementById('stat-total-orders').textContent = totalOrders;
+  }
+
+  function removeSupplier(supplierId) {
+    if (!confirm('Are you sure you want to deactivate this supplier?')) return;
+
+    fetch('{{ url_for("deactivate_supplier", supplier_id=0) }}'.replace('0', supplierId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      alert(data.message);
+      loadSuppliers();
+    })
+    .catch(error => console.error('Error deactivating supplier:', error));
+  }
+
+  function reactivateSupplier(supplierId) {
+    fetch('{{ url_for("reactivate_supplier", supplier_id=0) }}'.replace('0', supplierId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      alert(data.message);
+      loadSuppliers();
+    })
+    .catch(error => console.error('Error reactivating supplier:', error));
+  }
+
+  supplierSearchForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    loadSuppliers(supplierSearchInput.value.trim());
+  });
+
+  document.getElementById('add-supplier-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    var name = document.getElementById('supplier-name-input').value.trim();
+    var email = document.getElementById('supplier-email-input').value.trim();
+    var phone = document.getElementById('supplier-phone-input').value.trim();
+
+    if (!name || !email) {
+      alert('Please fill in Supplier Name and Email.');
+      return;
+    }
+
+    fetch('{{ url_for("add_supplier") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier_name: name, email: email, phone: phone }),
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message) {
+        alert(data.message);
+        addSupplierModal.hide();
+        document.getElementById('add-supplier-form').reset();
+        loadSuppliers();
+      } else {
+        alert(data.error || 'Error adding supplier');
+      }
+    })
+    .catch(error => console.error('Error adding supplier:', error));
+  });
+
+  loadSuppliers();
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planted - Create Account</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cardo:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-base.css') }}">
+    </head>
+<body>
+    <div class="landing-page">
+        <div class="login-container">
+            <img class="logo-img" src="{{ url_for('static', filename='images/planted-logo-10.png') }}" alt="Planted Logo">
+            <h1 class="planted">Planted</h1>
+            <p class="plant-management-solutions">Plant Management Solutions</p>
+            <div class="rectangle-1 login-card">
+                <h2 class="welcome-back">Create Account</h2>
+                                <p class="login-to-your-account">Set up your client dashboard in under a minute.</p>
+                <form class="frame-1" action="{{ url_for('create_account') }}" method="post">
+                    <label for="name">Full Name</label>
+                                        <input
+                                            class="email-box"
+                                            type="text"
+                                            id="name"
+                                            name="name"
+                                            value="{{ request.form.get('name', '') }}"
+                                            autocomplete="name"
+                                            required
+                                        >
+
+                    <label for="email">Email</label>
+                                        <input
+                                            class="email-box"
+                                            type="email"
+                                            id="email"
+                                            name="email"
+                                            value="{{ request.form.get('email', '') }}"
+                                            autocomplete="email"
+                                            required
+                                        >
+
+                    <label for="password">Password</label>
+                                        <input
+                                            class="password-box"
+                                            type="password"
+                                            id="password"
+                                            name="password"
+                                            autocomplete="new-password"
+                                            minlength="8"
+                                            required
+                                        >
+
+                    <label for="confirm-password">Confirm Password</label>
+                                        <input
+                                            class="password-box"
+                                            type="password"
+                                            id="confirm-password"
+                                            name="confirm-password"
+                                            autocomplete="new-password"
+                                            minlength="8"
+                                            required
+                                        >
+
+                                        <div class="error-messages" aria-live="polite">
+                        {% if error %}
+                        <p class="error-text show">{{ error }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="sign-in-button">Create Account</button>
+                                        <a href="{{ url_for('login') }}" class="create-account-button">Back to Sign In</a>
+                                        <a href="{{ url_for('login') }}" class="sign-in-link">Already have an account? Sign in here.</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

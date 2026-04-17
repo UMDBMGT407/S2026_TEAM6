@@ -1,0 +1,1280 @@
+{% extends "base_management.html" %}
+{% set active_page = 'employees' %}
+
+{% block title %}Planted Management Portal{% endblock %}
+
+{% block vendor_css %}
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage-employee.css') }}">
+{% endblock %}
+
+{% block page_content %}
+          <div class="row align-items-center mb-2">
+            <div class="col">
+              <h2 class="page-title mb-0">Manage Employee Info</h2>
+              <p class="page-subtitle mb-0">
+                Monitor and manage your team's availability
+              </p>
+            </div>
+            <div class="col-auto">
+              <button
+                class="btn btn-outline-success px-4"
+                data-bs-toggle="modal"
+                data-bs-target="#employeeManagementModal"
+              >
+                Edit Employees
+              </button>
+            </div>
+          </div>
+
+          <div class="row g-4 mt-2">
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
+                <h6>Total Employees</h6>
+                <p class="stat-number" id="stat-total">—</p>
+              </div>
+            </div>
+
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
+                <h6>Available Now</h6>
+                <p class="stat-number text-green" id="stat-available">—</p>
+              </div>
+            </div>
+
+            <div class="col-md-4 d-flex">
+              <div class="stat-card w-100">
+                <h6>On Active Job</h6>
+                <p class="stat-number text-red" id="stat-on-job">—</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="management-section">
+            <form id="employeeSearchForm" class="management-search-form" role="search">
+              <div class="input-group">
+                <span class="input-group-text management-search-icon">
+                  <img
+                    src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg"
+                    alt="Search"
+                  />
+                </span>
+                <input
+                  id="employeeSearchInput"
+                  class="form-control management-search-input me-2"
+                  type="search"
+                  placeholder="Search"
+                  aria-label="Search"
+                />
+                <button class="btn btn-outline-success px-4" type="submit">
+                  Search
+                </button>
+              </div>
+            </form>
+            <div class="d-flex gap-2 mt-3" id="employeeStatusFilters">
+              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="active">Active</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary employee-filter-btn" data-status="inactive">Inactive</button>
+              <button type="button" class="btn btn-sm btn-success employee-filter-btn" data-status="all">All</button>
+            </div>
+          </div>
+
+          <!-- 2x2 Cards Grid - Loaded Dynamically -->
+          <div class="row mt-4" id="employeeCardsGrid">
+            <!-- Employee cards will be loaded here dynamically -->
+          </div>
+
+          <!-- employee pop up -->
+          <div
+            class="modal fade"
+            id="employeeManagementModal"
+            tabindex="-1"
+            aria-labelledby="employeeManagementModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content employee-modal">
+                <div class="modal-header employee-modal-header border-0">
+                  <div>
+                    <h2
+                      class="modal-title mb-0"
+                      id="employeeManagementModalLabel"
+                    >
+                      Employee Management
+                    </h2>
+                    <p class="mb-0 employee-modal-subtitle">
+                      Add or remove specialists from the system
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn-close custom-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+
+                <div class="modal-body p-4">
+                  <button class="btn add-employee-btn w-100 mb-4" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                    + Add New Employee
+                  </button>
+
+                  <p class="employee-section-label mb-3">
+                    CURRENT EMPLOYEES (<span id="employeeCount">0</span>)
+                  </p>
+
+                  <div id="employeeList">
+                    <!-- Employees will be loaded here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Employee Form Modal -->
+          <div
+            class="modal fade"
+            id="addEmployeeModal"
+            tabindex="-1"
+            aria-labelledby="addEmployeeModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content employee-modal">
+                <div class="modal-header employee-modal-header border-0">
+                  <div>
+                    <h2 class="modal-title mb-0" id="addEmployeeModalLabel">
+                      Add New Employee
+                    </h2>
+                    <p class="mb-0 employee-modal-subtitle">
+                      Fill in the employee details below
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-close custom-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+
+                <div class="modal-body p-4">
+                  <form id="addEmployeeForm">
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label for="firstName" class="form-label">First Name *</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="firstName"
+                          name="first_name"
+                          required
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label for="lastName" class="form-label">Last Name *</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="lastName"
+                          name="last_name"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email *</label>
+                      <input
+                        type="email"
+                        class="form-control"
+                        id="email"
+                        name="email"
+                        required
+                      />
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input
+                          type="tel"
+                          class="form-control"
+                          id="phone"
+                          name="phone"
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label for="password" class="form-label">Password</label>
+                        <input
+                          type="password"
+                          class="form-control"
+                          id="password"
+                          name="password"
+                          placeholder="Leave blank for default: test123"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="role" class="form-label">Role</label>
+                      <select class="form-control" id="role" name="role">
+                        <option value="Staff" selected>Staff</option>
+                        <option value="Management">Management</option>
+                        <option value="Client">Client</option>
+                      </select>
+                    </div>
+
+                    <div id="formMessage" class="alert d-none" role="alert"></div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal"
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" class="btn btn-success">
+                        Add Employee
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- availability pop up -->
+          <div
+            class="modal fade"
+            id="availabilityModal"
+            tabindex="-1"
+            aria-labelledby="availabilityModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content availability-modal">
+                <div class="modal-body p-4">
+                  <p class="availability-label mb-1">Availability Status</p>
+                  <h2
+                    class="availability-name mb-4"
+                    id="availabilityModalLabel"
+                  >
+                    Select an employee
+                  </h2>
+
+                  <div class="availability-grid">
+                    <div class="schedule-header-empty"></div>
+                    <div class="schedule-day">Sun</div>
+                    <div class="schedule-day">Mon</div>
+                    <div class="schedule-day">Tues</div>
+                    <div class="schedule-day">Wed</div>
+                    <div class="schedule-day">Thurs</div>
+                    <div class="schedule-day">Fri</div>
+                    <div class="schedule-day">Sat</div>
+
+                    <!-- 8am -->
+                    <div class="schedule-time">8am</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+
+                    <!-- 9am -->
+                    <div class="schedule-time">9am</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 10am -->
+                    <div class="schedule-time">10am</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 11am -->
+                    <div class="schedule-time">11am</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 12pm -->
+                    <div class="schedule-time">12pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 1pm -->
+                    <div class="schedule-time">1pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 2pm -->
+                    <div class="schedule-time">2pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 3pm -->
+                    <div class="schedule-time">3pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 4pm -->
+                    <div class="schedule-time">4pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell active"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 5pm -->
+                    <div class="schedule-time">5pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 6pm -->
+                    <div class="schedule-time">6pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 7pm -->
+                    <div class="schedule-time">7pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 8pm -->
+                    <div class="schedule-time">8pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 9pm -->
+                    <div class="schedule-time">9pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+
+                    <!-- 10pm -->
+                    <div class="schedule-time">10pm</div>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                    <button class="schedule-cell"></button>
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button
+                      class="btn btn-outline-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      Close
+                    </button>
+                    <button class="btn btn-outline-success">
+                      Save Availability
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- payroll pop up -->
+          <div
+            class="modal fade"
+            id="payrollModal"
+            tabindex="-1"
+            aria-labelledby="payrollModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content payroll-modal">
+                <div class="modal-body p-4 p-md-5">
+                  <div
+                    class="d-flex justify-content-between align-items-start mb-3"
+                  >
+                    <div>
+                      <h2 class="payroll-title mb-1" id="payrollModalLabel">
+                        Payroll Details
+                      </h2>
+                      <p class="payroll-subtitle mb-0">
+                        Selected employee • Current pay period
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal"
+                      aria-label="Close"
+                    ></button>
+                  </div>
+
+                  <hr class="payroll-divider" />
+
+                  <section class="mb-4">
+                    <h5 class="section-title mb-3">Employee Information</h5>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <div class="info-box">
+                          <div class="info-label">Employee ID</div>
+                          <div class="info-value">--</div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="info-box">
+                          <div class="info-label">Employee Name</div>
+                          <div class="info-value">--</div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="info-box">
+                          <div class="info-label">Role</div>
+                          <div class="info-value">--</div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="info-box">
+                          <div class="info-label">Pay Rate</div>
+                          <div class="info-value">--</div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <hr class="payroll-divider" />
+
+                  <section class="mb-4">
+                    <div class="pay-period-box">
+                      <span class="pay-period-label">Pay Period:</span>
+                      <span class="pay-period-value"
+                        >March 1 - March 15, 2026</span
+                      >
+                    </div>
+                  </section>
+
+                  <hr class="payroll-divider" />
+
+                  <section class="mb-4">
+                    <h5 class="section-title mb-3">Hours Breakdown</h5>
+                    <div class="row g-3">
+                      <div class="col-md-4">
+                        <div class="hours-box">
+                          <div class="info-label">Regular Hours</div>
+                          <div class="hours-value">75h</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="hours-box">
+                          <div class="info-label">Overtime Hours</div>
+                          <div class="hours-value text-danger">0h</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="hours-box">
+                          <div class="info-label">Billable Hours</div>
+                          <div class="hours-value text-success">75h</div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <hr class="payroll-divider" />
+
+                  <section class="mb-4">
+                    <h5 class="section-title mb-3">Pay Breakdown</h5>
+
+                    <div class="pay-row neutral-row">
+                      <span>Regular Pay</span>
+                      <span>75h × $24.00 = $1,800</span>
+                    </div>
+
+                    <div class="pay-row positive-row">
+                      <span>Regular Pay</span>
+                      <span>+$150</span>
+                    </div>
+
+                    <div class="pay-row negative-row">
+                      <span>Deductions</span>
+                      <span>-$285</span>
+                    </div>
+                  </section>
+
+                  <hr class="payroll-divider" />
+
+                  <section class="mb-4">
+                    <div class="summary-box gross-box">
+                      <span>Gross Pay</span>
+                      <span>$1900</span>
+                    </div>
+
+                    <div class="summary-box net-box mt-3">
+                      <span>Net Pay</span>
+                      <span>$1615</span>
+                    </div>
+                  </section>
+
+                  <hr class="payroll-divider" />
+
+                  <section>
+                    <h5 class="section-title mb-3">Payment Info</h5>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <div class="info-box payment-box">
+                          <div class="payment-title">Payment Method</div>
+                          <div class="payment-value">Direct Deposit</div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="info-box payment-box">
+                          <div class="payment-title">Payment Date</div>
+                          <div class="payment-value">2026-03-16</div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="modal fade"
+            id="assignTaskModal"
+            tabindex="-1"
+            aria-labelledby="assignTaskModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 class="modal-title h5 mb-0" id="assignTaskModalLabel">Assign / Reassign Task</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <div class="modal-body">
+                  <p class="mb-2"><strong>Employee:</strong> <span id="assignTaskEmployeeName"></span></p>
+                  <p class="text-muted mb-3">Only jobs where this employee is available and not already double-booked appear below.</p>
+                  <div id="assignTaskMessage" class="mb-3"></div>
+                  <div id="assignableJobsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content employee-modal">
+      <div class="modal-header employee-modal-header border-0">
+        <h2 class="modal-title mb-0">Edit Employee</h2>
+        <button type="button" class="btn-close custom-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="edit-employee-form">
+          <input type="hidden" id="edit-emp-user-id">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="edit-emp-first" class="form-label">First Name</label>
+              <input id="edit-emp-first" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label for="edit-emp-last" class="form-label">Last Name</label>
+              <input id="edit-emp-last" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="edit-emp-phone" class="form-label">Phone</label>
+            <input id="edit-emp-phone" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label for="edit-emp-password" class="form-label">Password</label>
+            <input
+              id="edit-emp-password"
+              type="password"
+              class="form-control"
+              placeholder="Leave blank to reset to default: test123"
+            >
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="edit-emp-title" class="form-label">Job Title</label>
+              <input id="edit-emp-title" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label for="edit-emp-pay" class="form-label">Pay Rate ($/hr)</label>
+              <input id="edit-emp-pay" type="number" min="0" step="0.01" class="form-control">
+            </div>
+          </div>
+          <div id="edit-emp-message" class="mb-3"></div>
+          <div class="text-end">
+            <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  let currentEmployeeStatusFilter = 'all';
+  let currentEmployeeSearch = '';
+  let selectedEmployeeId = null;
+  let assignmentEmployeeId = null;
+  let assignmentEmployeeName = '';
+
+  const employeeSearchForm = document.getElementById('employeeSearchForm');
+  const employeeSearchInput = document.getElementById('employeeSearchInput');
+  const employeeFilterButtons = document.querySelectorAll('.employee-filter-btn');
+  const assignTaskModalElement = document.getElementById('assignTaskModal');
+  const assignTaskModal = bootstrap.Modal.getOrCreateInstance(assignTaskModalElement);
+  const assignTaskEmployeeNameEl = document.getElementById('assignTaskEmployeeName');
+  const assignTaskMessageEl = document.getElementById('assignTaskMessage');
+  const assignableJobsListEl = document.getElementById('assignableJobsList');
+
+  async function fetchJson(url, options) {
+    const response = await fetch(url, options || {});
+    const contentType = response.headers.get('content-type') || '';
+    let data = null;
+
+    if (contentType.indexOf('application/json') !== -1) {
+      data = await response.json();
+    } else {
+      const rawText = await response.text();
+      if (response.status === 401 || response.status === 403 || rawText.toLowerCase().indexOf('<!doctype') !== -1) {
+        throw new Error('Your session may have expired. Please sign in again and refresh.');
+      }
+      throw new Error('Unexpected server response (HTTP ' + response.status + ').');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || ('HTTP ' + response.status));
+    }
+    return data;
+  }
+
+  function setAssignTaskMessage(text, isError) {
+    assignTaskMessageEl.textContent = text || '';
+    assignTaskMessageEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
+  }
+
+  function buildEmployeesQuery() {
+    const params = new URLSearchParams();
+    params.set('status', currentEmployeeStatusFilter);
+    if (currentEmployeeSearch) {
+      params.set('search', currentEmployeeSearch);
+    }
+    return params.toString();
+  }
+
+  async function loadEmployeeStats() {
+    try {
+      const res = await fetch('/api/management/employee-stats');
+      const data = await res.json();
+      document.getElementById('stat-total').textContent = data.total ?? '—';
+      document.getElementById('stat-available').textContent = data.available ?? '—';
+      document.getElementById('stat-on-job').textContent = data.on_job ?? '—';
+    } catch (e) {
+      console.error('Error loading employee stats:', e);
+    }
+  }
+
+  async function refreshEmployeeViews() {
+    await Promise.all([loadEmployees(), loadEmployeeCards(), loadEmployeeStats()]);
+  }
+
+  // Load employees when modal is shown
+  const employeeManagementModal = document.getElementById('employeeManagementModal');
+  employeeManagementModal.addEventListener('show.bs.modal', async function() {
+    await loadEmployees();
+  });
+
+  // Fetch and display employees
+  async function loadEmployees() {
+    try {
+      const response = await fetch(`/employees?${buildEmployeesQuery()}`);
+      const employees = await response.json();
+      
+      const employeeList = document.getElementById('employeeList');
+      const employeeCount = document.getElementById('employeeCount');
+      
+      if (employees.length === 0) {
+        employeeList.innerHTML = '<p class="text-muted">No employees yet</p>';
+        employeeCount.textContent = '0';
+        return;
+      }
+      
+      employeeCount.textContent = employees.length;
+      
+      employeeList.innerHTML = employees.map(emp => `
+        <div class="employee-row d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div class="employee-info">
+            <h5 class="mb-0 employee-name">${emp.name}</h5>
+            <p class="mb-1 employee-role">${emp.role}</p>
+            <div class="employee-contact">
+              <span>${emp.email || 'N/A'}</span>
+              <span class="ms-4">${emp.phone || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            ${
+              emp.is_active
+                ? `<button class="btn remove-employee-btn" onclick="deleteEmployee(${emp.id})">Remove Employee</button>`
+                : `<button class="btn btn-outline-success" onclick="reactivateEmployee(${emp.id})">Reactivate Employee</button>`
+            }
+            <span class="status-pill ${emp.is_active ? 'active-pill' : ''}" ${emp.is_active ? '' : 'style="background:#f8d7da;color:#842029;border:1px solid #f5c2c7;"'}>
+              ${emp.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading employees:', error);
+      document.getElementById('employeeList').innerHTML = '<p class="text-danger">Error loading employees</p>';
+    }
+  }
+
+  // Delete employee
+  async function deleteEmployee(userId) {
+    if (!confirm('Are you sure you want to remove this employee?')) return;
+    
+    try {
+      const response = await fetch(`/user/${userId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Employee removed successfully');
+        await refreshEmployeeViews();
+      } else {
+        alert(data.error || 'Error removing employee');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error removing employee');
+    }
+  }
+
+  // Reactivate employee
+  async function reactivateEmployee(userId) {
+    if (!confirm('Are you sure you want to reactivate this employee?')) return;
+
+    try {
+      const response = await fetch(`/user/${userId}/reactivate`, {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Employee reactivated successfully');
+        await refreshEmployeeViews();
+      } else {
+        alert(data.error || 'Error reactivating employee');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error reactivating employee');
+    }
+  }
+
+  // Handle Add Employee Form Submission
+  document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formMessage = document.getElementById('formMessage');
+    formMessage.classList.add('d-none');
+    
+    const formData = {
+      first_name: document.getElementById('firstName').value.trim(),
+      last_name: document.getElementById('lastName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      password: document.getElementById('password').value.trim(),
+      role: document.getElementById('role').value
+    };
+
+    // Validate required fields
+    if (!formData.first_name || !formData.last_name || !formData.email) {
+      formMessage.textContent = 'Please fill in all required fields (First Name, Last Name, Email)';
+      formMessage.className = 'alert alert-danger';
+      formMessage.classList.remove('d-none');
+      return;
+    }
+
+    try {
+      const response = await fetch('/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        formMessage.textContent = 'Employee added successfully!';
+        formMessage.className = 'alert alert-success';
+        formMessage.classList.remove('d-none');
+        
+        // Reset form
+        document.getElementById('addEmployeeForm').reset();
+        
+        // Close modal after 1 second
+        setTimeout(async () => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+          if (modal) modal.hide();
+          // Reload employee views
+          await refreshEmployeeViews();
+        }, 1000);
+      } else {
+        formMessage.textContent = data.error || 'Error adding employee. Please try again.';
+        formMessage.className = 'alert alert-danger';
+        formMessage.classList.remove('d-none');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      formMessage.textContent = 'Error adding employee. Please try again.';
+      formMessage.className = 'alert alert-danger';
+      formMessage.classList.remove('d-none');
+    }
+  });
+
+  // Load employee cards on page load
+
+  async function loadEmployeeCards() {
+    try {
+      const response = await fetch(`/employees?${buildEmployeesQuery()}`);
+      const employees = await response.json();
+      
+      const cardsGrid = document.getElementById('employeeCardsGrid');
+      
+      if (employees.length === 0) {
+        cardsGrid.innerHTML = '<div class="col-12"><p class="text-muted text-center">No employees to display</p></div>';
+        return;
+      }
+      
+      cardsGrid.innerHTML = employees.map(emp => `
+        <div class="col-md-6 mb-4">
+          <div class="card rounded-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <h5 class="fw-bold m-0">${emp.name}</h5>
+                <span class="${emp.is_active ? 'text-success border border-success' : 'text-danger border border-danger'} rounded px-2">
+                  ${emp.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div class="page-subtitle m-0">
+                <small class="employee-info-line">${emp.phone || 'No phone'}</small>
+                <small class="employee-info-line">${emp.email || 'No email'}</small>
+              </div>
+
+              <div class="d-grid gap-2 mt-3">
+                <button class="btn btn-sm btn-outline-dark view-availability-btn"
+                  data-employee-id="${emp.employee_id || emp.id}"
+                  data-employee-name="${emp.name}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#availabilityModal">
+                  View Availability
+                </button>
+                ${
+                  emp.is_active && emp.role === 'Staff' && emp.employee_id
+                    ? `<button class="btn btn-sm btn-outline-success assign-task-btn"
+                        data-employee-id="${emp.employee_id}"
+                        data-employee-name="${encodeURIComponent(emp.name || '')}">
+                        Assign/Reassign Task
+                      </button>`
+                    : ''
+                }
+                <button class="btn btn-sm btn-outline-secondary edit-employee-btn"
+                  data-user-id="${emp.id}"
+                  data-name="${emp.name || ''}"
+                  data-phone="${emp.phone || ''}"
+                  data-job-title="${emp.job_title || ''}"
+                  data-pay-rate="${emp.pay_rate_hourly || ''}">
+                  Edit
+                </button>
+                ${
+                  emp.is_active
+                    ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deleteEmployee(${emp.id})">Remove</button>`
+                    : `<button class="btn btn-sm btn-outline-success rounded-pill" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      // Attach click handlers to View Availability buttons
+      document.querySelectorAll('.view-availability-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          selectedEmployeeId = this.dataset.employeeId;
+          const employeeName = this.dataset.employeeName;
+          document.getElementById('availabilityModalLabel').textContent = employeeName;
+          loadAvailabilityGrid();
+        });
+      });
+
+      document.querySelectorAll('.assign-task-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          assignmentEmployeeId = Number(this.dataset.employeeId);
+          assignmentEmployeeName = decodeURIComponent(this.dataset.employeeName || '');
+          await openAssignTaskModal();
+        });
+      });
+
+      document.querySelectorAll('.edit-employee-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const nameParts = (this.dataset.name || '').split(' ');
+          document.getElementById('edit-emp-user-id').value = this.dataset.userId;
+          document.getElementById('edit-emp-first').value = nameParts[0] || '';
+          document.getElementById('edit-emp-last').value = nameParts.slice(1).join(' ') || '';
+          document.getElementById('edit-emp-phone').value = this.dataset.phone || '';
+          document.getElementById('edit-emp-password').value = '';
+          document.getElementById('edit-emp-title').value = this.dataset.jobTitle || '';
+          document.getElementById('edit-emp-pay').value = this.dataset.payRate || '';
+          document.getElementById('edit-emp-message').innerHTML = '';
+          bootstrap.Modal.getOrCreateInstance(document.getElementById('editEmployeeModal')).show();
+        });
+      });
+    } catch (error) {
+      console.error('Error loading employee cards:', error);
+    }
+  }
+
+  async function loadAssignableJobsForEmployee(employeeId) {
+    return await fetchJson(`/api/management/employees/${employeeId}/assignable-jobs`);
+  }
+
+  function renderAssignableJobs(jobs) {
+    const availableJobs = jobs.filter(job => job.can_assign);
+
+    if (!availableJobs.length) {
+      assignableJobsListEl.innerHTML = '<p class="text-muted mb-0">No currently assignable jobs for this employee.</p>';
+      return;
+    }
+
+    assignableJobsListEl.innerHTML = availableJobs.map(job => {
+      const assignedLabel = job.assigned_name || 'Unassigned';
+      return `
+        <div class="border rounded p-3 mb-2">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold">${job.job_order_code || ('Job #' + job.job_id)} - ${job.title || 'Job'}</div>
+              <div class="text-muted">${job.company || 'Client'}</div>
+              <div><small>Date: ${job.scheduled_date || 'N/A'} | Time: ${job.start_time || '--'} - ${job.end_time || '--'}</small></div>
+              <div><small>Currently Assigned: ${assignedLabel}</small></div>
+            </div>
+            <button class="btn btn-sm btn-success assign-selected-job-btn" data-job-id="${job.job_id}">
+              Assign Here
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function openAssignTaskModal() {
+    if (!assignmentEmployeeId) {
+      return;
+    }
+
+    assignTaskEmployeeNameEl.textContent = assignmentEmployeeName || ('Employee #' + assignmentEmployeeId);
+    setAssignTaskMessage('', false);
+    assignableJobsListEl.innerHTML = '<p class="text-muted mb-0">Loading assignable jobs...</p>';
+    assignTaskModal.show();
+
+    try {
+      const jobs = await loadAssignableJobsForEmployee(assignmentEmployeeId);
+      renderAssignableJobs(jobs);
+    } catch (error) {
+      setAssignTaskMessage(error.message, true);
+      assignableJobsListEl.innerHTML = '';
+    }
+  }
+
+  async function assignEmployeeToJob(jobId) {
+    if (!assignmentEmployeeId) return;
+
+    try {
+      await fetchJson(`/jobs/${jobId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ employee_id: assignmentEmployeeId })
+      });
+      setAssignTaskMessage('Assignment updated successfully.', false);
+      await refreshEmployeeViews();
+      const jobs = await loadAssignableJobsForEmployee(assignmentEmployeeId);
+      renderAssignableJobs(jobs);
+    } catch (error) {
+      setAssignTaskMessage(error.message, true);
+    }
+  }
+
+  // Get the current week's Monday date
+  function getWeekStartDate() {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    const year = monday.getFullYear();
+    const month = String(monday.getMonth() + 1).padStart(2, '0');
+    const date = String(monday.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
+  }
+
+  // Populate availability grid with data from database
+  async function loadAvailabilityGrid() {
+    if (!selectedEmployeeId) {
+      console.warn('No employee selected');
+      return;
+    }
+
+    try {
+      const weekStart = getWeekStartDate();
+      console.log('Loading availability for employee:', selectedEmployeeId, 'week:', weekStart);
+      
+      const response = await fetch(`/availability/employee/${selectedEmployeeId}?week_start_date=${weekStart}`);
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const availabilityResponse = await response.json();
+      const availability = availabilityResponse.availability || availabilityResponse;
+      console.log('Availability data received:', availabilityResponse);
+
+      // Map day index to day name: 0=Sunday, 1=Monday, etc.
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      // Generate time slots from 8am to 10pm (22:00)
+      const hours = [];
+      for (let h = 8; h <= 22; h++) {
+        hours.push(h);
+      }
+
+      // Clear existing grid and rebuild
+      const availabilityGrid = document.querySelector('.availability-grid');
+      
+      if (!availabilityGrid) {
+        console.error('Availability grid element not found');
+        throw new Error('Availability grid element not found in DOM');
+      }
+      
+      // Create header with day names
+      let gridHTML = '<div class="schedule-header-empty"></div>';
+      for (let day = 0; day < 7; day++) {
+        const dayAbbrev = dayNames[day].substring(0, 3);
+        gridHTML += `<div class="schedule-day">${dayAbbrev}</div>`;
+      }
+
+      // Create time slots
+      for (let hour of hours) {
+        const period = hour >= 12 ? 'pm' : 'am';
+        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+        gridHTML += `<div class="schedule-time">${displayHour}${period}</div>`;
+
+        // For each day of the week
+        for (let day = 0; day < 7; day++) {
+          const dayAvailability = availability[String(day)] || availability[day];
+          let isActive = false;
+
+          // Check if current hour falls within the available time range
+          if (dayAvailability && dayAvailability.available && dayAvailability.from && dayAvailability.to) {
+            const fromHour = parseInt(dayAvailability.from.split(':')[0]);
+            const toHour = parseInt(dayAvailability.to.split(':')[0]);
+            console.log(`Day ${day}: from ${fromHour} to ${toHour}, checking hour ${hour}`);
+            if (hour >= fromHour && hour < toHour) {
+              isActive = true;
+            }
+          }
+
+          gridHTML += `<button class="schedule-cell ${isActive ? 'active' : ''}" disabled></button>`;
+        }
+      }
+
+      // Update grid with new HTML
+      console.log('Rendering grid with', hours.length, 'hours');
+      availabilityGrid.innerHTML = gridHTML;
+    } catch (error) {
+      console.error('Error loading availability:', error);
+      alert('Failed to load availability: ' + error.message);
+    }
+  }
+
+  // Auto-refresh availability every 5 seconds when modal is open
+  let availabilityRefreshInterval = null;
+  
+  const availabilityModal = document.getElementById('availabilityModal');
+  if (availabilityModal) {
+    availabilityModal.addEventListener('show.bs.modal', function() {
+      // Small delay to ensure authentication is ready
+      setTimeout(function() {
+        loadAvailabilityGrid();
+        // Refresh every 3 seconds while modal is open
+        availabilityRefreshInterval = setInterval(loadAvailabilityGrid, 3000);
+      }, 100);
+    });
+    
+    availabilityModal.addEventListener('hidden.bs.modal', function() {
+      if (availabilityRefreshInterval) {
+        clearInterval(availabilityRefreshInterval);
+        availabilityRefreshInterval = null;
+      }
+    });
+  }
+
+  employeeSearchForm.addEventListener('submit', async function(event) {
+    event.preventDefault();
+    currentEmployeeSearch = employeeSearchInput.value.trim();
+    await refreshEmployeeViews();
+  });
+
+  employeeSearchInput.addEventListener('input', async function() {
+    currentEmployeeSearch = employeeSearchInput.value.trim();
+    await refreshEmployeeViews();
+  });
+
+  employeeFilterButtons.forEach(function(button) {
+    button.addEventListener('click', async function() {
+      currentEmployeeStatusFilter = this.dataset.status;
+
+      employeeFilterButtons.forEach(function(btn) {
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+      });
+      this.classList.remove('btn-outline-secondary');
+      this.classList.add('btn-success');
+
+      await refreshEmployeeViews();
+    });
+  });
+
+  assignableJobsListEl.addEventListener('click', async function(event) {
+    const button = event.target.closest('.assign-selected-job-btn');
+    if (!button) return;
+    const jobId = Number(button.dataset.jobId);
+    if (!jobId) return;
+    await assignEmployeeToJob(jobId);
+  });
+
+  // Edit employee form submit
+  document.getElementById('edit-employee-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const userId = document.getElementById('edit-emp-user-id').value;
+    const msgEl = document.getElementById('edit-emp-message');
+    const payload = {
+      first_name: document.getElementById('edit-emp-first').value.trim(),
+      last_name: document.getElementById('edit-emp-last').value.trim(),
+      phone: document.getElementById('edit-emp-phone').value.trim(),
+      password: document.getElementById('edit-emp-password').value,
+      job_title: document.getElementById('edit-emp-title').value.trim(),
+      pay_rate_hourly: document.getElementById('edit-emp-pay').value || null,
+    };
+    try {
+      const res = await fetch('/api/employees/' + userId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('editEmployeeModal')).hide();
+      refreshEmployeeViews();
+    } catch (err) {
+      msgEl.innerHTML = '<span class="text-danger">' + err.message + '</span>';
+    }
+  });
+
+  // Load employees on page load
+  refreshEmployeeViews();
+</script>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "base_client.html" %}
+{% set active_page = 'profile' %}
+
+{% block title %}Planted - My Profile{% endblock %}
+
+{% block vendor_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="mb-4">
+  <h1 class="page-title">My Profile</h1>
+  <p class="page-subtitle">Manage your account information and service locations</p>
+</div>
+
+<div class="profile-banner mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-9 d-flex align-items-center gap-4">
+      <div class="profile-avatar" id="profile-avatar">--</div>
+      <div>
+        <div class="profile-name" id="profile-name">Loading...</div>
+        <div class="profile-email" id="profile-email">Loading...</div>
+        <div class="profile-since" id="profile-since">Member since --</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="profile-form" class="profile-card mb-3 p-4">
+  <div class="profile-section-title mb-3">Profile Information</div>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label for="first-name-input" class="profile-field-label">FIRST NAME</label>
+      <input id="first-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+      <label for="last-name-input" class="profile-field-label">LAST NAME</label>
+      <input id="last-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+      <label for="email-input" class="profile-field-label">EMAIL</label>
+      <input id="email-input" class="form-control" disabled />
+    </div>
+    <div class="col-md-3">
+      <label for="phone-input" class="profile-field-label">PHONE</label>
+      <input id="phone-input" class="form-control" />
+    </div>
+    <div class="col-md-6">
+      <label for="company-name-input" class="profile-field-label">COMPANY NAME</label>
+      <input id="company-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+      <button type="submit" class="btn-action">Save Profile</button>
+    </div>
+  </div>
+</form>
+
+<div class="profile-card mb-3 p-4">
+  <div class="profile-section-title mb-3">Service Locations</div>
+  <p id="profile-status" class="mb-3"></p>
+  <div id="locations-list" class="mb-4"></div>
+
+  <div class="profile-section-title mb-3">Add Location</div>
+  <form id="add-location-form" class="row g-3">
+    <div class="col-md-4">
+      <label for="location-name-input" class="profile-field-label">LOCATION NAME</label>
+      <input id="location-name-input" class="form-control" required />
+    </div>
+    <div class="col-md-8">
+      <label for="street-input" class="profile-field-label">STREET ADDRESS</label>
+      <input id="street-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="city-input" class="profile-field-label">CITY</label>
+      <input id="city-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="state-input" class="profile-field-label">STATE</label>
+      <input id="state-input" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <label for="zip-input" class="profile-field-label">ZIP</label>
+      <input id="zip-input" class="form-control" required />
+    </div>
+    <div class="col-md-12">
+      <button type="submit" class="btn-action">Add Location</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    var profileForm = document.getElementById('profile-form');
+    var locationForm = document.getElementById('add-location-form');
+    var statusEl = document.getElementById('profile-status');
+    var locationsList = document.getElementById('locations-list');
+
+    function setStatus(text, isError) {
+      statusEl.textContent = text || '';
+      statusEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function fetchJson(url, options) {
+      var response = await fetch(url, options || {});
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data;
+    }
+
+    async function loadProfile() {
+      var data = await fetchJson('/api/client/profile');
+      document.getElementById('first-name-input').value = data.first_name || '';
+      document.getElementById('last-name-input').value = data.last_name || '';
+      document.getElementById('email-input').value = data.email || '';
+      document.getElementById('phone-input').value = data.phone || '';
+      document.getElementById('company-name-input').value = data.company_name || '';
+
+      var initials = ((data.first_name || '').slice(0, 1) + (data.last_name || '').slice(0, 1)).toUpperCase();
+      document.getElementById('profile-avatar').textContent = initials || '--';
+      document.getElementById('profile-name').textContent = (data.first_name || '') + ' ' + (data.last_name || '');
+      document.getElementById('profile-email').textContent = data.email || '';
+      if (data.member_since) {
+        var dt = new Date(data.member_since);
+        document.getElementById('profile-since').textContent = 'Member since ' + dt.getFullYear();
+      } else {
+        document.getElementById('profile-since').textContent = 'Member since --';
+      }
+    }
+
+    async function loadLocations() {
+      var locations = await fetchJson('/api/client/locations');
+
+      if (!locations.length) {
+        locationsList.innerHTML = '<p class="text-muted">No locations yet.</p>';
+        return;
+      }
+
+      locationsList.innerHTML = locations.map(function (loc) {
+        return (
+          '<div class="border rounded p-3 mb-2">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+              '<div>' +
+                '<div class="fw-semibold">' + escapeHtml(loc.location_name) + '</div>' +
+                '<div>' + escapeHtml(loc.street_1) + ', ' + escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.zip_code) + '</div>' +
+              '</div>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger delete-location-btn" data-location-id="' + loc.location_id + '">Delete</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    profileForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setStatus('', false);
+
+      try {
+        await fetchJson('/api/client/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: document.getElementById('first-name-input').value.trim(),
+            last_name: document.getElementById('last-name-input').value.trim(),
+            phone: document.getElementById('phone-input').value.trim(),
+            company_name: document.getElementById('company-name-input').value.trim()
+          })
+        });
+        setStatus('Profile saved successfully.', false);
+        await loadProfile();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    locationForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setStatus('', false);
+
+      try {
+        await fetchJson('/api/client/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location_name: document.getElementById('location-name-input').value.trim(),
+            street_1: document.getElementById('street-input').value.trim(),
+            city: document.getElementById('city-input').value.trim(),
+            state: document.getElementById('state-input').value.trim(),
+            zip_code: document.getElementById('zip-input').value.trim()
+          })
+        });
+
+        locationForm.reset();
+        setStatus('Location added successfully.', false);
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    locationsList.addEventListener('click', async function (event) {
+      var button = event.target.closest('.delete-location-btn');
+      if (!button) return;
+
+      var locationId = button.getAttribute('data-location-id');
+      if (!confirm('Delete this location?')) return;
+
+      try {
+        await fetchJson('/api/client/locations/' + locationId, { method: 'DELETE' });
+        setStatus('Location removed.', false);
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    (async function init() {
+      try {
+        await loadProfile();
+        await loadLocations();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    })();
+  })();
+</script>
+{% endblock %}

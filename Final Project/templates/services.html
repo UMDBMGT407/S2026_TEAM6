@@ -1,0 +1,285 @@
+{% extends "base_management.html" %}
+{% set active_page = 'services' %}
+
+{% block title %}Planted Management Portal{% endblock %}
+
+{% block vendor_css %}
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+{% endblock %}
+
+{% block page_content %}
+<div class="row align-items-center mb-2">
+  <div class="col">
+    <h2 class="page-title mb-0">Services</h2>
+    <p class="page-subtitle mb-0">Manage service catalog and pricing</p>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-success px-4" data-bs-toggle="modal" data-bs-target="#serviceModal">+ Add Service</button>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-4"><div class="stat-card"><h6>Total Services</h6><p class="stat-number" id="service-total-count">0</p></div></div>
+  <div class="col-md-4"><div class="stat-card"><h6>Active Services</h6><p class="stat-number text-green" id="service-active-count">0</p></div></div>
+  <div class="col-md-4"><div class="stat-card"><h6>Inactive Services</h6><p class="stat-number text-red" id="service-inactive-count">0</p></div></div>
+</div>
+
+<div class="management-section">
+  <form id="service-search-form" class="management-search-form" role="search">
+    <div class="input-group">
+      <span class="input-group-text management-search-icon">
+        <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/search.svg" alt="Search" />
+      </span>
+      <input id="service-search-input" class="form-control management-search-input me-2" type="search" placeholder="Search services" aria-label="Search" />
+      <button class="btn btn-outline-success px-4" type="submit">Search</button>
+    </div>
+  </form>
+</div>
+
+<div class="management-content-block">
+  <p id="services-status-message" class="mb-3"></p>
+  <div class="row g-3" id="service-list"></div>
+</div>
+
+<div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="service-form">
+        <div class="modal-header">
+          <h2 class="modal-title" id="service-modal-title">Add Service</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="service-id-input" />
+          <label for="service-name-input" class="form-label">Service Name</label>
+          <input id="service-name-input" class="form-control mb-3" required />
+          <label for="service-description-input" class="form-label">Description</label>
+          <textarea id="service-description-input" class="form-control mb-3" rows="3"></textarea>
+          <label for="service-price-input" class="form-label">Base Price (USD)</label>
+          <input id="service-price-input" type="number" min="0" step="0.01" class="form-control" required />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success" id="service-save-btn">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    var services = [];
+    var serviceList = document.getElementById('service-list');
+    var statusMessage = document.getElementById('services-status-message');
+    var serviceSearchForm = document.getElementById('service-search-form');
+    var serviceSearchInput = document.getElementById('service-search-input');
+
+    var totalCount = document.getElementById('service-total-count');
+    var activeCount = document.getElementById('service-active-count');
+    var inactiveCount = document.getElementById('service-inactive-count');
+
+    var serviceModalElement = document.getElementById('serviceModal');
+    var serviceModal = bootstrap.Modal.getOrCreateInstance(serviceModalElement);
+    var serviceForm = document.getElementById('service-form');
+    var serviceModalTitle = document.getElementById('service-modal-title');
+    var serviceIdInput = document.getElementById('service-id-input');
+    var serviceNameInput = document.getElementById('service-name-input');
+    var serviceDescriptionInput = document.getElementById('service-description-input');
+    var servicePriceInput = document.getElementById('service-price-input');
+
+    function setStatus(text, isError) {
+      statusMessage.textContent = text || '';
+      statusMessage.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatPrice(price) {
+      return '$' + Number(price || 0).toFixed(2);
+    }
+
+    async function fetchJson(url, options) {
+      var response = await fetch(url, options || {});
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data;
+    }
+
+    function applyStats() {
+      var active = services.filter(function (s) { return s.is_active; }).length;
+      totalCount.textContent = String(services.length);
+      activeCount.textContent = String(active);
+      inactiveCount.textContent = String(services.length - active);
+    }
+
+    function renderList(searchQuery) {
+      var query = (searchQuery || '').toLowerCase();
+      var filtered = services.filter(function (s) {
+        if (!query) return true;
+        var haystack = (s.service_name + ' ' + (s.description || '')).toLowerCase();
+        return haystack.indexOf(query) !== -1;
+      });
+
+      if (!filtered.length) {
+        serviceList.innerHTML = '<div class="col-12"><p class="text-muted">No services found.</p></div>';
+        return;
+      }
+
+      serviceList.innerHTML = filtered.map(function (service) {
+        var statusClass = service.is_active ? 'status-pill status-pill-active' : 'status-pill status-pill-inactive';
+        var toggleLabel = service.is_active ? 'Deactivate' : 'Reactivate';
+        return (
+          '<div class="col-md-6">' +
+            '<div class="surface-card h-100 p-3">' +
+              '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                '<div>' +
+                  '<h5 class="mb-1">' + escapeHtml(service.service_name) + '</h5>' +
+                  '<p class="mb-1 text-muted">' + escapeHtml(service.description || 'No description') + '</p>' +
+                  '<p class="mb-0 fw-semibold">' + formatPrice(service.base_price) + '</p>' +
+                '</div>' +
+                '<span class="' + statusClass + '">' + (service.is_active ? 'Active' : 'Inactive') + '</span>' +
+              '</div>' +
+              '<div class="d-flex gap-2 mt-3">' +
+                '<button class="btn btn-outline-success btn-sm flex-fill edit-service-btn" data-service-id="' + service.service_id + '">Edit</button>' +
+                '<button class="btn btn-outline-secondary btn-sm flex-fill toggle-service-btn" data-service-id="' + service.service_id + '" data-service-active="' + service.is_active + '">' + toggleLabel + '</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function resetServiceForm() {
+      serviceIdInput.value = '';
+      serviceNameInput.value = '';
+      serviceDescriptionInput.value = '';
+      servicePriceInput.value = '';
+      serviceModalTitle.textContent = 'Add Service';
+    }
+
+    function populateServiceForm(service) {
+      serviceIdInput.value = String(service.service_id);
+      serviceNameInput.value = service.service_name || '';
+      serviceDescriptionInput.value = service.description || '';
+      servicePriceInput.value = Number(service.base_price || 0).toFixed(2);
+      serviceModalTitle.textContent = 'Edit Service';
+    }
+
+    async function loadServices() {
+      services = await fetchJson('/services?include_inactive=true');
+      applyStats();
+      renderList(serviceSearchInput.value.trim());
+    }
+
+    serviceModalElement.addEventListener('show.bs.modal', function (event) {
+      if (!event.relatedTarget) {
+        resetServiceForm();
+        return;
+      }
+      var editBtn = event.relatedTarget.closest('.edit-service-btn');
+      if (!editBtn) {
+        resetServiceForm();
+        return;
+      }
+
+      var id = Number(editBtn.getAttribute('data-service-id'));
+      var service = services.find(function (s) { return Number(s.service_id) === id; });
+      if (!service) {
+        resetServiceForm();
+        return;
+      }
+      populateServiceForm(service);
+    });
+
+    serviceForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setStatus('', false);
+
+      var payload = {
+        service_name: serviceNameInput.value.trim(),
+        description: serviceDescriptionInput.value.trim(),
+        base_price: servicePriceInput.value.trim()
+      };
+
+      try {
+        if (serviceIdInput.value) {
+          await fetchJson('/services/' + serviceIdInput.value, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          setStatus('Service updated successfully.', false);
+        } else {
+          await fetchJson('/services', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          setStatus('Service added successfully.', false);
+        }
+
+        serviceModal.hide();
+        await loadServices();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    serviceList.addEventListener('click', async function (event) {
+      var toggleBtn = event.target.closest('.toggle-service-btn');
+      if (!toggleBtn) {
+        return;
+      }
+
+      var serviceId = toggleBtn.getAttribute('data-service-id');
+      var isActive = toggleBtn.getAttribute('data-service-active') === 'true';
+      var endpoint = isActive ? '/services/' + serviceId + '/deactivate' : '/services/' + serviceId + '/reactivate';
+      var actionLabel = isActive ? 'deactivate' : 'reactivate';
+
+      if (!confirm('Are you sure you want to ' + actionLabel + ' this service?')) {
+        return;
+      }
+
+      try {
+        await fetchJson(endpoint, { method: 'POST' });
+        setStatus('Service status updated.', false);
+        await loadServices();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    serviceSearchForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      renderList(serviceSearchInput.value.trim());
+    });
+
+    serviceSearchInput.addEventListener('input', function () {
+      renderList(serviceSearchInput.value.trim());
+    });
+
+    loadServices().catch(function (error) {
+      setStatus(error.message, true);
+    });
+  })();
+</script>
+{% endblock %}
