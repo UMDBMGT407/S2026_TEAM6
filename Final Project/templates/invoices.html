@@ -35,6 +35,24 @@
 </div>
 
 <div id="invoice-rows"></div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="invoiceModalLabel">Invoice Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="invoiceModalBody">
+        <div class="text-center py-4">Loading...</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block vendor_js %}
@@ -174,6 +192,7 @@
         alert('Unable to load invoice details: ' + error.message);
       });
   }
+  function applyFilter(filterName) {
     document.querySelectorAll('.invoice-row').forEach(function (row) {
       row.style.display = (filterName === 'all' || row.dataset.status === filterName) ? '' : 'none';
     });
@@ -193,11 +212,11 @@
         '</div>' +
         '<div class="col-md-2 text-center"><span class="inv-status ' + statusClass(filterValue) + '">&#x25CF; ' + statusText(filterValue) + '</span></div>' +
         '<div class="col-md-2 text-center"><div class="inv-amount">' + toCurrency(invoice.total_amount) + '</div><div class="inv-currency">AUD incl. GST</div></div>' +
-        '<div class="col-md-1 text-end"><button class="inv-pay-btn" type="button">View</button></div>' +
+        '<div class="col-md-1 d-flex align-items-center justify-content-end"><button class="inv-pay-btn" type="button">View</button></div>' +
       '</div>';
 
     row.querySelector('.inv-pay-btn').addEventListener('click', function () {
-      alert('Invoice ' + (invoice.invoice_number || invoice.invoice_id) + '\nStatus: ' + statusText(filterValue) + '\nAmount: ' + toCurrency(invoice.total_amount));
+      viewInvoiceDetails(invoice.invoice_id);
     });
 
     return row;

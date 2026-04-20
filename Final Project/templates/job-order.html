@@ -79,7 +79,15 @@
 </div>
 
 <div class="management-content-block">
-  <h3 class="h5 mb-3">Recent Job Orders</h3>
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h3 class="h5 mb-0">Job Orders</h3>
+    <div class="d-flex gap-2 flex-wrap" id="job-filter-buttons">
+      <button type="button" class="btn btn-outline-success btn-sm job-status-filter active" data-job-status="all">All</button>
+      <button type="button" class="btn btn-outline-success btn-sm job-status-filter" data-job-status="active">Active</button>
+      <button type="button" class="btn btn-outline-success btn-sm job-status-filter" data-job-status="completed">Completed</button>
+      <button type="button" class="btn btn-outline-success btn-sm job-status-filter" data-job-status="cancelled">Cancelled</button>
+    </div>
+  </div>
   <div id="job-order-list" class="row g-3"></div>
 </div>
 
@@ -173,6 +181,9 @@
     var currentStatusFilter = 'pending';
     var currentSearch = '';
     var requestById = {};
+    var currentJobFilter = 'all';
+    var allJobs = [];
+    var jobFilterButtons = Array.from(document.querySelectorAll('.job-status-filter'));
 
     function setStatus(text, isError) {
       statusEl.textContent = text || '';
@@ -330,20 +341,67 @@
       }).join('');
     }
 
+    function getJobStatusBadgeClass(status) {
+      var s = String(status || '').toLowerCase();
+      if (s === 'completed') return 'bg-success-subtle text-success';
+      if (s === 'cancelled') return 'bg-danger-subtle text-danger';
+      if (s === 'unassigned') return 'bg-secondary-subtle text-secondary';
+      return 'bg-warning-subtle text-warning';
+    }
+
+    function applyJobFilter() {
+      var f = currentJobFilter;
+      var cards = Array.from(jobList.querySelectorAll('.job-card-wrapper'));
+      var visible = 0;
+      cards.forEach(function(card) {
+        var s = (card.dataset.jobStatus || '').toLowerCase();
+        var show = f === 'all' || s === f ||
+          (f === 'active' && s !== 'completed' && s !== 'cancelled');
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      if (!cards.length || visible === 0) {
+        var empty = jobList.querySelector('.job-empty-msg');
+        if (!empty) {
+          empty = document.createElement('div');
+          empty.className = 'col-12 job-empty-msg';
+          empty.innerHTML = '<p class="text-muted mb-0">No job orders found for this filter.</p>';
+          jobList.appendChild(empty);
+        }
+        empty.style.display = '';
+      } else {
+        var empty = jobList.querySelector('.job-empty-msg');
+        if (empty) empty.style.display = 'none';
+      }
+      jobFilterButtons.forEach(function(b) {
+        b.classList.toggle('active', b.dataset.jobStatus === currentJobFilter);
+      });
+    }
+
     function renderJobCards(jobs) {
       if (!jobs.length) {
         jobList.innerHTML = '<div class="col-12"><p class="text-muted mb-0">No job orders created yet.</p></div>';
         return;
       }
 
-      jobList.innerHTML = jobs.slice(0, 12).map(function (job) {
+      jobList.innerHTML = jobs.map(function (job) {
+        var s = String(job.status || '').toLowerCase();
         var statusLabel = formatStatus(job.status);
-        var badgeClass = getStatusBadgeClass(job.status);
+        var badgeClass = getJobStatusBadgeClass(job.status);
         var assignedTo = job.assigned_name || 'Unassigned';
         var timeLabel = (job.start_time && job.end_time) ? (job.start_time + ' - ' + job.end_time) : 'Not scheduled';
 
+        var actions = '';
+        if (s !== 'completed' && s !== 'cancelled') {
+          actions += '<button type="button" class="btn btn-success btn-sm complete-job-btn" data-job-id="' + job.id + '" data-job-code="' + escapeHtml(job.job_order_code || '') + '">Mark Complete</button>';
+          actions += '<button type="button" class="btn btn-outline-danger btn-sm cancel-job-btn" data-job-id="' + job.id + '">Cancel</button>';
+        }
+        if (job.invoice_number) {
+          actions += '<span class="badge bg-success-subtle text-success">Invoice: ' + escapeHtml(job.invoice_number) + '</span>';
+        }
+
         return (
-          '<div class="col-12">' +
+          '<div class="col-12 job-card-wrapper" data-job-status="' + s + '">' +
             '<div class="surface-card p-4">' +
               '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
                 '<div>' +
@@ -362,13 +420,13 @@
                   '<p class="mb-0"><strong>Assigned to:</strong> ' + escapeHtml(assignedTo) + '</p>' +
                 '</div>' +
               '</div>' +
-              (String(job.status || '').toLowerCase() !== 'completed' && String(job.status || '').toLowerCase() !== 'cancelled'
-                ? '<div class="mt-3"><button type="button" class="btn btn-outline-danger btn-sm cancel-job-btn" data-job-id="' + job.id + '">Cancel Job</button></div>'
-                : '') +
+              (actions ? '<div class="mt-3 d-flex align-items-center gap-2 flex-wrap">' + actions + '</div>' : '') +
             '</div>' +
           '</div>'
         );
       }).join('');
+
+      applyJobFilter();
     }
 
     async function loadAvailableEmployeesForApproval() {
@@ -558,9 +616,10 @@
           requestById[String(item.service_request_id)] = item;
         });
 
+        allJobs = jobs;
         renderRequestStats(allRequests, jobs);
         renderRequestCards(filteredRequests);
-        renderJobCards(jobs);
+        renderJobCards(allJobs);
       } catch (error) {
         setStatus(error.message, true);
       }
@@ -607,6 +666,23 @@
     });
 
     jobList.addEventListener('click', async function(event) {
+      var completeBtn = event.target.closest('.complete-job-btn');
+      if (completeBtn) {
+        var jobCode = completeBtn.dataset.jobCode || ('Job #' + completeBtn.dataset.jobId);
+        if (!confirm('Mark ' + jobCode + ' as completed? An invoice will be automatically sent to the client.')) return;
+        var jobId = completeBtn.dataset.jobId;
+        try {
+          var result = await fetchJson('/api/management/job-orders/' + jobId + '/complete', { method: 'POST' });
+          var msg = 'Job order completed.';
+          if (result.invoice_number) msg += ' Invoice ' + result.invoice_number + ' sent to client.';
+          setStatus(msg, false);
+          await loadDashboard();
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+        return;
+      }
+
       var cancelBtn = event.target.closest('.cancel-job-btn');
       if (!cancelBtn) return;
       if (!confirm('Cancel this job order? The assigned employee will be freed.')) return;
@@ -618,6 +694,13 @@
       } catch (error) {
         setStatus(error.message, true);
       }
+    });
+
+    jobFilterButtons.forEach(function(b) {
+      b.addEventListener('click', function() {
+        currentJobFilter = b.dataset.jobStatus;
+        applyJobFilter();
+      });
     });
 
     approveConfirmBtn.addEventListener('click', function () {

@@ -1106,6 +1106,69 @@ def service_request_page():
     return render_template('service-request.html')
 
 
+@app.route('/api/invoices/<int:invoice_id>', methods=['GET'])
+@login_required
+def get_invoice_detail(invoice_id):
+    cur = mysql.connection.cursor()
+    try:
+        if getattr(current_user, 'role', '') == 'Client':
+            cur.execute("SELECT client_id FROM clients WHERE contact_user_id = %s", (current_user.id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({'error': 'Not found'}), 404
+            client_id = row[0]
+            cur.execute("""
+                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
+                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                FROM invoices inv
+                LEFT JOIN clients c ON c.client_id = inv.client_id
+                WHERE inv.invoice_id = %s AND inv.client_id = %s
+            """, (invoice_id, client_id))
+        else:
+            cur.execute("""
+                SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.issue_date, inv.due_date,
+                       inv.subtotal, inv.tax_amount, inv.total_amount, inv.status, c.company_name
+                FROM invoices inv
+                LEFT JOIN clients c ON c.client_id = inv.client_id
+                WHERE inv.invoice_id = %s
+            """, (invoice_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'Invoice not found'}), 404
+        issue_date = row[3].strftime('%Y-%m-%d') if hasattr(row[3], 'strftime') else (row[3] and str(row[3]))
+        due_date = row[4].strftime('%Y-%m-%d') if hasattr(row[4], 'strftime') else (row[4] and str(row[4]))
+        invoice = {
+            'invoice_id': row[0],
+            'invoice_number': row[1],
+            'client_id': row[2],
+            'issue_date': issue_date,
+            'due_date': due_date,
+            'subtotal': float(row[5]) if row[5] is not None else 0,
+            'tax_amount': float(row[6]) if row[6] is not None else 0,
+            'total_amount': float(row[7]) if row[7] is not None else 0,
+            'status': row[8],
+            'company_name': row[9] or ''
+        }
+        cur.execute("""
+            SELECT description, quantity, unit_price, line_total
+            FROM invoice_items
+            WHERE invoice_id = %s
+            ORDER BY invoice_item_id
+        """, (invoice_id,))
+        items = []
+        for item_row in cur.fetchall():
+            items.append({
+                'description': item_row[0],
+                'quantity': float(item_row[1]) if item_row[1] is not None else 0,
+                'unit_price': float(item_row[2]) if item_row[2] is not None else 0,
+                'line_total': float(item_row[3]) if item_row[3] is not None else 0,
+            })
+        invoice['items'] = items
+        return jsonify(invoice)
+    finally:
+        cur.close()
+
+
 @app.route('/invoices.html')
 @login_required
 @role_required('Client')
@@ -2031,6 +2094,144 @@ def update_employee(user_id):
         return jsonify(error=str(e)), 500
 
 
+@app.route('/api/management/job-orders/<int:job_id>/complete', methods=['POST'])
+@login_required
+@role_required('Management')
+def complete_job_order(job_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT jo.job_order_id, jo.status, jo.client_id, jo.service_id,
+                   jo.title, jo.estimated_cost, s.service_name, s.base_price
+            FROM job_orders jo
+            LEFT JOIN services s ON s.service_id = jo.service_id
+            WHERE jo.job_order_id = %s
+        """, (job_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Job order not found'), 404
+        if row[1] in ('Completed', 'Cancelled'):
+            cur.close()
+            return jsonify(error='Job order is already ' + row[1]), 400
+
+        client_id = row[2]
+        title = row[4]
+        estimated_cost = float(row[5]) if row[5] else None
+        service_name = row[6] or title or 'Service'
+        base_price = float(row[7]) if row[7] else 0
+        unit_price = estimated_cost if estimated_cost is not None else base_price
+
+        cur.execute("UPDATE job_orders SET status = 'Completed' WHERE job_order_id = %s", (job_id,))
+        sync_tasks_for_job_order(cur, job_id)
+
+        # Auto-create invoice if one doesn't already exist
+        invoice_number = None
+        cur.execute("SELECT invoice_id FROM invoices WHERE job_order_id = %s", (job_id,))
+        if not cur.fetchone():
+            from datetime import datetime as _dt, timedelta as _td
+            today = _dt.now().date()
+            due = today + _td(days=30)
+            seq_date = today.strftime('%Y%m%d')
+            cur.execute("SELECT COUNT(*) FROM invoices WHERE invoice_number LIKE %s", ('INV-' + seq_date + '-%',))
+            count = cur.fetchone()[0]
+            invoice_number = f"INV-{seq_date}-{count + 1:03d}"
+            subtotal = unit_price
+            tax_amount = round(subtotal * 0.10, 2)
+            total_amount = round(subtotal + tax_amount, 2)
+            cur.execute("""
+                INSERT INTO invoices (invoice_number, client_id, job_order_id, issue_date, due_date,
+                                      subtotal, tax_amount, total_amount, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Issued')
+            """, (invoice_number, client_id, job_id, today, due,
+                  subtotal, tax_amount, total_amount))
+            invoice_id = cur.lastrowid
+            cur.execute("""
+                INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (invoice_id, service_name, 1, unit_price, unit_price))
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Job order completed', invoice_number=invoice_number)
+    except Exception as e:
+        if 'cur' in locals():
+            mysql.connection.rollback()
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/staff/job-orders/<int:job_id>/complete', methods=['POST'])
+@login_required
+@role_required('Staff')
+def staff_complete_job_order(job_id):
+    try:
+        cur = mysql.connection.cursor()
+        employee_id = ensure_employee_record(cur, current_user.id, 'Staff')
+        cur.execute("""
+            SELECT jo.job_order_id, jo.status, jo.client_id, jo.service_id,
+                   jo.title, jo.estimated_cost, s.service_name, s.base_price,
+                   jo.assigned_employee_id
+            FROM job_orders jo
+            LEFT JOIN services s ON s.service_id = jo.service_id
+            WHERE jo.job_order_id = %s
+        """, (job_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Job order not found'), 404
+        if row[8] != employee_id:
+            cur.close()
+            return jsonify(error='This job is not assigned to you'), 403
+        if row[1] in ('Completed', 'Cancelled'):
+            cur.close()
+            return jsonify(error='Job order is already ' + row[1]), 400
+
+        client_id = row[2]
+        title = row[4]
+        estimated_cost = float(row[5]) if row[5] else None
+        service_name = row[6] or title or 'Service'
+        base_price = float(row[7]) if row[7] else 0
+        unit_price = estimated_cost if estimated_cost is not None else base_price
+
+        cur.execute("UPDATE job_orders SET status = 'Completed' WHERE job_order_id = %s", (job_id,))
+        sync_tasks_for_job_order(cur, job_id)
+
+        invoice_number = None
+        cur.execute("SELECT invoice_id FROM invoices WHERE job_order_id = %s", (job_id,))
+        if not cur.fetchone():
+            from datetime import datetime as _dt, timedelta as _td
+            today = _dt.now().date()
+            due = today + _td(days=30)
+            seq_date = today.strftime('%Y%m%d')
+            cur.execute("SELECT COUNT(*) FROM invoices WHERE invoice_number LIKE %s", ('INV-' + seq_date + '-%',))
+            count = cur.fetchone()[0]
+            invoice_number = f"INV-{seq_date}-{count + 1:03d}"
+            subtotal = unit_price
+            tax_amount = round(subtotal * 0.10, 2)
+            total_amount = round(subtotal + tax_amount, 2)
+            cur.execute("""
+                INSERT INTO invoices (invoice_number, client_id, job_order_id, issue_date, due_date,
+                                      subtotal, tax_amount, total_amount, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Issued')
+            """, (invoice_number, client_id, job_id, today, due,
+                  subtotal, tax_amount, total_amount))
+            invoice_id = cur.lastrowid
+            cur.execute("""
+                INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (invoice_id, service_name, 1, unit_price, unit_price))
+
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Job order completed', invoice_number=invoice_number)
+    except Exception as e:
+        if 'cur' in locals():
+            mysql.connection.rollback()
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
 @app.route('/api/management/job-orders/<int:job_id>/cancel', methods=['POST'])
 @login_required
 @role_required('Management')
@@ -2061,6 +2262,134 @@ def cancel_job_order(job_id):
 @role_required('Management')
 def job_order_page():
     return render_template('job-order.html')
+
+
+@app.route('/management/invoices.html')
+@login_required
+@role_required('Management')
+def management_invoices_page():
+    return render_template('invoices-management.html')
+
+
+@app.route('/api/management/invoices', methods=['GET'])
+@login_required
+@role_required('Management')
+def management_get_invoices():
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute("""
+            SELECT inv.invoice_id, inv.invoice_number, inv.client_id, inv.job_order_id,
+                   inv.issue_date, inv.due_date, inv.subtotal, inv.tax_amount, inv.total_amount,
+                   inv.status, c.company_name, jo.job_order_code, jo.title
+            FROM invoices inv
+            LEFT JOIN clients c ON c.client_id = inv.client_id
+            LEFT JOIN job_orders jo ON jo.job_order_id = inv.job_order_id
+            ORDER BY inv.issue_date DESC
+        """)
+        rows = cur.fetchall()
+        result = []
+        for r in rows:
+            issue_date = r[4].strftime('%Y-%m-%d') if hasattr(r[4], 'strftime') else (r[4] and str(r[4]))
+            due_date = r[5].strftime('%Y-%m-%d') if hasattr(r[5], 'strftime') else (r[5] and str(r[5]))
+            result.append({
+                'invoice_id': r[0],
+                'invoice_number': r[1],
+                'client_id': r[2],
+                'job_order_id': r[3],
+                'issue_date': issue_date,
+                'due_date': due_date,
+                'subtotal': float(r[6]) if r[6] is not None else 0,
+                'tax_amount': float(r[7]) if r[7] is not None else 0,
+                'total_amount': float(r[8]) if r[8] is not None else 0,
+                'status': r[9],
+                'company_name': r[10] or '',
+                'job_order_code': r[11] or '',
+                'job_title': r[12] or ''
+            })
+        return jsonify(result)
+    finally:
+        cur.close()
+
+
+@app.route('/api/management/invoices', methods=['POST'])
+@login_required
+@role_required('Management')
+def management_create_invoice():
+    data = request.get_json() or {}
+    job_order_id = data.get('job_order_id')
+    items = data.get('items', [])
+    issue_date = data.get('issue_date')
+    due_date = data.get('due_date')
+    tax_rate = float(data.get('tax_rate', 10)) / 100
+
+    if not job_order_id or not items or not issue_date or not due_date:
+        return jsonify({'error': 'job_order_id, items, issue_date, and due_date are required'}), 400
+
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute("SELECT client_id FROM job_orders WHERE job_order_id = %s", (job_order_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'Job order not found'}), 404
+        client_id = row[0]
+
+        cur.execute("SELECT invoice_id FROM invoices WHERE job_order_id = %s", (job_order_id,))
+        if cur.fetchone():
+            return jsonify({'error': 'An invoice already exists for this job order'}), 409
+
+        from datetime import datetime as _dt
+        seq_date = _dt.now().strftime('%Y%m%d')
+        cur.execute("SELECT COUNT(*) FROM invoices WHERE invoice_number LIKE %s", ('INV-' + seq_date + '-%',))
+        count = cur.fetchone()[0]
+        invoice_number = f"INV-{seq_date}-{count + 1:03d}"
+
+        subtotal = sum(float(i.get('quantity', 1)) * float(i.get('unit_price', 0)) for i in items)
+        tax_amount = round(subtotal * tax_rate, 2)
+        total_amount = round(subtotal + tax_amount, 2)
+
+        cur.execute("""
+            INSERT INTO invoices (invoice_number, client_id, job_order_id, issue_date, due_date,
+                                  subtotal, tax_amount, total_amount, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Issued')
+        """, (invoice_number, client_id, job_order_id, issue_date, due_date,
+              subtotal, tax_amount, total_amount))
+        invoice_id = cur.lastrowid
+
+        for item in items:
+            qty = float(item.get('quantity', 1))
+            price = float(item.get('unit_price', 0))
+            cur.execute("""
+                INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, line_total)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (invoice_id, item.get('description', ''), qty, price, round(qty * price, 2)))
+
+        mysql.connection.commit()
+        return jsonify({'invoice_id': invoice_id, 'invoice_number': invoice_number}), 201
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+
+
+@app.route('/api/management/invoices/<int:invoice_id>/status', methods=['PUT'])
+@login_required
+@role_required('Management')
+def management_update_invoice_status(invoice_id):
+    data = request.get_json() or {}
+    new_status = data.get('status', '').strip()
+    if new_status not in ('Issued', 'Unpaid', 'Paid', 'Cancelled'):
+        return jsonify({'error': 'status must be Issued, Unpaid, Paid, or Cancelled'}), 400
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute("SELECT invoice_id FROM invoices WHERE invoice_id = %s", (invoice_id,))
+        if not cur.fetchone():
+            return jsonify({'error': 'Invoice not found'}), 404
+        cur.execute("UPDATE invoices SET status = %s WHERE invoice_id = %s", (new_status, invoice_id))
+        mysql.connection.commit()
+        return jsonify({'invoice_id': invoice_id, 'status': new_status})
+    finally:
+        cur.close()
 
 
 @app.route('/services.html')
@@ -2778,13 +3107,16 @@ def get_jobs():
                jo.status,
                jo.service_request_id,
                jo.priority,
-               jo.created_at
+               jo.created_at,
+               inv.invoice_id,
+               inv.invoice_number
         FROM job_orders jo
         LEFT JOIN clients c ON jo.client_id = c.client_id
         LEFT JOIN client_locations cl ON jo.location_id = cl.location_id
         LEFT JOIN addresses addr ON cl.address_id = addr.address_id
         LEFT JOIN employees e ON jo.assigned_employee_id = e.employee_id
         LEFT JOIN users u ON e.user_id = u.user_id
+        LEFT JOIN invoices inv ON inv.job_order_id = jo.job_order_id
         ORDER BY jo.scheduled_date IS NULL, jo.scheduled_date, jo.start_time
         """
     )
@@ -2818,6 +3150,8 @@ def get_jobs():
         service_request_id = r[15]
         priority = r[16] or 'Normal'
         approved_at = r[17].isoformat() if r[17] is not None else None
+        invoice_id = r[18]
+        invoice_number = r[19]
 
         jobs.append({
             'id': job_id,
@@ -2833,7 +3167,9 @@ def get_jobs():
             'status': status,
             'service_request_id': service_request_id,
             'priority': priority,
-            'approved_at': approved_at
+            'approved_at': approved_at,
+            'invoice_id': invoice_id,
+            'invoice_number': invoice_number
         })
 
     return jsonify(jobs)

@@ -62,6 +62,9 @@
               <li class="nav-item">
                 <a class="nav-link sidebar-link{% if active_page == 'job-order' %} active-link{% endif %}" href="{{ url_for('job_order_page') }}">Job Orders</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link sidebar-link{% if active_page == 'invoices' %} active-link{% endif %}" href="{{ url_for('management_invoices_page') }}">Invoices</a>
+              </li>
             </ul>
           </nav>
 
