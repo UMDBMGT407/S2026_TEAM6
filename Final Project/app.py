@@ -7,6 +7,11 @@ from datetime import datetime, timedelta
 import os
 import random
 import click
+import sqlite3
+import re
+from openai import OpenAI
+from groq import Groq
+from google import genai
 
 # =======================
 # APP CONFIG
@@ -30,6 +35,103 @@ app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
 SCHEMA_PATH = os.path.join(base_dir, 'Planted_Database.sql')
+# ============================================================================
+# SECTION A: CONFIGURATION
+# Paste this right after your existing app.config['MYSQL_DB'] lines
+# ============================================================================
+ 
+# Plant chatbot FTS database path
+PLANT_FTS_DB_PATH = os.path.join(os.path.dirname(__file__), "plant_fts.db")
+ 
+# AI API keys — loaded from .env, never hardcoded
+DEFAULT_OPENAI_KEY = os.getenv('OPENAI_API_KEY', '')
+DEFAULT_GROQ_KEY   = os.getenv('GROQ_API_KEY', '')
+DEFAULT_GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
+ 
+ 
+# ============================================================================
+# SECTION B: PLANT FTS (Full-Text Search) ENGINE
+# Paste this as a new block after your existing helper functions
+# ============================================================================
+ 
+def _plant_fts_conn():
+    conn = sqlite3.connect(PLANT_FTS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+ 
+def plant_fts_init():
+    conn = _plant_fts_conn()
+    conn.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS plant_docs
+        USING fts5(content, plant_id UNINDEXED, tokenize='porter');
+    """)
+    conn.commit()
+    conn.close()
+ 
+def plant_fts_rebuild(plants: list):
+    """Rebuild the entire plant FTS index from a list of plant dicts."""
+    conn = _plant_fts_conn()
+    conn.execute("DELETE FROM plant_docs")
+    rows = []
+    for p in plants:
+        text = (
+            f"Plant: {p.get('common_name', '')}. "
+            f"Scientific name: {p.get('scientific_name', '')}. "
+            f"Light: {p.get('light_level', '')}. "
+            f"Watering: {p.get('watering_frequency', '')}. "
+            f"Temperature: {p.get('temperature_range', '')}. "
+            f"Humidity: {p.get('humidity_range', '')}. "
+            f"Notes: {p.get('notes', '')}."
+        )
+        rows.append((text.strip(), str(p.get('plant_id', ''))))
+    conn.executemany("INSERT INTO plant_docs (content, plant_id) VALUES (?, ?)", rows)
+    conn.commit()
+    conn.close()
+ 
+def plant_fts_search(query: str, limit: int = 5):
+    conn = _plant_fts_conn()
+ 
+    def _run(q):
+        try:
+            q = (q or '').strip().replace('"', '""')
+            return conn.execute(
+                """SELECT plant_id, snippet(plant_docs, 0, '', '', ' … ', 48) as snip
+                   FROM plant_docs WHERE plant_docs MATCH ?
+                   ORDER BY rank LIMIT ?""",
+                (q, limit)
+            ).fetchall()
+        except Exception:
+            return []
+ 
+    tokens = [t.lower() for t in re.findall(r"[A-Za-z0-9]+", query or "")]
+    STOP = {"a","an","the","is","are","was","to","of","in","on","by","for","with","and","or"}
+    content = [t for t in tokens if t not in STOP]
+ 
+    attempts = []
+    if len(content) >= 2:
+        attempts.append(f'"{content[0]}" NEAR/6 "{content[1]}"')
+        attempts.append(' AND '.join(f'"{t}"' for t in content))
+    if content:
+        attempts.append(' OR '.join(f'"{t}"' for t in content))
+        attempts.append(f'"{content[0]}"')
+    if not attempts and tokens:
+        attempts.append(' OR '.join(f'"{t}"' for t in tokens))
+ 
+    for q in attempts:
+        rows = _run(q)
+        if rows:
+            out = [{"plant_id": r["plant_id"], "snippet": r["snip"]} for r in rows]
+            conn.close()
+            return out
+ 
+    conn.close()
+    return []
+ 
+# Initialize plant FTS on startup
+try:
+    plant_fts_init()
+except Exception:
+    pass
 
 # --- Ensure suppliers table has is_active ---
 def ensure_suppliers_table():
@@ -5445,6 +5547,181 @@ def init_db_command():
     run_schema_file()
     click.echo('Database initialized from Planted_Database.sql')
 
+# ============================================================================
+# SECTION C: AI FUNCTION (Plant-Aware)
+# Paste this after plant_fts_search
+# ============================================================================
+ 
+def ask_plant_ai(user_question: str, search_results: list, ai_provider: str = "local", api_key: str = "", model: str = "") -> dict:
+    """Send a plant-related question to the selected AI provider with FTS context."""
+ 
+    if search_results:
+        context = "Here is relevant information from the Planted plant database:\n\n"
+        for i, hit in enumerate(search_results, 1):
+            context += f"{i}. {hit['snippet']}\n\n"
+    else:
+        context = "No specific plant found in the database matching your query.\n\n"
+ 
+    # LOCAL mode — just return the FTS snippets
+    if ai_provider == "local":
+        if not search_results:
+            return {
+                "reply": "I couldn't find a matching plant. Try searching by common name, light level (e.g. 'low light'), or watering needs.",
+                "error": None
+            }
+        reply = "Here's what I found in the plant database:\n\n" + "\n".join(
+            f"🌿 {hit['snippet']}" for hit in search_results
+        )
+        return {"reply": reply, "error": None}
+ 
+    if not api_key or not api_key.strip():
+        return {"reply": None, "error": f"Please configure your {ai_provider.upper()} API key in .env"}
+ 
+    system_message = (
+        "You are PlantBot, a knowledgeable plant care assistant for the Planted landscaping service. "
+        "Answer questions about plants using the provided database context. "
+        "Be concise, friendly, and specific. If the database doesn't have the answer, use your general plant knowledge but say so."
+    )
+    user_message = f"{context}Customer question: {user_question}\n\nProvide a helpful, specific answer."
+ 
+    # OPENAI
+    if ai_provider == "openai":
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model=model or "gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=500, temperature=0.7
+            )
+            return {"reply": response.choices[0].message.content.strip(), "error": None}
+        except Exception as e:
+            return {"reply": None, "error": f"OpenAI Error: {str(e)}"}
+ 
+    # GROQ
+    elif ai_provider == "groq":
+        try:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=500, temperature=0.7
+            )
+            return {"reply": response.choices[0].message.content.strip(), "error": None}
+        except Exception as e:
+            return {"reply": None, "error": f"Groq Error: {str(e)}"}
+ 
+    # GEMINI
+    elif ai_provider == "gemini":
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model=model or "gemini-2.5-flash",
+                contents=f"{system_message}\n\n{user_message}"
+            )
+            return {"reply": response.text.strip(), "error": None}
+        except Exception as e:
+            return {"reply": None, "error": f"Gemini Error: {str(e)}"}
+ 
+    return {"reply": None, "error": f"Unknown provider: {ai_provider}"}
+ 
+ 
+# ============================================================================
+# SECTION D: ROUTES
+# Paste these routes anywhere after your existing route definitions
+# ============================================================================
+ 
+@app.route("/plant-chat")
+@login_required
+def plant_chat_page():
+    """Serve the plant chatbot page."""
+    return render_template("plant-chat.html", user_role=getattr(current_user, "role", "User"))
+ 
+ 
+@app.route("/plant-chat/send", methods=["POST"])
+@login_required
+def plant_chat_send():
+    """Handle a plant chat message."""
+    data = request.get_json(silent=True) or {}
+    question = (data.get("message") or "").strip()
+    ai_provider = data.get("ai_provider", "local")
+    model = data.get("model", "")
+ 
+    if not question:
+        return jsonify(error="Empty message."), 400
+ 
+    key_map = {
+        "openai": DEFAULT_OPENAI_KEY,
+        "groq":   DEFAULT_GROQ_KEY,
+        "gemini": DEFAULT_GEMINI_KEY,
+    }
+    api_key = key_map.get(ai_provider, "")
+ 
+    # Search plant FTS
+    hits = plant_fts_search(question, limit=5)
+ 
+    result = ask_plant_ai(question, hits, ai_provider, api_key, model)
+ 
+    if result["error"]:
+        return jsonify(error=result["error"]), 400
+ 
+    return jsonify(reply=result["reply"], sources=hits, provider=ai_provider), 200
+ 
+ 
+@app.route("/plant-chat/rebuild-index", methods=["POST"])
+@login_required
+@role_required("Management")
+def plant_chat_rebuild_index():
+    """Rebuild the plant FTS index from the live plant_master table."""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT plant_id, common_name, scientific_name, light_level,
+                   watering_frequency, temperature_range, humidity_range, notes
+            FROM plant_master WHERE is_active = TRUE
+        """)
+        rows = cur.fetchall()
+        cur.close()
+ 
+        plants = [
+            {
+                "plant_id": r[0],
+                "common_name": r[1] or "",
+                "scientific_name": r[2] or "",
+                "light_level": r[3] or "",
+                "watering_frequency": r[4] or "",
+                "temperature_range": r[5] or "",
+                "humidity_range": r[6] or "",
+                "notes": r[7] or "",
+            }
+            for r in rows
+        ]
+ 
+        plant_fts_rebuild(plants)
+        return jsonify(status="success", plants_indexed=len(plants)), 200
+    except Exception as e:
+        return jsonify(status="error", error=str(e)), 500
+ 
+ 
+@app.route("/api/plant-chat/status", methods=["GET"])
+@login_required
+def plant_chat_api_status():
+    """Tell the frontend which AI providers are configured."""
+    def ok(key):
+        return bool(key and key.strip() and not key.startswith("<") and "..." not in key)
+    return jsonify(keys={
+        "openai": ok(DEFAULT_OPENAI_KEY),
+        "groq":   ok(DEFAULT_GROQ_KEY),
+        "gemini": ok(DEFAULT_GEMINI_KEY),
+    })
 
 # ========================
 # RUN APP

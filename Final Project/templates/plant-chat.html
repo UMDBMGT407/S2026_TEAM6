@@ -1,0 +1,288 @@
+{% extends "base_management.html" %}
+{% set active_page = 'plant-chat' %}
+
+{% block title %}PlantBot — Planted Management Portal{% endblock %}
+
+{% block vendor_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/plant-chat.css') }}">
+{% endblock %}
+
+{% block page_content %}
+
+<!-- Page header -->
+<div class="row align-items-center mb-3">
+  <div class="col">
+    <h2 class="page-title mb-0">🌿 PlantBot</h2>
+    <p class="page-subtitle mb-0">Ask questions about plants in the Planted database</p>
+  </div>
+  <div class="col-auto">
+    <a href="/plant-master.html" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Plant Master List
+    </a>
+  </div>
+</div>
+
+<div class="chat-shell">
+  <div class="chat-body">
+
+    <!-- ── Left sidebar ── -->
+    <div class="chat-sidebar">
+
+      <!-- AI Provider -->
+      <div class="surface-card p-3">
+        <p class="text-uppercase fw-semibold mb-2 page-subtitle">AI Provider</p>
+
+        <div class="provider-card active" data-provider="local">
+          <span class="provider-icon">🔍</span>
+          <div>
+            <strong class="d-block">Local Search</strong>
+            <small class="text-secondary">Free · No API key</small>
+          </div>
+        </div>
+        <div class="provider-card" data-provider="openai">
+          <span class="provider-icon">🧠</span>
+          <div>
+            <strong class="d-block">OpenAI GPT</strong>
+            <small class="text-secondary">Paid · Most capable</small>
+          </div>
+        </div>
+        <div class="provider-card" data-provider="groq">
+          <span class="provider-icon">⚡</span>
+          <div>
+            <strong class="d-block">Groq Llama</strong>
+            <small class="text-secondary">Free tier · Fast</small>
+          </div>
+        </div>
+        <div class="provider-card" data-provider="gemini">
+          <span class="provider-icon">✨</span>
+          <div>
+            <strong class="d-block">Google Gemini</strong>
+            <small class="text-secondary">Free tier</small>
+          </div>
+        </div>
+
+        <div id="provider-status" class="mt-2"></div>
+
+        <div id="openai-model-section" class="mt-2 d-none">
+          <label class="form-label fw-semibold small">Model</label>
+          <select id="openaiModel" class="form-select form-select-sm">
+            <option value="gpt-4o-mini" selected>GPT-4o mini ⭐</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          </select>
+        </div>
+
+        <div id="gemini-model-section" class="mt-2 d-none">
+          <label class="form-label fw-semibold small">Model</label>
+          <select id="geminiModel" class="form-select form-select-sm">
+            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash ⭐</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Rebuild index (Management only) -->
+      {% if user_role == 'Management' %}
+      <div class="surface-card p-3">
+        <p class="text-uppercase fw-semibold mb-1 page-subtitle">Search Index</p>
+        <p class="mb-2 page-subtitle">Sync with latest plant master data.</p>
+        <button class="btn btn-outline-success btn-sm w-100" id="btnRebuild">
+          <i class="bi bi-arrow-clockwise me-1"></i>Rebuild Index
+        </button>
+        <p id="rebuild-status" class="mt-1 mb-0 page-subtitle"></p>
+      </div>
+      {% endif %}
+
+      <!-- About -->
+      <div class="surface-card p-3">
+        <p class="text-uppercase fw-semibold mb-1 page-subtitle">About</p>
+        <p class="mb-0 page-subtitle">
+          Ask about any plant in the database — care requirements, light levels, watering schedules, and more.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ── Chat main ── -->
+    <div class="chat-main">
+
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-shrink-0">
+        <span class="page-subtitle">
+          Chatting with: <strong id="provider-label">Local Search</strong>
+        </span>
+        <button class="btn btn-outline-secondary btn-sm" id="btnClear">
+          <i class="bi bi-trash me-1"></i>Clear
+        </button>
+      </div>
+
+      <div id="chatBox" class="chat-box"></div>
+
+      <div class="d-flex flex-wrap gap-2 mb-2 flex-shrink-0" id="suggestions">
+        <button class="suggestion-chip">What plants need low light?</button>
+        <button class="suggestion-chip">Drought-tolerant plants</button>
+        <button class="suggestion-chip">High humidity plants</button>
+        <button class="suggestion-chip">Best plants for full sun</button>
+        <button class="suggestion-chip">Weekly watering plants</button>
+      </div>
+
+      <div class="input-group flex-shrink-0">
+        <input id="msgInput" class="form-control"
+               placeholder="Ask about a plant, care tip, or growing condition…"
+               autocomplete="off"/>
+        <button class="btn btn-success" id="btnSend">Send</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  let currentProvider = "local";
+  let selectedOpenAIModel = "gpt-4o-mini";
+  let selectedGeminiModel = "gemini-2.5-flash";
+
+  const chatBox = document.getElementById('chatBox');
+
+  function addMsg(who, text) {
+    const div = document.createElement('div');
+    div.className = `msg ${who}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    div.appendChild(bubble);
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function addTyping() {
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.id = id;
+    div.innerHTML = '<div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return id;
+  }
+
+  function loadProviderStatus() {
+    fetch('/api/plant-chat/status', { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(res => {
+        const keys = res.keys || {};
+        const labels = { openai: 'OpenAI', groq: 'Groq', gemini: 'Gemini' };
+        let html = '';
+        Object.entries(labels).forEach(([k, label]) => {
+          const ok = keys[k];
+          html += `<small><span class="status-dot ${ok ? 'ok' : 'bad'}"></span>${label}: ${ok ? 'Configured' : 'Not set in .env'}</small>`;
+        });
+        document.getElementById('provider-status').innerHTML = html;
+      });
+  }
+
+  document.querySelectorAll('.provider-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const p = card.dataset.provider;
+      if (p === currentProvider) return;
+      document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentProvider = p;
+      document.getElementById('openai-model-section').classList.toggle('d-none', p !== 'openai');
+      document.getElementById('gemini-model-section').classList.toggle('d-none', p !== 'gemini');
+      const names = { local:'Local Search', openai:'OpenAI GPT', groq:'Groq Llama', gemini:'Google Gemini' };
+      document.getElementById('provider-label').textContent = names[p] || p;
+      addMsg('system', `Switched to ${names[p] || p}`);
+    });
+  });
+
+  document.getElementById('openaiModel').addEventListener('change', e => { selectedOpenAIModel = e.target.value; });
+  document.getElementById('geminiModel').addEventListener('change', e => { selectedGeminiModel = e.target.value; });
+
+  function sendMessage(text) {
+    text = (text || document.getElementById('msgInput').value).trim();
+    if (!text) return;
+    addMsg('user', text);
+    document.getElementById('msgInput').value = '';
+    document.getElementById('suggestions').classList.add('d-none');
+
+    const model = currentProvider === 'openai' ? selectedOpenAIModel
+                : currentProvider === 'gemini' ? selectedGeminiModel : '';
+
+    const typingId = addTyping();
+    const btn = document.getElementById('btnSend');
+    btn.textContent = '…';
+    btn.disabled = true;
+
+    fetch('/plant-chat/send', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, ai_provider: currentProvider, model })
+    })
+    .then(r => r.json())
+    .then(res => {
+      document.getElementById(typingId)?.remove();
+      btn.textContent = 'Send';
+      btn.disabled = false;
+      addMsg(res.error ? 'error' : 'bot', res.error ? '❌ ' + res.error : res.reply || '(no reply)');
+    })
+    .catch(() => {
+      document.getElementById(typingId)?.remove();
+      btn.textContent = 'Send';
+      btn.disabled = false;
+      addMsg('error', '❌ Something went wrong. Please try again.');
+    });
+  }
+
+  document.getElementById('btnSend').addEventListener('click', () => sendMessage());
+  document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  document.querySelectorAll('.suggestion-chip').forEach(chip => {
+    chip.addEventListener('click', () => sendMessage(chip.textContent.trim()));
+  });
+
+  document.getElementById('btnClear').addEventListener('click', () => {
+    if (confirm('Clear chat?')) {
+      chatBox.innerHTML = '';
+      addMsg('bot', "Chat cleared! Ask me anything about our plants 🌿");
+      document.getElementById('suggestions').classList.remove('d-none');
+    }
+  });
+
+  {% if user_role == 'Management' %}
+  document.getElementById('btnRebuild').addEventListener('click', function () {
+    this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Rebuilding…';
+    this.disabled = true;
+    document.getElementById('rebuild-status').textContent = '';
+    fetch('/plant-chat/rebuild-index', { method: 'POST', credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(res => {
+        this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Rebuild Index';
+        this.disabled = false;
+        document.getElementById('rebuild-status').textContent = `✅ Indexed ${res.plants_indexed} plants`;
+        addMsg('system', `Search index rebuilt — ${res.plants_indexed} plants indexed`);
+      })
+      .catch(() => {
+        this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Rebuild Index';
+        this.disabled = false;
+        document.getElementById('rebuild-status').textContent = '❌ Rebuild failed';
+      });
+  });
+  {% endif %}
+
+  loadProviderStatus();
+  addMsg('bot', "Hi! I'm PlantBot 🌿\n\nAsk me about any plant in the Planted database — care requirements, light levels, watering schedules, and more.");
+</script>
+{% endblock %}

@@ -1306,3 +1306,14 @@ body {
   }
 }
 
+.btn-success {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  border-radius: 999px !important;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+  background-color: var(--color-primary-dark, #6f734d) !important;
+  border-color: var(--color-primary-dark, #6f734d) !important;
+}
