@@ -68,6 +68,13 @@
 
         <div id="provider-status" class="mt-2"></div>
 
+        <div class="mt-3 border-top pt-3">
+          <p class="text-uppercase fw-semibold mb-2 page-subtitle">Upgrade to Premium</p>
+          <p class="mb-2 small text-secondary">One-time payment of $4.99 unlocks unlimited AI queries.</p>
+          <div id="paypal-button-container"></div>
+          <p id="paypal-status" class="mt-2 small text-secondary"></p>
+        </div>
+        
         <div id="openai-model-section" class="mt-2 d-none">
           <label class="form-label fw-semibold small">Model</label>
           <select id="openaiModel" class="form-select form-select-sm">
@@ -178,12 +185,14 @@
     return id;
   }
 
+  const paypalClientId = "{{ paypal_client_id|e }}";
+  
   function loadProviderStatus() {
     fetch('/api/plant-chat/status', { credentials: 'same-origin' })
       .then(r => r.json())
       .then(res => {
         const keys = res.keys || {};
-        const labels = { openai: 'OpenAI', groq: 'Groq', gemini: 'Gemini' };
+        const labels = { openai: 'OpenAI', groq: 'Groq', gemini: 'Gemini', paypal: 'PayPal' };
         let html = '';
         Object.entries(labels).forEach(([k, label]) => {
           const ok = keys[k];
@@ -193,6 +202,53 @@
       });
   }
 
+
+  function initPayPalButton() {
+    const statusEl = document.getElementById('paypal-status');
+    if (!paypalClientId) {
+      if (statusEl) statusEl.textContent = 'PayPal is not configured. Add PAYPAL_CLIENT_ID in .env and restart the app.';
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD&intent=capture`;
+    script.onload = () => {
+      if (!window.paypal) {
+        statusEl.textContent = 'PayPal SDK failed to load.';
+        return;
+      }
+      paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'checkout'
+        },
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: '4.99' },
+              description: 'Planted AI premium upgrade'
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            statusEl.textContent = `✅ Payment completed: ${details.payer.name.given_name || ''} ${details.payer.name.surname || ''}`;
+          });
+        },
+        onError: function(err) {
+          statusEl.textContent = '❌ Payment failed. Please try again.';
+          console.error('PayPal error:', err);
+        }
+      }).render('#paypal-button-container');
+    };
+    script.onerror = () => {
+      if (statusEl) statusEl.textContent = 'Unable to load PayPal SDK.';
+    };
+    document.body.appendChild(script);
+  }
+  
   document.querySelectorAll('.provider-card').forEach(card => {
     card.addEventListener('click', () => {
       const p = card.dataset.provider;
@@ -283,6 +339,7 @@
   {% endif %}
 
   loadProviderStatus();
+  initPayPalButton();
   addMsg('bot', "Hi! I'm PlantBot 🌿\n\nAsk me about any plant in the Planted database — care requirements, light levels, watering schedules, and more.");
 </script>
 {% endblock %}
