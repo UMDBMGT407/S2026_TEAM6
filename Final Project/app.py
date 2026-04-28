@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from datetime import datetime, timedelta
 import os
 import random
@@ -26,11 +27,14 @@ app = Flask(
 )
 
 app.config['SECRET_KEY'] = 'secret-key-change-this'
+PASSWORD_RESET_SALT = 'planted-password-reset'
+PASSWORD_RESET_MAX_AGE_SECONDS = 3600
+password_reset_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'password'
+app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
 app.config['MYSQL_DB'] = 'user_management'
 
 mysql = MySQL(app)
@@ -791,6 +795,9 @@ def root():
 
 @app.route('/LoginPortal', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect_for_role(current_user.role)
+
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
@@ -893,18 +900,103 @@ def forgot_password():
 
 @app.route('/LoginPortalForgotPassword', methods=['POST'])
 def forgot_password_post():
-    email = request.form.get('email', '').strip()
-    confirm_email = request.form.get('confirm-email', '').strip()
+    email = request.form.get('email', '').strip().lower()
+    confirm_email = request.form.get('confirm-email', '').strip().lower()
 
     if not email or email != confirm_email:
         return render_template('LoginPortalForgotPassword.html', error="Email addresses must match")
 
-    return redirect(url_for('emailed_password_reset', email=email))
+    cur = mysql.connection.cursor()
+    cur.execute(
+        """
+        SELECT user_id
+        FROM users
+        WHERE LOWER(TRIM(email)) = %s
+          AND is_active = TRUE
+        """,
+        (email,)
+    )
+    user_row = cur.fetchone()
+    cur.close()
+
+    if not user_row:
+        return render_template(
+            'LoginPortalForgotPassword.html',
+            error="No active account was found for that email"
+        )
+
+    token = password_reset_serializer.dumps(email, salt=PASSWORD_RESET_SALT)
+    return redirect(url_for('emailed_password_reset', token=token))
 
 
-@app.route('/EmailedPasswordReset')
+@app.route('/EmailedPasswordReset', methods=['GET', 'POST'])
 def emailed_password_reset():
-    return render_template('EmailedPasswordReset.html')
+    if request.method == 'POST':
+        token = request.form.get('token', '').strip()
+        new_password = request.form.get('newPassword', '')
+        confirm_password = request.form.get('confirmPassword', '')
+
+        if not token:
+            return render_template('EmailedPasswordReset.html', token=token, error="Invalid or expired reset link.")
+
+        if not new_password or not confirm_password:
+            return render_template('EmailedPasswordReset.html', token=token, error="Both password fields are required.")
+
+        if len(new_password) < 8:
+            return render_template('EmailedPasswordReset.html', token=token, error="Password must be at least 8 characters long.")
+
+        if new_password != confirm_password:
+            return render_template('EmailedPasswordReset.html', token=token, error="Passwords do not match.")
+
+        try:
+            email = password_reset_serializer.loads(
+                token,
+                salt=PASSWORD_RESET_SALT,
+                max_age=PASSWORD_RESET_MAX_AGE_SECONDS
+            )
+        except SignatureExpired:
+            return render_template('EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
+        except BadSignature:
+            return render_template('EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
+
+        hashed_password = generate_password_hash(new_password)
+
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            UPDATE users
+            SET password = %s
+            WHERE LOWER(TRIM(email)) = %s
+              AND is_active = TRUE
+            """,
+            (hashed_password, email.lower())
+        )
+        updated_count = cur.rowcount
+        mysql.connection.commit()
+        cur.close()
+
+        if updated_count == 0:
+            return render_template('EmailedPasswordReset.html', token='', error="Account not found or inactive.")
+
+        return render_template('EmailedPasswordReset.html', token='', success="Your password has been reset successfully. You may now log in.")
+
+    token = request.args.get('token', '').strip()
+
+    if not token:
+        return render_template('EmailedPasswordReset.html', token='', error="Invalid or expired reset link. Please request a new one.")
+
+    try:
+        password_reset_serializer.loads(
+            token,
+            salt=PASSWORD_RESET_SALT,
+            max_age=PASSWORD_RESET_MAX_AGE_SECONDS
+        )
+    except SignatureExpired:
+        return render_template('EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
+    except BadSignature:
+        return render_template('EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
+
+    return render_template('EmailedPasswordReset.html', token=token)
 
 
 @app.route('/db-check')
@@ -938,6 +1030,7 @@ def db_check():
 
 @app.route('/invoices', methods=['GET'])
 @login_required
+@role_required('Client')
 def get_invoices_json():
     cur = mysql.connection.cursor()
     try:
@@ -1210,6 +1303,7 @@ def service_request_page():
 
 @app.route('/api/invoices/<int:invoice_id>', methods=['GET'])
 @login_required
+@role_required('Client')
 def get_invoice_detail(invoice_id):
     cur = mysql.connection.cursor()
     try:
@@ -2747,6 +2841,7 @@ def add_user():
 # --- View Users ---
 @app.route('/users', methods=['GET'])
 @login_required
+@role_required('Management')
 def get_users():
     cur = mysql.connection.cursor()
 
@@ -4804,6 +4899,10 @@ def ensure_employee_record(cur, user_id, job_title='Staff'):
 @app.route('/availability', methods=['POST'])
 @api_login_required
 def save_availability():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         if not request.is_json:
             return jsonify(error="Request must be JSON"), 400
@@ -4883,6 +4982,10 @@ def save_availability():
 @app.route('/availability/my', methods=['GET'])
 @api_login_required
 def get_my_availability():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         cur = mysql.connection.cursor()
         
@@ -4974,6 +5077,10 @@ def get_my_availability():
 @app.route('/availability/employee/<int:employee_id>', methods=['GET'])
 @api_login_required
 def get_employee_availability(employee_id):
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         cur = mysql.connection.cursor()
 
@@ -5086,6 +5193,10 @@ def get_employee_availability(employee_id):
 @app.route('/staff/schedule/events', methods=['GET'])
 @api_login_required
 def staff_schedule_events():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         cur = mysql.connection.cursor()
         employee_id = ensure_employee_record(cur, current_user.id, 'Staff')
@@ -5161,6 +5272,10 @@ def staff_schedule_events():
 @app.route('/staff/skills/my', methods=['GET'])
 @api_login_required
 def get_my_skills():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         cur = mysql.connection.cursor()
         employee_id = ensure_employee_record(cur, current_user.id)
@@ -5179,6 +5294,10 @@ def get_my_skills():
 @app.route('/staff/skills/my', methods=['PUT'])
 @api_login_required
 def save_my_skills():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+
     try:
         data = request.get_json() or {}
         skills = [s.strip() for s in (data.get('skills') or []) if isinstance(s, str) and s.strip()]
