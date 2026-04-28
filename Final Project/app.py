@@ -13,12 +13,16 @@ import re
 from openai import OpenAI
 from groq import Groq
 from google import genai
+from dotenv import load_dotenv
+
 
 # =======================
 # APP CONFIG
 # ========================
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(base_dir, '.env'))
+
 
 app = Flask(
     __name__,
@@ -26,16 +30,16 @@ app = Flask(
     static_folder=os.path.join(base_dir, 'static')
 )
 
-app.config['SECRET_KEY'] = 'secret-key-change-this'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-change-this')
 PASSWORD_RESET_SALT = 'planted-password-reset'
 PASSWORD_RESET_MAX_AGE_SECONDS = 3600
 password_reset_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # --- MySQL Config ---
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'UMD2025Smith$'
-app.config['MYSQL_DB'] = 'user_management'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'UMD2025Smith$')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'user_management')
 
 mysql = MySQL(app)
 SCHEMA_PATH = os.path.join(base_dir, 'Planted_Database.sql')
@@ -51,7 +55,8 @@ PLANT_FTS_DB_PATH = os.path.join(os.path.dirname(__file__), "plant_fts.db")
 DEFAULT_OPENAI_KEY = os.getenv('OPENAI_API_KEY', '')
 DEFAULT_GROQ_KEY   = os.getenv('GROQ_API_KEY', '')
 DEFAULT_GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
- 
+PAYPAL_CLIENT_ID   = os.getenv('PAYPAL_CLIENT_ID', '')
+
  
 # ============================================================================
 # SECTION B: PLANT FTS (Full-Text Search) ENGINE
@@ -5762,7 +5767,11 @@ def ask_plant_ai(user_question: str, search_results: list, ai_provider: str = "l
 @login_required
 def plant_chat_page():
     """Serve the plant chatbot page."""
-    return render_template("plant-chat.html", user_role=getattr(current_user, "role", "User"))
+    return render_template(
+        "plant-chat.html",
+        user_role=getattr(current_user, "role", "User"),
+        paypal_client_id=PAYPAL_CLIENT_ID
+    )
  
  
 @app.route("/plant-chat/send", methods=["POST"])
@@ -5840,6 +5849,8 @@ def plant_chat_api_status():
         "openai": ok(DEFAULT_OPENAI_KEY),
         "groq":   ok(DEFAULT_GROQ_KEY),
         "gemini": ok(DEFAULT_GEMINI_KEY),
+        "paypal": bool(PAYPAL_CLIENT_ID and PAYPAL_CLIENT_ID.strip() and not PAYPAL_CLIENT_ID.startswith("<") and "..." not in PAYPAL_CLIENT_ID),
+
     })
 
 # ========================
