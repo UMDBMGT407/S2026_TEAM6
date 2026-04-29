@@ -115,7 +115,12 @@
       </div>
 
     </div>
-
+<div class="surface-card p-3">
+  <p class="text-uppercase fw-semibold mb-1 page-subtitle">Upgrade</p>
+  <p class="mb-2 page-subtitle">Upgrade to Premium with PayPal.</p>
+  <div id="paypal-button-container"></div>
+  <p id="paypal-status" class="mt-2 mb-0 page-subtitle"></p>
+</div>
     <!-- ── Chat main ── -->
     <div class="chat-main">
 
@@ -341,5 +346,52 @@
   loadProviderStatus();
   initPayPalButton();
   addMsg('bot', "Hi! I'm PlantBot 🌿\n\nAsk me about any plant in the Planted database — care requirements, light levels, watering schedules, and more.");
+  fetch('/paypal/config', { credentials: 'same-origin' })
+  .then(res => res.json())
+  .then(cfg => {
+    if (!cfg.client_id) {
+      document.getElementById('paypal-status').textContent =
+        'PayPal Client ID missing in .env';
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${cfg.client_id}&currency=USD`;
+
+    script.onload = function () {
+      paypal.Buttons({
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: '4.99' }
+            }]
+          });
+        },
+
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function() {
+            fetch('/paypal/verify', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderID: data.orderID })
+            })
+            .then(res => res.json())
+            .then(result => {
+              document.getElementById('paypal-status').textContent =
+                result.message || 'Payment verified.';
+            });
+          });
+        },
+
+        onError: function() {
+          document.getElementById('paypal-status').textContent =
+            'Payment failed. Please try again.';
+        }
+      }).render('#paypal-button-container');
+    };
+
+    document.body.appendChild(script);
+  });
 </script>
 {% endblock %}
