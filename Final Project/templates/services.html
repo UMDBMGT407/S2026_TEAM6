@@ -159,7 +159,7 @@
                 '<span class="' + statusClass + '">' + (service.is_active ? 'Active' : 'Inactive') + '</span>' +
               '</div>' +
               '<div class="d-flex gap-2 mt-3">' +
-                '<button class="btn btn-outline-success btn-sm flex-fill edit-service-btn" data-service-id="' + service.service_id + '">Edit</button>' +
+                '<button class="btn btn-outline-success btn-sm flex-fill edit-service-btn" data-bs-toggle="modal" data-bs-target="#serviceModal" data-service-id="' + service.service_id + '">Edit</button>' +
                 '<button class="btn btn-outline-secondary btn-sm flex-fill toggle-service-btn" data-service-id="' + service.service_id + '" data-service-active="' + service.is_active + '">' + toggleLabel + '</button>' +
               '</div>' +
             '</div>' +
