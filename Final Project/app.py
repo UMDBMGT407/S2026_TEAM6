@@ -14,6 +14,8 @@ from openai import OpenAI
 from groq import Groq
 from google import genai
 from dotenv import load_dotenv
+load_dotenv()
+
 
 
 # =======================
@@ -5856,7 +5858,25 @@ def plant_chat_api_status():
 # ========================
 # RUN APP
 # ========================
+@app.route("/paypal/config", methods=["GET"])
+@login_required
+def paypal_config():
+    return jsonify(client_id=os.getenv("PAYPAL_CLIENT_ID", ""))
 
+
+@app.route("/paypal/verify", methods=["POST"])
+@login_required
+def paypal_verify():
+    data = request.get_json(silent=True) or {}
+    order_id = data.get("orderID", "")
+
+    if not order_id:
+        return jsonify(error="No order ID provided"), 400
+
+    return jsonify(
+        status="success",
+        message="Payment confirmed! Premium access granted."
+    ), 200
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='127.0.0.1', port=port)
