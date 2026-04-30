@@ -244,13 +244,15 @@
                         />
                       </div>
                       <div class="col-md-6">
-                        <label for="password" class="form-label">Password</label>
+                        <label for="password" class="form-label">Password *</label>
                         <input
                           type="password"
                           class="form-control"
                           id="password"
                           name="password"
-                          placeholder="Leave blank to keep unchanged"
+                          minlength="8"
+                          placeholder="Min. 8 characters"
+                          required
                         />
                       </div>
                     </div>

@@ -145,17 +145,17 @@
         <div class="row g-3">
           <div class="col-6">
             <label for="approve-start-time" class="form-label">Start Time</label>
-            <input id="approve-start-time" type="time" class="form-control" value="09:00" />
+            <input id="approve-start-time" type="time" class="form-control" value="09:00" required />
           </div>
           <div class="col-6">
             <label for="approve-end-time" class="form-label">End Time</label>
-            <input id="approve-end-time" type="time" class="form-control" value="10:00" />
+            <input id="approve-end-time" type="time" class="form-control" value="10:00" required />
           </div>
         </div>
         <div class="mt-3">
-          <label for="approve-employee-select" class="form-label">Available Employee</label>
-          <select id="approve-employee-select" class="form-select">
-            <option value="">Set date/time first</option>
+          <label for="approve-employee-select" class="form-label">Available Employee *</label>
+          <select id="approve-employee-select" class="form-select" required>
+            <option value="">— Set date/time first —</option>
           </select>
           <small class="text-muted" id="approve-employee-help"></small>
         </div>

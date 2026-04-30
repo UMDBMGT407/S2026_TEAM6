@@ -120,8 +120,8 @@
         <div class="mt-4">
           <div class="info-line">
             <i class="bi bi-sun-fill text-warning"></i>
-            <select id="plant-sunlight-input" class="form-select">
-              <option selected>Sunlight Levels</option>
+            <select id="plant-sunlight-input" class="form-select" required>
+              <option value="" selected disabled>— Select Sunlight Level —</option>
               <option>Low Light</option>
               <option>Medium Light</option>
               <option>Bright Indirect Light</option>
@@ -131,8 +131,8 @@
 
           <div class="info-line">
             <i class="bi bi-droplet-fill text-primary"></i>
-            <select id="plant-water-input" class="form-select">
-              <option selected>Water Levels</option>
+            <select id="plant-water-input" class="form-select" required>
+              <option value="" selected disabled>— Select Water Frequency —</option>
               <option>Every Few Days</option>
               <option>Weekly</option>
               <option>Every 2 Weeks</option>
@@ -142,8 +142,8 @@
 
           <div class="info-line">
             <i class="bi bi-thermometer-half text-danger"></i>
-            <select id="plant-temperature-input" class="form-select">
-              <option selected>Temperature</option>
+            <select id="plant-temperature-input" class="form-select" required>
+              <option value="" selected disabled>— Select Temperature Range —</option>
               <option>60-70°F</option>
               <option>65-75°F</option>
               <option>70-85°F</option>
@@ -152,8 +152,8 @@
 
           <div class="info-line">
             <i class="bi bi-wind text-info"></i>
-            <select id="plant-humidity-input" class="form-select">
-              <option selected>Humidity</option>
+            <select id="plant-humidity-input" class="form-select" required>
+              <option value="" selected disabled>— Select Humidity Level —</option>
               <option>Low (30-40%)</option>
               <option>Medium (40-60%)</option>
               <option>High (60-80%)</option>
@@ -161,6 +161,7 @@
           </div>
         </div>
 
+        <div id="add-plant-message" class="mt-3"></div>
         <div class="mt-4 text-end"><button id="save-plant-btn" type="button" class="btn btn-success">Save Plant</button></div>
       </div>
     </div>
@@ -357,10 +358,13 @@
     var water = document.getElementById('plant-water-input').value;
     var temperature = document.getElementById('plant-temperature-input').value;
     var humidity = document.getElementById('plant-humidity-input').value;
+    var msgEl = document.getElementById('add-plant-message');
 
-    if (!commonName || !scientificName) {
+    if (!commonName || !scientificName || !sunlight || !water || !temperature || !humidity) {
+      msgEl.innerHTML = '<span class="text-danger">Please fill in all fields before saving.</span>';
       return;
     }
+    msgEl.innerHTML = '';
     // Persist to server
     fetch('/api/plant_master', {
       method: 'POST',
@@ -423,6 +427,7 @@
       document.getElementById('plant-water-input').selectedIndex = 0;
       document.getElementById('plant-temperature-input').selectedIndex = 0;
       document.getElementById('plant-humidity-input').selectedIndex = 0;
+      document.getElementById('add-plant-message').innerHTML = '';
       filterPlants();
     }).catch(function(err){
       console.error('Failed to save plant', err);

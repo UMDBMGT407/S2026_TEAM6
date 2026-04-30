@@ -68,13 +68,6 @@
 
         <div id="provider-status" class="mt-2"></div>
 
-        <div class="mt-3 border-top pt-3">
-          <p class="text-uppercase fw-semibold mb-2 page-subtitle">Upgrade to Premium</p>
-          <p class="mb-2 small text-secondary">One-time payment of $4.99 unlocks unlimited AI queries.</p>
-          <div id="paypal-button-container"></div>
-          <p id="paypal-status" class="mt-2 small text-secondary"></p>
-        </div>
-        
         <div id="openai-model-section" class="mt-2 d-none">
           <label class="form-label fw-semibold small">Model</label>
           <select id="openaiModel" class="form-select form-select-sm">
@@ -115,12 +108,6 @@
       </div>
 
     </div>
-<div class="surface-card p-3">
-  <p class="text-uppercase fw-semibold mb-1 page-subtitle">Upgrade</p>
-  <p class="mb-2 page-subtitle">Upgrade to Premium with PayPal.</p>
-  <div id="paypal-button-container"></div>
-  <p id="paypal-status" class="mt-2 mb-0 page-subtitle"></p>
-</div>
     <!-- ── Chat main ── -->
     <div class="chat-main">
 
@@ -190,8 +177,6 @@
     return id;
   }
 
-  const paypalClientId = "{{ paypal_client_id|e }}";
-  
   function loadProviderStatus() {
     fetch('/api/plant-chat/status', { credentials: 'same-origin' })
       .then(r => r.json())
@@ -208,52 +193,6 @@
   }
 
 
-  function initPayPalButton() {
-    const statusEl = document.getElementById('paypal-status');
-    if (!paypalClientId) {
-      if (statusEl) statusEl.textContent = 'PayPal is not configured. Add PAYPAL_CLIENT_ID in .env and restart the app.';
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD&intent=capture`;
-    script.onload = () => {
-      if (!window.paypal) {
-        statusEl.textContent = 'PayPal SDK failed to load.';
-        return;
-      }
-      paypal.Buttons({
-        style: {
-          layout: 'vertical',
-          color: 'gold',
-          shape: 'rect',
-          label: 'checkout'
-        },
-        createOrder: function(data, actions) {
-          return actions.order.create({
-            purchase_units: [{
-              amount: { value: '4.99' },
-              description: 'Planted AI premium upgrade'
-            }]
-          });
-        },
-        onApprove: function(data, actions) {
-          return actions.order.capture().then(function(details) {
-            statusEl.textContent = `✅ Payment completed: ${details.payer.name.given_name || ''} ${details.payer.name.surname || ''}`;
-          });
-        },
-        onError: function(err) {
-          statusEl.textContent = '❌ Payment failed. Please try again.';
-          console.error('PayPal error:', err);
-        }
-      }).render('#paypal-button-container');
-    };
-    script.onerror = () => {
-      if (statusEl) statusEl.textContent = 'Unable to load PayPal SDK.';
-    };
-    document.body.appendChild(script);
-  }
-  
   document.querySelectorAll('.provider-card').forEach(card => {
     card.addEventListener('click', () => {
       const p = card.dataset.provider;
@@ -344,54 +283,6 @@
   {% endif %}
 
   loadProviderStatus();
-  initPayPalButton();
   addMsg('bot', "Hi! I'm PlantBot 🌿\n\nAsk me about any plant in the Planted database — care requirements, light levels, watering schedules, and more.");
-  fetch('/paypal/config', { credentials: 'same-origin' })
-  .then(res => res.json())
-  .then(cfg => {
-    if (!cfg.client_id) {
-      document.getElementById('paypal-status').textContent =
-        'PayPal Client ID missing in .env';
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${cfg.client_id}&currency=USD`;
-
-    script.onload = function () {
-      paypal.Buttons({
-        createOrder: function(data, actions) {
-          return actions.order.create({
-            purchase_units: [{
-              amount: { value: '4.99' }
-            }]
-          });
-        },
-
-        onApprove: function(data, actions) {
-          return actions.order.capture().then(function() {
-            fetch('/paypal/verify', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ orderID: data.orderID })
-            })
-            .then(res => res.json())
-            .then(result => {
-              document.getElementById('paypal-status').textContent =
-                result.message || 'Payment verified.';
-            });
-          });
-        },
-
-        onError: function() {
-          document.getElementById('paypal-status').textContent =
-            'Payment failed. Please try again.';
-        }
-      }).render('#paypal-button-container');
-    };
-
-    document.body.appendChild(script);
-  });
 </script>
 {% endblock %}

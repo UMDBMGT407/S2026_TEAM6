@@ -1018,6 +1018,8 @@ def emailed_password_reset():
 
 
 @app.route('/db-check')
+@login_required
+@role_required('Management')
 def db_check():
     cur = mysql.connection.cursor()
     cur.execute(
@@ -6043,14 +6045,32 @@ def paypal_config():
 def paypal_verify():
     data = request.get_json(silent=True) or {}
     order_id = data.get("orderID", "")
+    invoice_id = data.get("invoiceID")
 
     if not order_id:
         return jsonify(error="No order ID provided"), 400
 
-    return jsonify(
-        status="success",
-        message="Payment confirmed! Premium access granted."
-    ), 200
+    if invoice_id:
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("SELECT client_id FROM clients WHERE contact_user_id = %s", (current_user.id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify(error="Client not found"), 404
+            client_id = row[0]
+            cur.execute(
+                "SELECT invoice_id FROM invoices WHERE invoice_id = %s AND client_id = %s",
+                (invoice_id, client_id)
+            )
+            if not cur.fetchone():
+                return jsonify(error="Invoice not found"), 404
+            cur.execute("UPDATE invoices SET status = 'Paid' WHERE invoice_id = %s", (invoice_id,))
+            mysql.connection.commit()
+        finally:
+            cur.close()
+        return jsonify(status="success", message="Payment confirmed! Invoice marked as paid."), 200
+
+    return jsonify(status="success", message="Payment confirmed!"), 200
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='127.0.0.1', port=port)

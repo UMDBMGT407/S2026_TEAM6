@@ -142,6 +142,14 @@
           return;
         }
 
+        var classify = classifyInvoice(invoice);
+        var paySection = classify !== 'paid' ? `
+          <hr>
+          <h6 class="fw-semibold mb-2">Pay Now</h6>
+          <div id="paypal-modal-container"></div>
+          <p id="paypal-modal-status" class="mt-2 small text-secondary"></p>
+        ` : '';
+
         var body = document.getElementById('invoiceModalBody');
         body.innerHTML = `
           <div class="row mb-3">
@@ -157,7 +165,7 @@
               <strong>Due Date:</strong> ${toDateLabel(invoice.due_date)}
             </div>
             <div class="col-md-6">
-              <strong>Status:</strong> ${statusText(classifyInvoice(invoice))}
+              <strong>Status:</strong> ${statusText(classify)}
             </div>
           </div>
           <div class="row mb-3">
@@ -199,10 +207,51 @@
               </tr>
             </tfoot>
           </table>
+          ${paySection}
         `;
 
         var modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
         modal.show();
+
+        if (classify !== 'paid' && paypalReadyPromise) {
+          paypalReadyPromise.then(function() {
+            if (!window.paypal) return;
+            paypal.Buttons({
+              style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+              createOrder: function(data, actions) {
+                return actions.order.create({
+                  purchase_units: [{
+                    amount: { value: Number(invoice.total_amount).toFixed(2) },
+                    description: 'Invoice ' + invoice.invoice_number
+                  }]
+                });
+              },
+              onApprove: function(data, actions) {
+                return actions.order.capture().then(function() {
+                  return fetch('/paypal/verify', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderID: data.orderID, invoiceID: invoiceId })
+                  });
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                  var statusEl = document.getElementById('paypal-modal-status');
+                  if (statusEl) statusEl.textContent = result.message || 'Payment confirmed!';
+                  setTimeout(function() {
+                    bootstrap.Modal.getInstance(document.getElementById('invoiceModal')).hide();
+                    loadInvoices();
+                  }, 1500);
+                });
+              },
+              onError: function() {
+                var statusEl = document.getElementById('paypal-modal-status');
+                if (statusEl) statusEl.textContent = 'Payment failed. Please try again.';
+              }
+            }).render('#paypal-modal-container');
+          });
+        }
       })
       .catch(error => {
         alert('Unable to load invoice details: ' + error.message);
@@ -304,7 +353,26 @@
     document.getElementById('tab-overdue').click();
   });
 
+  var paypalReadyPromise = null;
+
+  function initPayPal() {
+    paypalReadyPromise = fetch('/paypal/config', { credentials: 'same-origin' })
+      .then(function(res) { return res.json(); })
+      .then(function(cfg) {
+        if (!cfg.client_id) return null;
+        return new Promise(function(resolve, reject) {
+          var script = document.createElement('script');
+          script.src = 'https://www.paypal.com/sdk/js?client-id=' + cfg.client_id + '&currency=USD';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      })
+      .catch(function() { paypalReadyPromise = null; });
+  }
+
   loadInvoices();
+  initPayPal();
 </script>
 {% endblock %}
 
