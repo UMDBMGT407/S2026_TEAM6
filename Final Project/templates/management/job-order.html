@@ -66,7 +66,7 @@
 
 <div id="job-order-status" class="mb-3"></div>
 
-<div class="management-content-block mb-4">
+<div class="surface-card p-4 mb-4">
   <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
     <h3 class="h5 mb-0">Service Requests</h3>
     <div class="d-flex gap-2 flex-wrap" id="request-filter-buttons">
@@ -95,7 +95,7 @@
   </div>
 </div>
 
-<div class="management-content-block">
+<div class="surface-card p-4">
   <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
     <h3 class="h5 mb-0">Job Orders</h3>
     <div class="d-flex gap-2 flex-wrap" id="job-filter-buttons">
@@ -309,9 +309,10 @@
           approved += 1;
         } else if (status === 'rejected') {
           rejected += 1;
-        } else {
+        } else if (status === 'pending') {
           pending += 1;
         }
+        // 'cancelled' and any unknown status are excluded from all counts
       });
 
       statPending.textContent = String(pending);

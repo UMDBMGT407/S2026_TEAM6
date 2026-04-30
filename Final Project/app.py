@@ -853,13 +853,11 @@ def login():
     return render_template('auth/LoginPortal.html')
 
 
-@app.route('/CreateAccount')
+@app.route('/CreateAccount', methods=['GET', 'POST'])
 def create_account():
-    return render_template('auth/CreateAccount.html')
+    if request.method == 'GET':
+        return render_template('auth/CreateAccount.html')
 
-
-@app.route('/CreateAccount', methods=['POST'])
-def create_account_post():
     full_name = request.form.get('name', '').strip()
     email = request.form.get('email', '').strip()
     password = request.form.get('password', '')
@@ -1263,6 +1261,13 @@ def logout():
 @role_required('Management')
 def management_dashboard():
     return render_template('management/manage-employee.html')
+
+
+@app.route('/management/overview')
+@login_required
+@role_required('Management')
+def management_overview():
+    return render_template('management/overview.html')
 
 
 @app.route('/manage-employee.html')

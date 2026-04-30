@@ -1,0 +1,523 @@
+{% extends "base_management.html" %}
+{% set active_page = 'overview' %}
+
+{% block title %}Planted Management — Overview{% endblock %}
+
+{% block vendor_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+{% endblock %}
+
+{% block page_content %}
+
+<!-- Header -->
+<div class="row align-items-center mb-4">
+  <div class="col">
+    <h2 class="page-title mb-0">Overview</h2>
+    <p class="page-subtitle mb-0" id="dashboard-date-line">Loading...</p>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-success px-4" id="dashboard-refresh-btn" type="button">Refresh</button>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3 d-flex">
+    <div class="stat-card w-100" style="cursor:pointer;" onclick="window.location.href='{{ url_for('job_order_page') }}'">
+      <h6>Pending Requests</h6>
+      <p class="stat-number status-pill-warning" id="stat-pending-requests" style="background:none;border:none;padding:0;min-width:0;">—</p>
+      <p class="stat-sub mb-0">Awaiting approval</p>
+    </div>
+  </div>
+  <div class="col-md-3 d-flex">
+    <div class="stat-card w-100" style="cursor:pointer;" onclick="window.location.href='{{ url_for('scheduling_page') }}'">
+      <h6>Unassigned Jobs</h6>
+      <p class="stat-number text-red" id="stat-unassigned-jobs">—</p>
+      <p class="stat-sub mb-0">Need staff assignment</p>
+    </div>
+  </div>
+  <div class="col-md-3 d-flex">
+    <div class="stat-card w-100" style="cursor:pointer;" onclick="window.location.href='{{ url_for('management_invoices_page') }}'">
+      <h6>Outstanding Balance</h6>
+      <p class="stat-number" id="stat-outstanding">—</p>
+      <p class="stat-sub mb-0" id="stat-outstanding-sub">Unpaid invoices</p>
+    </div>
+  </div>
+  <div class="col-md-3 d-flex">
+    <div class="stat-card w-100" style="cursor:pointer;" onclick="window.location.href='{{ url_for('inventory_page') }}'">
+      <h6>Low Stock Items</h6>
+      <p class="stat-number text-red" id="stat-low-stock">—</p>
+      <p class="stat-sub mb-0">Below reorder level</p>
+    </div>
+  </div>
+</div>
+
+<!-- Middle: Upcoming Jobs + Pending Requests -->
+<div class="row g-4 mb-4">
+
+  <!-- Upcoming Jobs (next 7 days) -->
+  <div class="col-12 col-xl-7">
+    <div class="surface-card h-100 p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Upcoming Jobs</h5>
+          <small class="text-muted">Next 7 days</small>
+        </div>
+        <a href="{{ url_for('scheduling_page') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="planted-table-wrapper">
+        <table class="planted-data-table">
+          <thead>
+            <tr>
+              <th>Job Code</th>
+              <th>Service</th>
+              <th>Client</th>
+              <th>Date</th>
+              <th>Assigned To</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="upcoming-jobs-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Service Requests -->
+  <div class="col-12 col-xl-5">
+    <div class="surface-card h-100 p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Pending Requests</h5>
+          <small class="text-muted">Require your approval</small>
+        </div>
+        <a href="{{ url_for('job_order_page') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div id="pending-requests-status" class="mb-2"></div>
+      <div class="planted-table-wrapper">
+        <table class="planted-data-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Service</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pending-requests-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom: Outstanding Invoices + Staff Snapshot -->
+<div class="row g-4">
+
+  <!-- Outstanding Invoices -->
+  <div class="col-12 col-xl-6">
+    <div class="surface-card h-100 p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Outstanding Invoices</h5>
+          <small class="text-muted">Unpaid and overdue</small>
+        </div>
+        <a href="{{ url_for('management_invoices_page') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="planted-table-wrapper">
+        <table class="planted-data-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Client</th>
+              <th>Due</th>
+              <th>Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="outstanding-invoices-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Snapshot -->
+  <div class="col-12 col-xl-6">
+    <div class="surface-card h-100 p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Staff</h5>
+          <small class="text-muted">Current team status</small>
+        </div>
+        <a href="{{ url_for('management_dashboard') }}" class="btn btn-sm btn-outline-secondary">Manage</a>
+      </div>
+      <div class="planted-table-wrapper">
+        <table class="planted-data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Specialties</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="staff-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function () {
+
+  /* ── Helpers ────────────────────────────────────────────────── */
+  function escHtml(v) {
+    return String(v || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmt(v) {
+    return '$' + Number(v || 0).toFixed(2);
+  }
+
+  function fmtDate(v) {
+    if (!v) return '—';
+    var d = new Date(v + 'T00:00:00');
+    return isNaN(d) ? v : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function daysFromNow(dateStr) {
+    if (!dateStr) return null;
+    var today = new Date(new Date().toDateString());
+    var target = new Date(dateStr + 'T00:00:00');
+    return Math.round((target - today) / 86400000);
+  }
+
+  async function fetchJson(url, opts) {
+    var options = Object.assign({ cache: 'no-store' }, opts || {});
+    var res = await fetch(url, options);
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    return data;
+  }
+
+  function setEl(id, html) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  function setStatus(id, text, isError) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = isError ? 'mb-2 text-danger small' : 'mb-2 text-success small';
+  }
+
+  function jobPill(status) {
+    var s = String(status || '').toLowerCase();
+    if (s === 'completed') return 'status-pill status-pill-active';
+    if (s === 'cancelled') return 'status-pill status-pill-inactive';
+    if (s === 'unassigned') return 'status-pill status-pill-warning';
+    return 'status-pill status-pill-neutral';
+  }
+
+  function invoicePill(status) {
+    var s = String(status || '').toLowerCase();
+    if (s === 'paid') return 'status-pill status-pill-active';
+    if (s === 'overdue') return 'status-pill status-pill-inactive';
+    return 'status-pill status-pill-warning';
+  }
+
+  /* ── Date line ──────────────────────────────────────────────── */
+  (function setDateLine() {
+    var now = new Date();
+    var hours = now.getHours();
+    var greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening';
+    var dateLabel = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    document.getElementById('dashboard-date-line').textContent = greeting + ' — ' + dateLabel;
+  })();
+
+  /* ── Upcoming Jobs ──────────────────────────────────────────── */
+  async function loadUpcomingJobs() {
+    var tbody = document.getElementById('upcoming-jobs-list');
+    try {
+      var jobs = await fetchJson('/jobs');
+      var today = new Date(new Date().toDateString());
+      var cutoff = new Date(today); cutoff.setDate(cutoff.getDate() + 7);
+
+      var upcoming = jobs.filter(function (j) {
+        if (!j.scheduled_date) return false;
+        var d = new Date(j.scheduled_date + 'T00:00:00');
+        var s = String(j.status || '').toLowerCase();
+        return d >= today && d <= cutoff && s !== 'cancelled' && s !== 'completed';
+      }).sort(function (a, b) {
+        return (a.scheduled_date || '').localeCompare(b.scheduled_date || '');
+      });
+
+      /* stat: unassigned jobs — active (not cancelled/completed) with no staff */
+      var unassigned = jobs.filter(function (j) {
+        var s = String(j.status || '').toLowerCase();
+        return !j.assigned_employee_id
+          && s !== 'cancelled'
+          && s !== 'completed';
+      }).length;
+      document.getElementById('stat-unassigned-jobs').textContent = String(unassigned);
+
+      if (!upcoming.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="planted-table-empty">No jobs scheduled in the next 7 days.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = upcoming.map(function (j) {
+        var assignedTo = j.assigned_name || 'Unassigned';
+        var statusLabel = j.assigned_employee_id
+          ? (j.status || 'Scheduled')
+          : 'Unassigned';
+        var days = daysFromNow(j.scheduled_date);
+        var dateLabel = fmtDate(j.scheduled_date);
+        if (days === 0) dateLabel = '<strong>Today</strong>';
+        else if (days === 1) dateLabel = 'Tomorrow';
+
+        return (
+          '<tr>' +
+            '<td><small class="text-muted">' + escHtml(j.job_order_code || ('#' + j.id)) + '</small></td>' +
+            '<td>' + escHtml(j.title || '—') + '</td>' +
+            '<td>' + escHtml(j.company || '—') + '</td>' +
+            '<td>' + dateLabel + '</td>' +
+            '<td>' + escHtml(assignedTo) + '</td>' +
+            '<td><span class="' + jobPill(statusLabel) + '">' + escHtml(statusLabel) + '</span></td>' +
+          '</tr>'
+        );
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="6" class="planted-table-empty text-danger">' + escHtml(err.message) + '</td></tr>';
+    }
+  }
+
+  /* ── Pending Service Requests ───────────────────────────────── */
+  async function loadPendingRequests() {
+    var tbody = document.getElementById('pending-requests-list');
+    try {
+      var data = await fetchJson('/api/management/service-requests?status=all');
+      var all = Array.isArray(data) ? data : (data.requests || []);
+
+      /* Count pending: anything not approved, rejected, or cancelled */
+      var pendingCount = all.filter(function (r) {
+        var s = String(r.status || '').toLowerCase();
+        return s !== 'approved' && s !== 'rejected' && s !== 'cancelled';
+      }).length;
+      document.getElementById('stat-pending-requests').textContent = String(pendingCount);
+
+      /* Table only shows explicitly pending ones */
+      var requests = all.filter(function (r) {
+        return String(r.status || '').toLowerCase() === 'pending';
+      });
+
+      if (!requests.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty">No pending requests.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = requests.map(function (r) {
+        return (
+          '<tr>' +
+            '<td>' + escHtml(r.company_name || '—') + '<br><small class="text-muted">' + escHtml(r.contact_name || '') + '</small></td>' +
+            '<td>' + escHtml(r.service_name || '—') + '</td>' +
+            '<td>' + fmtDate(r.requested_date) + '</td>' +
+            '<td>' +
+              '<div class="d-flex align-items-center gap-2">' +
+                '<button class="btn btn-sm btn-outline-success approve-btn" data-id="' + r.service_request_id + '">Approve</button>' +
+                '<button class="btn btn-sm text-danger border-0 ms-auto reject-btn" data-id="' + r.service_request_id + '">Reject</button>' +
+              '</div>' +
+            '</td>' +
+          '</tr>'
+        );
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty text-danger">' + escHtml(err.message) + '</td></tr>';
+    }
+  }
+
+  /* Approve/Reject delegation — note: approval needs date/time/employee so redirect to Job Orders */
+  document.getElementById('pending-requests-list').addEventListener('click', async function (e) {
+    var approveBtn = e.target.closest('.approve-btn');
+    var rejectBtn = e.target.closest('.reject-btn');
+
+    if (approveBtn) {
+      /* Full approval needs staff assignment — send to Job Orders page */
+      window.location.href = '{{ url_for("job_order_page") }}';
+      return;
+    }
+
+    if (rejectBtn) {
+      if (!confirm('Reject this service request?')) return;
+      var id = rejectBtn.dataset.id;
+      try {
+        await fetchJson('/api/management/service-requests/' + id + '/reject', { method: 'POST' });
+        setStatus('pending-requests-status', 'Request rejected.', false);
+        await loadPendingRequests();
+      } catch (err) {
+        setStatus('pending-requests-status', err.message, true);
+      }
+    }
+  });
+
+  /* ── Outstanding Invoices ───────────────────────────────────── */
+  async function loadInvoices() {
+    var tbody = document.getElementById('outstanding-invoices-list');
+    try {
+      var invoices = await fetchJson('/api/management/invoices');
+      var today = new Date(new Date().toDateString());
+
+      var outstanding = invoices.filter(function (inv) {
+        var s = String(inv.status || '').toLowerCase();
+        return s !== 'paid' && s !== 'cancelled';
+      });
+
+      var totalOwed = outstanding.reduce(function (sum, inv) {
+        return sum + (Number(inv.total_amount) || 0);
+      }, 0);
+
+      var overdueCount = outstanding.filter(function (inv) {
+        var due = inv.due_date ? new Date(inv.due_date + 'T00:00:00') : null;
+        return String(inv.status || '').toLowerCase() === 'overdue' || (due && due < today);
+      }).length;
+
+      document.getElementById('stat-outstanding').textContent = fmt(totalOwed);
+      var outstandingSub = outstanding.length + ' unpaid invoice' + (outstanding.length === 1 ? '' : 's');
+      if (overdueCount > 0) {
+        outstandingSub += ' (' + overdueCount + ' overdue)';
+      }
+      document.getElementById('stat-outstanding-sub').textContent = outstandingSub;
+
+      if (!outstanding.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="planted-table-empty">All invoices are paid.</td></tr>';
+        return;
+      }
+
+      /* Sort: overdue first, then by due date */
+      outstanding.sort(function (a, b) {
+        var aOver = String(a.status || '').toLowerCase() === 'overdue' ? 0 : 1;
+        var bOver = String(b.status || '').toLowerCase() === 'overdue' ? 0 : 1;
+        if (aOver !== bOver) return aOver - bOver;
+        return (a.due_date || '').localeCompare(b.due_date || '');
+      });
+
+      tbody.innerHTML = outstanding.slice(0, 8).map(function (inv) {
+        var due = inv.due_date ? new Date(inv.due_date + 'T00:00:00') : null;
+        var isOverdue = String(inv.status || '').toLowerCase() === 'overdue' || (due && due < today);
+        var pillClass = isOverdue ? 'status-pill status-pill-inactive' : 'status-pill status-pill-warning';
+        var statusLabel = isOverdue ? 'Overdue' : (inv.status || 'Unpaid');
+        return (
+          '<tr>' +
+            '<td>' + escHtml(inv.invoice_number || ('INV-' + inv.invoice_id)) + '</td>' +
+            '<td>' + escHtml(inv.company_name || '—') + '</td>' +
+            '<td>' + fmtDate(inv.due_date) + '</td>' +
+            '<td>' + fmt(inv.total_amount) + '</td>' +
+            '<td><span class="' + pillClass + '">' + escHtml(statusLabel) + '</span></td>' +
+          '</tr>'
+        );
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="5" class="planted-table-empty text-danger">' + escHtml(err.message) + '</td></tr>';
+    }
+  }
+
+  /* ── Staff Snapshot ─────────────────────────────────────────── */
+  async function loadStaff() {
+    var tbody = document.getElementById('staff-list');
+    try {
+      var employees = await fetchJson('/employees?status=active');
+
+      if (!employees.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty">No active staff found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = employees.map(function (emp) {
+        var statusClass = emp.is_active ? 'status-pill status-pill-active' : 'status-pill status-pill-inactive';
+        var statusLabel = emp.is_active ? 'Active' : 'Inactive';
+        var skillsHtml = (emp.skills && emp.skills.length)
+          ? emp.skills.slice(0, 2).map(function (s) {
+              return '<span class="skill-tag-mgmt">' + escHtml(s) + '</span>';
+            }).join(' ') + (emp.skills.length > 2 ? ' <small class="text-muted">+' + (emp.skills.length - 2) + '</small>' : '')
+          : '<span class="text-muted">—</span>';
+
+        return (
+          '<tr>' +
+            '<td>' + escHtml(emp.name || '—') + '</td>' +
+            '<td class="text-muted">' + escHtml(emp.role || '—') + '</td>' +
+            '<td>' + skillsHtml + '</td>' +
+            '<td><span class="' + statusClass + '">' + statusLabel + '</span></td>' +
+          '</tr>'
+        );
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty text-danger">' + escHtml(err.message) + '</td></tr>';
+    }
+  }
+
+  /* ── Low Stock ─────────────────────────────────────────────── */
+  async function loadLowStock() {
+    try {
+      var items = await fetchJson('/api/inventory');
+      var lowCount = items.filter(function (item) {
+        return Number(item.reorder_level || 0) > 0 &&
+               Number(item.quantity_on_hand || 0) < Number(item.reorder_level || 0);
+      }).length;
+      document.getElementById('stat-low-stock').textContent = String(lowCount);
+    } catch (err) {
+      document.getElementById('stat-low-stock').textContent = '?';
+    }
+  }
+
+  /* ── Load all ──────────────────────────────────────────────── */
+  async function loadAll() {
+    await Promise.all([
+      loadUpcomingJobs(),
+      loadPendingRequests(),
+      loadInvoices(),
+      loadStaff(),
+      loadLowStock()
+    ]);
+  }
+
+  var refreshBtn = document.getElementById('dashboard-refresh-btn');
+  refreshBtn.addEventListener('click', async function () {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = 'Refreshing...';
+    await loadAll();
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = 'Refresh';
+  });
+
+  loadAll();
+})();
+</script>
+
+<style>
+.skill-tag-mgmt {
+  display: inline-flex;
+  align-items: center;
+  background: #ddd4cb;
+  color: #3a3a2e;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin: 1px 2px;
+}
+</style>
+{% endblock %}

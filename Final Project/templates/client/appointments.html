@@ -9,7 +9,7 @@
 
 {% block page_content %}
 <div class="mb-4">
-  <h1 class="page-title">Good morning,</h1>
+  <h1 class="page-title" id="appt-greeting">Appointments</h1>
   <p class="page-subtitle">Here's a look at all your appointments</p>
 </div>
 
@@ -34,7 +34,7 @@
   </div>
 </div>
 
-<div class="management-content-block">
+<div class="surface-card mt-3">
   <div class="planted-table-wrapper">
     <table class="planted-data-table">
       <thead>
@@ -69,11 +69,11 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p><strong>Service:</strong> <span id="appt-modal-service">Weekly Maintenance</span></p>
-        <p><strong>Technician:</strong> <span id="appt-modal-technician">Peter Smith</span></p>
-        <p><strong>Date:</strong> <span id="appt-modal-date">2026-03-15</span></p>
-        <p><strong>Time:</strong> <span id="appt-modal-time">12:00 pm</span></p>
-        <p><strong>Location:</strong> <span id="appt-modal-location">123 Rainbow Road</span></p>
+        <p><strong>Service:</strong> <span id="appt-modal-service"></span></p>
+        <p><strong>Technician:</strong> <span id="appt-modal-technician"></span></p>
+        <p><strong>Date:</strong> <span id="appt-modal-date"></span></p>
+        <p><strong>Time:</strong> <span id="appt-modal-time"></span></p>
+        <p><strong>Location:</strong> <span id="appt-modal-location"></span></p>
         <p><strong>Status:</strong> <span class="inv-status status-scheduled modal-status-inline" id="appt-modal-status">&#x25CF; Scheduled</span></p>
       </div>
       <div class="modal-footer">
@@ -91,6 +91,10 @@
 {% block page_js %}
 <script>
   (function () {
+    var hour = new Date().getHours();
+    var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('appt-greeting').textContent = greeting + ',';
+
     var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
     var listEl = document.getElementById('appointments-list');
 
