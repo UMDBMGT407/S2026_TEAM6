@@ -26,6 +26,8 @@
                                             name="name"
                                             value="{{ request.form.get('name', '') }}"
                                             autocomplete="name"
+                                            pattern="[A-Za-z\s'\-]+"
+                                            title="Please enter letters only"
                                             required
                                         >
 
@@ -74,5 +76,16 @@
             </div>
         </div>
     </div>
+<script>
+  document.querySelectorAll('#name').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[A-Za-z\s'\-]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^A-Za-z\s'\-]/.test(pasted)) e.preventDefault();
+    });
+  });
+</script>
 </body>
 </html>

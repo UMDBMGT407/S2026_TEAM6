@@ -31,11 +31,11 @@
   <div class="row g-3">
     <div class="col-md-3">
       <label for="first-name-input" class="profile-field-label">FIRST NAME</label>
-      <input id="first-name-input" class="form-control" required />
+      <input id="first-name-input" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required />
     </div>
     <div class="col-md-3">
       <label for="last-name-input" class="profile-field-label">LAST NAME</label>
-      <input id="last-name-input" class="form-control" required />
+      <input id="last-name-input" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required />
     </div>
     <div class="col-md-3">
       <label for="email-input" class="profile-field-label">EMAIL</label>
@@ -43,7 +43,7 @@
     </div>
     <div class="col-md-3">
       <label for="phone-input" class="profile-field-label">PHONE</label>
-      <input id="phone-input" class="form-control" />
+      <input id="phone-input" type="tel" class="form-control" />
     </div>
     <div class="col-md-6">
       <label for="company-name-input" class="profile-field-label">COMPANY NAME</label>
@@ -80,7 +80,7 @@
     </div>
     <div class="col-md-4">
       <label for="zip-input" class="profile-field-label">ZIP</label>
-      <input id="zip-input" class="form-control" required />
+      <input id="zip-input" type="text" class="form-control" pattern="[0-9]{5}(-[0-9]{4})?" title="Enter a valid ZIP code (e.g. 12345 or 12345-6789)" required />
     </div>
     <div class="col-md-12">
       <button type="submit" class="btn-action">Add Location</button>
@@ -95,6 +95,16 @@
 
 {% block page_js %}
 <script>
+  document.querySelectorAll('#first-name-input, #last-name-input').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[A-Za-z\s'\-]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^A-Za-z\s'\-]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   (function () {
     var profileForm = document.getElementById('profile-form');
     var locationForm = document.getElementById('add-location-form');

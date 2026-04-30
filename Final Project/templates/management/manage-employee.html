@@ -203,6 +203,8 @@
                           class="form-control"
                           id="firstName"
                           name="first_name"
+                          pattern="[A-Za-z\s'\-]+"
+                          title="Please enter letters only"
                           required
                         />
                       </div>
@@ -213,6 +215,8 @@
                           class="form-control"
                           id="lastName"
                           name="last_name"
+                          pattern="[A-Za-z\s'\-]+"
+                          title="Please enter letters only"
                           required
                         />
                       </div>
@@ -678,16 +682,16 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label for="edit-emp-first" class="form-label">First Name</label>
-              <input id="edit-emp-first" class="form-control">
+              <input id="edit-emp-first" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
             <div class="col-md-6">
               <label for="edit-emp-last" class="form-label">Last Name</label>
-              <input id="edit-emp-last" class="form-control">
+              <input id="edit-emp-last" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
           </div>
           <div class="mb-3">
             <label for="edit-emp-phone" class="form-label">Phone</label>
-            <input id="edit-emp-phone" class="form-control">
+            <input id="edit-emp-phone" type="tel" class="form-control">
           </div>
           <div class="mb-3">
             <label for="edit-emp-password" class="form-label">Password</label>
@@ -727,6 +731,16 @@
 
 {% block page_js %}
 <script>
+  document.querySelectorAll('#firstName, #lastName, #edit-emp-first, #edit-emp-last').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[A-Za-z\s'\-]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^A-Za-z\s'\-]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   let currentEmployeeStatusFilter = 'all';
   let currentEmployeeSearch = '';
   let selectedEmployeeId = null;

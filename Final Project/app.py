@@ -855,6 +855,8 @@ def login():
 
 @app.route('/CreateAccount', methods=['GET', 'POST'])
 def create_account():
+    if current_user.is_authenticated:
+        return redirect_for_role(current_user.role)
     if request.method == 'GET':
         return render_template('auth/CreateAccount.html')
 

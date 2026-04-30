@@ -75,11 +75,11 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label for="new-client-first" class="form-label">Contact First Name *</label>
-              <input id="new-client-first" class="form-control" required>
+              <input id="new-client-first" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
             <div class="col-md-6">
               <label for="new-client-last" class="form-label">Contact Last Name *</label>
-              <input id="new-client-last" class="form-control" required>
+              <input id="new-client-last" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
           </div>
           <div class="mb-3">
@@ -88,7 +88,7 @@
           </div>
           <div class="mb-3">
             <label for="new-client-phone" class="form-label">Phone</label>
-            <input id="new-client-phone" class="form-control">
+            <input id="new-client-phone" type="tel" class="form-control">
           </div>
           <div id="add-client-message"></div>
         </div>
@@ -114,21 +114,21 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="edit-client-company" class="form-label">Company Name</label>
-            <input id="edit-client-company" class="form-control">
+            <input id="edit-client-company" class="form-control" required>
           </div>
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label for="edit-client-first" class="form-label">First Name</label>
-              <input id="edit-client-first" class="form-control">
+              <input id="edit-client-first" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
             <div class="col-md-6">
               <label for="edit-client-last" class="form-label">Last Name</label>
-              <input id="edit-client-last" class="form-control">
+              <input id="edit-client-last" type="text" class="form-control" pattern="[A-Za-z\s'\-]+" title="Please enter letters only" required>
             </div>
           </div>
           <div class="mb-3">
             <label for="edit-client-phone" class="form-label">Phone</label>
-            <input id="edit-client-phone" class="form-control">
+            <input id="edit-client-phone" type="tel" class="form-control">
           </div>
           <div id="edit-client-message"></div>
         </div>
@@ -173,6 +173,16 @@
 
 {% block page_js %}
 <script>
+  document.querySelectorAll('#new-client-first, #new-client-last, #edit-client-first, #edit-client-last').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[A-Za-z\s'\-]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^A-Za-z\s'\-]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   (function () {
     var clientList = document.getElementById('client-list');
     var statusEl = document.getElementById('clients-status');
