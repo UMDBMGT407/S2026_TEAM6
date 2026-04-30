@@ -12,6 +12,19 @@
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/manage-employee.css') }}">
+<style>
+.skill-tag-mgmt {
+  display: inline-flex;
+  align-items: center;
+  background: #ddd4cb;
+  color: #3a3a2e;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin: 1px 2px;
+}
+</style>
 {% endblock %}
 
 {% block page_content %}
@@ -94,6 +107,7 @@
                     <th>Phone</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Specialties</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
@@ -948,7 +962,7 @@
       const cardsGrid = document.getElementById('employeeCardsGrid');
 
       if (employees.length === 0) {
-        cardsGrid.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No employees to display.</td></tr>';
+        cardsGrid.innerHTML = '<tr><td colspan="8" class="planted-table-empty">No employees to display.</td></tr>';
         return;
       }
 
@@ -971,6 +985,10 @@
           <td>${emp.phone || '—'}</td>
           <td>${emp.email || '—'}</td>
           <td>${emp.role || '—'}</td>
+          <td>${(emp.skills && emp.skills.length)
+            ? emp.skills.map(s => `<span class="skill-tag-mgmt">${s}</span>`).join(' ')
+            : '<span class="text-muted">—</span>'
+          }</td>
           <td><span class="${statusClass}">${statusLabel}</span></td>
           <td>
             <div class="d-flex align-items-center gap-2">

@@ -2969,7 +2969,6 @@ def get_employees():
 
     cur.execute(base_sql, tuple(params))
     employees = cur.fetchall()
-    cur.close()
 
     employee_list = []
     for emp in employees:
@@ -2985,9 +2984,24 @@ def get_employees():
             'job_title': emp[8],
             'employment_status': emp[9],
             'hire_date': emp[10].isoformat() if emp[10] is not None else None,
-            'pay_rate_hourly': float(emp[11]) if emp[11] is not None else None
+            'pay_rate_hourly': float(emp[11]) if emp[11] is not None else None,
+            'skills': []
         })
 
+    emp_ids = [e['employee_id'] for e in employee_list if e['employee_id']]
+    if emp_ids:
+        placeholders = ','.join(['%s'] * len(emp_ids))
+        cur.execute(
+            f"SELECT employee_id, skill_name FROM employee_skills WHERE employee_id IN ({placeholders}) ORDER BY skill_id",
+            tuple(emp_ids)
+        )
+        skills_by_emp = {}
+        for (eid, sname) in cur.fetchall():
+            skills_by_emp.setdefault(eid, []).append(sname)
+        for e in employee_list:
+            e['skills'] = skills_by_emp.get(e['employee_id'], [])
+
+    cur.close()
     return jsonify(employee_list)
 
 
@@ -5280,6 +5294,76 @@ def staff_schedule_events():
         print(f'Error in staff_schedule_events: {e}')
         if 'cur' in locals():
             cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/staff/profile')
+@login_required
+def staff_profile_page():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT u.first_name, u.last_name, u.email, u.phone,
+                   e.employee_id, e.employee_code, e.job_title, e.hire_date, e.pay_rate_hourly
+            FROM users u
+            LEFT JOIN employees e ON e.user_id = u.user_id
+            WHERE u.user_id = %s
+        """, (current_user.id,))
+        row = cur.fetchone()
+        skills = []
+        if row and row[4]:
+            cur.execute(
+                "SELECT skill_name FROM employee_skills WHERE employee_id = %s ORDER BY skill_id",
+                (row[4],)
+            )
+            skills = [r[0] for r in cur.fetchall()]
+        cur.close()
+        # SELECT order: first_name[0], last_name[1], email[2], phone[3],
+        #               employee_id[4], employee_code[5], job_title[6], hire_date[7], pay_rate_hourly[8]
+        profile = {
+            'first_name': row[0] if row else '',
+            'last_name': row[1] if row else '',
+            'email': row[2] if row else '',
+            'phone': row[3] if row else '',
+            'employee_id': row[4] if row else None,
+            'employee_code': row[5] if row else '',
+            'job_title': row[6] if row else '',
+            'hire_date': row[7].strftime('%B %d, %Y') if row and row[7] else 'N/A',
+            'pay_rate_hourly': float(row[8]) if row and row[8] else None,
+            'skills': skills,
+            'role': current_user.role
+        }
+        return render_template('staff/profile.html', profile=profile, active_page='profile')
+    except Exception as e:
+        print(f'Error loading staff profile: {e}')
+        profile = {
+            'first_name': '', 'last_name': '', 'email': '', 'phone': '',
+            'employee_id': None, 'employee_code': '', 'job_title': '',
+            'hire_date': 'N/A', 'pay_rate_hourly': None,
+            'skills': [], 'role': getattr(current_user, 'role', 'Staff')
+        }
+        return render_template('staff/profile.html', profile=profile, active_page='profile')
+
+
+@app.route('/api/staff/profile/me', methods=['PATCH'])
+@api_login_required
+def update_my_profile():
+    access_error = require_staff_portal_access()
+    if access_error:
+        return access_error
+    try:
+        data = request.get_json() or {}
+        phone = data.get('phone', '').strip() or None
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE users SET phone = %s WHERE user_id = %s", (phone, current_user.id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Profile updated.')
+    except Exception as e:
+        print(f'Error updating profile: {e}')
         return jsonify(error=str(e)), 500
 
 

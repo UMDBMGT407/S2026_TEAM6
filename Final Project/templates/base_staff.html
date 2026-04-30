@@ -63,6 +63,11 @@
                   Inventory
                 </a>
               </li>
+              <li class="nav-item">
+                <a href="{{ url_for('staff_profile_page') }}" class="nav-link sidebar-link{% if active_page == 'profile' %} active-link{% endif %}">
+                  My Profile
+                </a>
+              </li>
             </ul>
           </nav>
 
