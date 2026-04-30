@@ -695,11 +695,11 @@ def sync_tasks_for_job_order(cur, job_order_id):
     cur.execute(
         """
         UPDATE tasks
-        SET assigned_employee_id = %s
+        SET assigned_employee_id = %s,
+            status = %s
         WHERE job_order_id = %s
-          AND (assigned_employee_id IS NULL OR assigned_employee_id <> %s)
         """,
-        (assigned_employee_id, job_order_id, assigned_employee_id)
+        (assigned_employee_id, status, job_order_id)
     )
 
     cur.execute(
@@ -2704,7 +2704,10 @@ def task_management_dashboard_page():
             task_id = task_row[0] if task_row else None
             task_name = (task_row[1] if task_row and task_row[1] else None) or job_title or f'Job #{job_order_id}'
             description = (task_row[2] if task_row and task_row[2] else None) or job_description or ''
-            status = (task_row[3] if task_row and task_row[3] else None) or job_status or 'Scheduled'
+            if job_status in ('Completed', 'Cancelled'):
+                status = job_status
+            else:
+                status = (task_row[3] if task_row and task_row[3] else None) or job_status or 'Scheduled'
             # Build status class/label
             status_map = {
                 'Scheduled': ('staff-status-scheduled', 'Scheduled'),
