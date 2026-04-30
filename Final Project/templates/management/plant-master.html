@@ -43,41 +43,54 @@
 </div>
 
 <div class="management-content-block">
-  <div class="row g-4" id="plant-card-list">
-    {% for p in plants %}
-    <div class="col-md-4" data-plant-card data-plant-name="{{ p.common_name }}">
-      <div class="plant-card surface-card">
-        {% if p.photo_url %}
-        <div class="plant-image mb-3">
-          <img src="{{ p.photo_url }}" alt="{{ p.common_name }} photo" class="img-fluid rounded" />
-        </div>
-        {% endif %}
-        <div class="d-flex align-items-center mb-3">
-          <div class="plant-icon"><i class="bi bi-tree"></i></div>
-          <div>
-            <div class="plant-title">{{ p.common_name }}</div>
-            <div class="plant-sub">{{ p.scientific_name }}</div>
-          </div>
-        </div>
-        <div class="info-row"><i class="bi bi-sun text-warning"></i>{{ p.light_level }}</div>
-        <div class="info-row"><i class="bi bi-droplet text-primary"></i>{{ p.watering_frequency }}</div>
-        <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>{{ p.temperature_range }}</div>
-        <div class="info-row"><i class="bi bi-wind text-info"></i>{{ p.humidity_range }}</div>
-        <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-outline-success btn-sm flex-grow-1 edit-plant-btn"
-            data-plant-id="{{ p.plant_id }}"
-            data-common-name="{{ p.common_name | e }}"
-            data-scientific-name="{{ p.scientific_name | e }}"
-            data-light="{{ p.light_level | e }}"
-            data-water="{{ p.watering_frequency | e }}"
-            data-temp="{{ p.temperature_range | e }}"
-            data-humidity="{{ p.humidity_range | e }}"
-            data-photo-url="{{ p.photo_url | e }}">Edit</button>
-          <button class="btn btn-outline-danger btn-sm delete-plant-btn" data-plant-id="{{ p.plant_id }}">Remove</button>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Common Name</th>
+          <th>Scientific Name</th>
+          <th><i class="bi bi-sun text-warning me-1"></i>Light</th>
+          <th><i class="bi bi-droplet text-primary me-1"></i>Watering</th>
+          <th><i class="bi bi-thermometer-half text-danger me-1"></i>Temperature</th>
+          <th><i class="bi bi-wind text-info me-1"></i>Humidity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="plant-card-list">
+        {% for p in plants %}
+        <tr data-plant-card data-plant-name="{{ p.common_name }}">
+          <td>
+            {% if p.photo_url %}
+            <img src="{{ p.photo_url }}" alt="{{ p.common_name }}" class="plant-thumb">
+            {% else %}
+            <div class="plant-thumb-placeholder"><i class="bi bi-tree"></i></div>
+            {% endif %}
+          </td>
+          <td><strong>{{ p.common_name }}</strong></td>
+          <td class="text-muted fst-italic">{{ p.scientific_name }}</td>
+          <td>{{ p.light_level }}</td>
+          <td>{{ p.watering_frequency }}</td>
+          <td>{{ p.temperature_range }}</td>
+          <td>{{ p.humidity_range }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-outline-secondary edit-plant-btn"
+                data-plant-id="{{ p.plant_id }}"
+                data-common-name="{{ p.common_name | e }}"
+                data-scientific-name="{{ p.scientific_name | e }}"
+                data-light="{{ p.light_level | e }}"
+                data-water="{{ p.watering_frequency | e }}"
+                data-temp="{{ p.temperature_range | e }}"
+                data-humidity="{{ p.humidity_range | e }}"
+                data-photo-url="{{ p.photo_url | e }}">Edit</button>
+              <button class="btn btn-sm text-danger border-0 ms-auto delete-plant-btn" data-plant-id="{{ p.plant_id }}">Remove</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -377,26 +390,20 @@
         });
         return;
       }
-      var wrapper = document.createElement('div');
-      wrapper.className = 'col-md-4';
+      var wrapper = document.createElement('tr');
       wrapper.dataset.plantCard = '';
       wrapper.dataset.plantName = plant.common_name || commonName;
-      wrapper.setAttribute('data-plant-name', plant.common_name || commonName);
       wrapper.innerHTML = `
-        <div class="plant-card surface-card">
-          <div class="d-flex align-items-center mb-3">
-            <div class="plant-icon"><i class="bi bi-tree"></i></div>
-            <div>
-              <div class="plant-title">${escapeHtml(plant.common_name || commonName)}</div>
-              <div class="plant-sub">${escapeHtml(plant.scientific_name || scientificName)}</div>
-            </div>
-          </div>
-          <div class="info-row"><i class="bi bi-sun text-warning"></i>${escapeHtml(plant.light_level || sunlight)}</div>
-          <div class="info-row"><i class="bi bi-droplet text-primary"></i>${escapeHtml(plant.watering_frequency || water)}</div>
-          <div class="info-row"><i class="bi bi-thermometer-half text-danger"></i>${escapeHtml(plant.temperature_range || temperature)}</div>
-          <div class="info-row"><i class="bi bi-wind text-info"></i>${escapeHtml(plant.humidity_range || humidity)}</div>
-          <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-outline-success btn-sm flex-grow-1 edit-plant-btn"
+        <td><div class="plant-thumb-placeholder"><i class="bi bi-tree"></i></div></td>
+        <td><strong>${escapeHtml(plant.common_name || commonName)}</strong></td>
+        <td class="text-muted fst-italic">${escapeHtml(plant.scientific_name || scientificName)}</td>
+        <td>${escapeHtml(plant.light_level || sunlight)}</td>
+        <td>${escapeHtml(plant.watering_frequency || water)}</td>
+        <td>${escapeHtml(plant.temperature_range || temperature)}</td>
+        <td>${escapeHtml(plant.humidity_range || humidity)}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-secondary edit-plant-btn"
               data-plant-id="${plant.plant_id || ''}"
               data-common-name="${escapeHtml(plant.common_name || commonName)}"
               data-scientific-name="${escapeHtml(plant.scientific_name || scientificName)}"
@@ -404,9 +411,9 @@
               data-water="${escapeHtml(plant.watering_frequency || water)}"
               data-temp="${escapeHtml(plant.temperature_range || temperature)}"
               data-humidity="${escapeHtml(plant.humidity_range || humidity)}">Edit</button>
-            <button class="btn btn-outline-danger btn-sm delete-plant-btn" data-plant-id="${plant.plant_id || ''}">Remove</button>
+            <button class="btn btn-sm text-danger border-0 ms-auto delete-plant-btn" data-plant-id="${plant.plant_id || ''}">Remove</button>
           </div>
-        </div>
+        </td>
       `;
       plantCardList.prepend(wrapper);
       plantModal.hide();
