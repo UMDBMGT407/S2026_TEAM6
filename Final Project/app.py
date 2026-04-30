@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, abort, jsonify
+﻿from flask import Flask, render_template, request, redirect, url_for, abort, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -848,14 +848,14 @@ def login():
             else:
                 return redirect(url_for('client_dashboard'))
 
-        return render_template('LoginPortal.html', error="Invalid credentials")
+        return render_template('auth/LoginPortal.html', error="Invalid credentials")
 
-    return render_template('LoginPortal.html')
+    return render_template('auth/LoginPortal.html')
 
 
 @app.route('/CreateAccount')
 def create_account():
-    return render_template('CreateAccount.html')
+    return render_template('auth/CreateAccount.html')
 
 
 @app.route('/CreateAccount', methods=['POST'])
@@ -866,10 +866,10 @@ def create_account_post():
     confirm_password = request.form.get('confirm-password', '')
 
     if not full_name or not email or not password:
-        return render_template('CreateAccount.html', error="All fields are required")
+        return render_template('auth/CreateAccount.html', error="All fields are required")
 
     if password != confirm_password:
-        return render_template('CreateAccount.html', error="Passwords do not match")
+        return render_template('auth/CreateAccount.html', error="Passwords do not match")
 
     name_parts = full_name.split(None, 1)
     first_name = name_parts[0]
@@ -881,7 +881,7 @@ def create_account_post():
 
     if existing_user:
         cur.close()
-        return render_template('CreateAccount.html', error="An account with that email already exists")
+        return render_template('auth/CreateAccount.html', error="An account with that email already exists")
 
     hashed_password = generate_password_hash(password)
     cur.execute(
@@ -913,7 +913,7 @@ def create_account_post():
 
 @app.route('/LoginPortalForgotPassword')
 def forgot_password():
-    return render_template('LoginPortalForgotPassword.html')
+    return render_template('auth/LoginPortalForgotPassword.html')
 
 
 @app.route('/LoginPortalForgotPassword', methods=['POST'])
@@ -922,7 +922,7 @@ def forgot_password_post():
     confirm_email = request.form.get('confirm-email', '').strip().lower()
 
     if not email or email != confirm_email:
-        return render_template('LoginPortalForgotPassword.html', error="Email addresses must match")
+        return render_template('auth/LoginPortalForgotPassword.html', error="Email addresses must match")
 
     cur = mysql.connection.cursor()
     cur.execute(
@@ -939,7 +939,7 @@ def forgot_password_post():
 
     if not user_row:
         return render_template(
-            'LoginPortalForgotPassword.html',
+            'auth/LoginPortalForgotPassword.html',
             error="No active account was found for that email"
         )
 
@@ -955,16 +955,16 @@ def emailed_password_reset():
         confirm_password = request.form.get('confirmPassword', '')
 
         if not token:
-            return render_template('EmailedPasswordReset.html', token=token, error="Invalid or expired reset link.")
+            return render_template('auth/EmailedPasswordReset.html', token=token, error="Invalid or expired reset link.")
 
         if not new_password or not confirm_password:
-            return render_template('EmailedPasswordReset.html', token=token, error="Both password fields are required.")
+            return render_template('auth/EmailedPasswordReset.html', token=token, error="Both password fields are required.")
 
         if len(new_password) < 8:
-            return render_template('EmailedPasswordReset.html', token=token, error="Password must be at least 8 characters long.")
+            return render_template('auth/EmailedPasswordReset.html', token=token, error="Password must be at least 8 characters long.")
 
         if new_password != confirm_password:
-            return render_template('EmailedPasswordReset.html', token=token, error="Passwords do not match.")
+            return render_template('auth/EmailedPasswordReset.html', token=token, error="Passwords do not match.")
 
         try:
             email = password_reset_serializer.loads(
@@ -973,9 +973,9 @@ def emailed_password_reset():
                 max_age=PASSWORD_RESET_MAX_AGE_SECONDS
             )
         except SignatureExpired:
-            return render_template('EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
+            return render_template('auth/EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
         except BadSignature:
-            return render_template('EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
+            return render_template('auth/EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
 
         hashed_password = generate_password_hash(new_password)
 
@@ -994,14 +994,14 @@ def emailed_password_reset():
         cur.close()
 
         if updated_count == 0:
-            return render_template('EmailedPasswordReset.html', token='', error="Account not found or inactive.")
+            return render_template('auth/EmailedPasswordReset.html', token='', error="Account not found or inactive.")
 
-        return render_template('EmailedPasswordReset.html', token='', success="Your password has been reset successfully. You may now log in.")
+        return render_template('auth/EmailedPasswordReset.html', token='', success="Your password has been reset successfully. You may now log in.")
 
     token = request.args.get('token', '').strip()
 
     if not token:
-        return render_template('EmailedPasswordReset.html', token='', error="Invalid or expired reset link. Please request a new one.")
+        return render_template('auth/EmailedPasswordReset.html', token='', error="Invalid or expired reset link. Please request a new one.")
 
     try:
         password_reset_serializer.loads(
@@ -1010,11 +1010,11 @@ def emailed_password_reset():
             max_age=PASSWORD_RESET_MAX_AGE_SECONDS
         )
     except SignatureExpired:
-        return render_template('EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
+        return render_template('auth/EmailedPasswordReset.html', token='', error="This reset link has expired. Please request a new one.")
     except BadSignature:
-        return render_template('EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
+        return render_template('auth/EmailedPasswordReset.html', token='', error="Invalid reset link. Please request a new one.")
 
-    return render_template('EmailedPasswordReset.html', token=token)
+    return render_template('auth/EmailedPasswordReset.html', token=token)
 
 
 @app.route('/db-check')
@@ -1262,15 +1262,7 @@ def logout():
 @login_required
 @role_required('Management')
 def management_dashboard():
-    return render_template('manage-employee.html')
-
-
-@app.route('/managementindex.html')
-@login_required
-@role_required('Management')
-def management_index_page():
-    # Legacy management landing page path; keep it mapped to the active dashboard.
-    return redirect(url_for('management_dashboard'))
+    return render_template('management/manage-employee.html')
 
 
 @app.route('/manage-employee.html')
@@ -1292,7 +1284,7 @@ def client_dashboard():
 @login_required
 @role_required('Client')
 def client_overview_page():
-    return render_template('clientindex.html')
+    return render_template('client/clientindex.html')
 
 
 @app.route('/index.html')
@@ -1309,14 +1301,14 @@ def index_page():
 @login_required
 @role_required('Client')
 def appointments_page():
-    return render_template('appointments.html')
+    return render_template('client/appointments.html')
 
 
 @app.route('/service-request.html')
 @login_required
 @role_required('Client')
 def service_request_page():
-    return render_template('service-request.html')
+    return render_template('client/service-request.html')
 
 
 @app.route('/api/invoices/<int:invoice_id>', methods=['GET'])
@@ -1387,21 +1379,21 @@ def get_invoice_detail(invoice_id):
 @login_required
 @role_required('Client')
 def invoices_page():
-    return render_template('invoices.html')
+    return render_template('client/invoices.html')
 
 
 @app.route('/profile.html')
 @login_required
 @role_required('Client')
 def profile_page():
-    return render_template('profile.html')
+    return render_template('client/profile.html')
 
 
 @app.route('/clients.html')
 @login_required
 @role_required('Management')
 def clients_page():
-    return render_template('clients.html')
+    return render_template('management/clients.html')
 
 
 @app.route('/clients')
@@ -1415,7 +1407,7 @@ def clients_page_alias():
 @login_required
 @role_required('Management')
 def scheduling_page():
-    return render_template('scheduling.html')
+    return render_template('management/scheduling.html')
 
 
 @app.route('/scheduling')
@@ -1429,7 +1421,7 @@ def scheduling_page_alias():
 @login_required
 @role_required('Management')
 def suppliers_page():
-    return render_template('suppliers.html')
+    return render_template('management/suppliers.html')
 
 
 @app.route('/suppliers-page')
@@ -1443,7 +1435,7 @@ def suppliers_page_alias():
 @login_required
 @role_required('Management')
 def inventory_page():
-    return render_template('inventory.html')
+    return render_template('management/inventory.html')
 
 
 @app.route('/inventory-page')
@@ -2091,7 +2083,7 @@ def plant_master_page():
             })
     finally:
         cur.close()
-    return render_template('plant-master.html', plants=plants)
+    return render_template('management/plant-master.html', plants=plants)
 
 
 
@@ -2514,14 +2506,14 @@ def cancel_job_order(job_id):
 @login_required
 @role_required('Management')
 def job_order_page():
-    return render_template('job-order.html')
+    return render_template('management/job-order.html')
 
 
 @app.route('/management/invoices.html')
 @login_required
 @role_required('Management')
 def management_invoices_page():
-    return render_template('invoices-management.html')
+    return render_template('management/invoices-management.html')
 
 
 @app.route('/api/management/invoices', methods=['GET'])
@@ -2649,14 +2641,14 @@ def management_update_invoice_status(invoice_id):
 @login_required
 @role_required('Management')
 def services_page():
-    return render_template('services.html')
+    return render_template('management/services.html')
 
 
 @app.route('/staff-scheduling-dashboard.html')
 @login_required
 @role_required('Staff')
 def staff_scheduling_dashboard_page():
-    return render_template('staff-scheduling-dashboard.html')
+    return render_template('staff/staff-scheduling-dashboard.html')
 
 
 @app.route('/task-management-dashboard.html')
@@ -2771,49 +2763,14 @@ def task_management_dashboard_page():
         cur.close()
     except Exception as e:
         print(f'Error loading tasks for dashboard: {e}')
-    return render_template('task-management-dashboard.html', tasks=tasks)
+    return render_template('staff/task-management-dashboard.html', tasks=tasks)
 
 
 @app.route('/inventory-dashboard.html')
 @login_required
 @role_required('Staff')
 def inventory_dashboard_page():
-    return render_template('inventory-dashboard.html')
-
-
-@app.route('/availability-entry.html')
-@login_required
-@role_required('Staff')
-def availability_entry_page():
-    return redirect(url_for('staff_scheduling_dashboard_page', modal='availability'))
-
-
-@app.route('/material-requests.html')
-@login_required
-@role_required('Staff')
-def material_requests_page():
-    return redirect(url_for('inventory_dashboard_page', modal='request'))
-
-
-@app.route('/used-material-log.html')
-@login_required
-@role_required('Staff')
-def used_material_log_page():
-    return redirect(url_for('inventory_dashboard_page', modal='usage'))
-
-
-@app.route('/job-materials.html')
-@login_required
-@role_required('Staff')
-def job_materials_page():
-    return redirect(url_for('task_management_dashboard_page', modal='materials'))
-
-
-@app.route('/contact-client.html')
-@login_required
-@role_required('Staff')
-def contact_client_page():
-    return redirect(url_for('task_management_dashboard_page', modal='contact'))
+    return render_template('staff/inventory-dashboard.html')
 
 
 # ========================
@@ -5820,7 +5777,7 @@ def ask_plant_ai(user_question: str, search_results: list, ai_provider: str = "l
 def plant_chat_page():
     """Serve the plant chatbot page."""
     return render_template(
-        "plant-chat.html",
+        "management/plant-chat.html",
         user_role=getattr(current_user, "role", "User"),
         paypal_client_id=PAYPAL_CLIENT_ID
     )
@@ -5932,3 +5889,4 @@ if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=port)
 
     
+
