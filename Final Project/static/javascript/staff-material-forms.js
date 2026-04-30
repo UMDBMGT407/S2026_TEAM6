@@ -202,13 +202,13 @@
   }
 
   function renderInventoryReferenceList(errorMessage) {
-    var container = document.getElementById('inventory-reference-list');
-    if (!container) {
+    var tbody = document.getElementById('inventory-reference-body');
+    if (!tbody) {
       return;
     }
 
     if (errorMessage) {
-      container.innerHTML = '<p class="inventory-reference-empty text-danger">' + escapeHtml(errorMessage) + '</p>';
+      tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty text-danger">' + escapeHtml(errorMessage) + '</td></tr>';
       return;
     }
 
@@ -225,35 +225,21 @@
     });
 
     if (!filtered.length) {
-      container.innerHTML = '<p class="inventory-reference-empty">No inventory items match your search.</p>';
+      tbody.innerHTML = '<tr><td colspan="4" class="planted-table-empty">No inventory items match your search.</td></tr>';
       return;
     }
 
-    container.innerHTML = filtered.map(function (item) {
+    tbody.innerHTML = filtered.map(function (item) {
       var lowStock = Number(item.quantity_on_hand || 0) <= Number(item.reorder_level || 0);
-      var stockTone = lowStock ? 'text-warning' : '';
+      var stockClass = lowStock ? ' class="text-warning"' : '';
 
       return [
-        '<article class="inventory-reference-item">',
-          '<div>',
-            '<span class="inventory-reference-label">Item</span>',
-            '<span class="inventory-reference-value">' + escapeHtml(item.item_name || '') + '</span>',
-          '</div>',
-          '<div>',
-            '<span class="inventory-reference-label">Type</span>',
-            '<span class="inventory-reference-value">' + escapeHtml(item.item_type || 'General Supply') + '</span>',
-          '</div>',
-          '<div>',
-            '<span class="inventory-reference-label">Unit Price</span>',
-            '<span class="inventory-reference-value">' + escapeHtml(formatCurrency(item.unit_price)) + '</span>',
-          '</div>',
-          '<div>',
-            '<span class="inventory-reference-label">On Hand</span>',
-            '<span class="inventory-reference-value ' + stockTone + '">' +
-              escapeHtml(formatNumber(item.quantity_on_hand)) + ' ' + escapeHtml(item.unit_label || 'units') +
-            '</span>',
-          '</div>',
-        '</article>'
+        '<tr>',
+          '<td>' + escapeHtml(item.item_name || '') + '</td>',
+          '<td>' + escapeHtml(item.item_type || 'General Supply') + '</td>',
+          '<td>' + escapeHtml(formatCurrency(item.unit_price)) + '</td>',
+          '<td' + stockClass + '>' + escapeHtml(formatNumber(item.quantity_on_hand)) + ' ' + escapeHtml(item.unit_label || 'units') + '</td>',
+        '</tr>'
       ].join('');
     }).join('');
   }

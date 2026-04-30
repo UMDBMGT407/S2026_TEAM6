@@ -40,7 +40,22 @@
 
 <div class="management-content-block">
   <div id="clients-status" class="mb-3"></div>
-  <div id="client-list" class="row g-3"></div>
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Contact</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Locations</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="client-list"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Add Client Modal -->
@@ -134,7 +149,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="client-locations-list"></div>
+        <div class="planted-table-wrapper">
+          <table class="planted-data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="client-locations-list"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -201,48 +227,38 @@
 
     function renderClients(clients) {
       if (!clients.length) {
-        clientList.innerHTML = '<div class="col-12"><p class="text-muted">No clients found.</p></div>';
+        clientList.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No clients found.</td></tr>';
         return;
       }
 
       clientList.innerHTML = clients.map(function (client) {
-        var statusClass = String(client.account_status || '').toLowerCase() === 'inactive'
-          ? 'status-pill status-pill-inactive'
-          : 'status-pill status-pill-active';
+        var isInactive = String(client.account_status || '').toLowerCase() === 'inactive';
+        var statusClass = isInactive ? 'status-pill status-pill-inactive' : 'status-pill status-pill-active';
+        var toggleBtn = isInactive
+          ? '<button type="button" class="btn btn-sm btn-outline-success ms-auto reactivate-client-btn" data-client-id="' + client.client_id + '">Reactivate</button>'
+          : '<button type="button" class="btn btn-sm text-danger border-0 ms-auto deactivate-client-btn" data-client-id="' + client.client_id + '">Deactivate</button>';
 
         return (
-          '<div class="col-12">' +
-            '<div class="client-card surface-card p-4">' +
-              '<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">' +
-                '<div>' +
-                  '<h4 class="client-title mb-0">' + escapeHtml(client.company_name) + '</h4>' +
-                  '<p class="client-subtitle mb-0">Contact: ' + escapeHtml(client.contact_name || 'N/A') + '</p>' +
-                '</div>' +
-                '<span class="' + statusClass + '">' + escapeHtml(client.account_status || 'Active') + '</span>' +
+          '<tr>' +
+            '<td>' + escapeHtml(client.company_name) + '</td>' +
+            '<td>' + escapeHtml(client.contact_name || 'N/A') + '</td>' +
+            '<td>' + escapeHtml(client.contact_phone || 'N/A') + '</td>' +
+            '<td>' + escapeHtml(client.contact_email || 'N/A') + '</td>' +
+            '<td>' + Number(client.active_locations || 0) + '</td>' +
+            '<td><span class="' + statusClass + '">' + escapeHtml(client.account_status || 'Active') + '</span></td>' +
+            '<td>' +
+              '<div class="d-flex align-items-center gap-2">' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary view-locations-btn" data-client-id="' + client.client_id + '" data-company-name="' + escapeHtml(client.company_name) + '">Locations</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary edit-client-btn" ' +
+                  'data-client-id="' + client.client_id + '" ' +
+                  'data-company-name="' + escapeHtml(client.company_name) + '" ' +
+                  'data-contact-name="' + escapeHtml(client.contact_name || '') + '" ' +
+                  'data-phone="' + escapeHtml(client.contact_phone || '') + '" ' +
+                  'data-status="' + escapeHtml(client.account_status || 'Active') + '">Edit</button>' +
+                toggleBtn +
               '</div>' +
-              '<div class="row g-3">' +
-                '<div class="col-md-6">' +
-                  '<div class="icon-detail-row"><i class="bi bi-telephone-fill m-0"></i><span><span class="detail-label">Phone:</span> ' + escapeHtml(client.contact_phone || 'N/A') + '</span></div>' +
-                  '<div class="icon-detail-row"><i class="bi bi-envelope-fill m-0"></i><span><span class="detail-label">Mail:</span> ' + escapeHtml(client.contact_email || 'N/A') + '</span></div>' +
-                '</div>' +
-                '<div class="col-md-6">' +
-                  '<div class="icon-detail-row"><i class="bi bi-geo-alt-fill m-0"></i><span><span class="detail-label">Active Locations:</span> ' + Number(client.active_locations || 0) + '</span></div>' +
-                  '<div class="d-flex gap-2 mt-2 flex-wrap">' +
-                  '<button type="button" class="btn btn-outline-success btn-sm view-locations-btn" data-client-id="' + client.client_id + '" data-company-name="' + escapeHtml(client.company_name) + '">Locations</button>' +
-                  '<button type="button" class="btn btn-outline-secondary btn-sm edit-client-btn" ' +
-                    'data-client-id="' + client.client_id + '" ' +
-                    'data-company-name="' + escapeHtml(client.company_name) + '" ' +
-                    'data-contact-name="' + escapeHtml(client.contact_name || '') + '" ' +
-                    'data-phone="' + escapeHtml(client.contact_phone || '') + '" ' +
-                    'data-status="' + escapeHtml(client.account_status || 'Active') + '">Edit</button>' +
-                  (String(client.account_status || '').toLowerCase() === 'inactive'
-                    ? '<button type="button" class="btn btn-outline-success btn-sm reactivate-client-btn" data-client-id="' + client.client_id + '">Reactivate</button>'
-                    : '<button type="button" class="btn btn-outline-danger btn-sm deactivate-client-btn" data-client-id="' + client.client_id + '">Deactivate</button>') +
-                '</div>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
+            '</td>' +
+          '</tr>'
         );
       }).join('');
     }
@@ -259,18 +275,20 @@
       locationTitleEl.textContent = companyName + ' Locations';
 
       if (!locations.length) {
-        locationListEl.innerHTML = '<p class="text-muted mb-0">No locations found.</p>';
+        locationListEl.innerHTML = '<tr><td colspan="3" class="planted-table-empty">No locations found.</td></tr>';
         return;
       }
 
       locationListEl.innerHTML = locations.map(function (loc) {
         var status = loc.is_active ? 'Active' : 'Inactive';
+        var statusClass = loc.is_active ? 'status-pill status-pill-active' : 'status-pill status-pill-inactive';
+        var address = [loc.street_1, loc.city, loc.state, loc.zip_code].filter(Boolean).join(', ');
         return (
-          '<div class="border rounded p-3 mb-2">' +
-            '<div class="fw-semibold">' + escapeHtml(loc.location_name || 'Location') + '</div>' +
-            '<div>' + escapeHtml(loc.street_1) + ', ' + escapeHtml(loc.city) + ', ' + escapeHtml(loc.state) + ' ' + escapeHtml(loc.zip_code) + '</div>' +
-            '<small class="text-muted">Status: ' + status + '</small>' +
-          '</div>'
+          '<tr>' +
+            '<td>' + escapeHtml(loc.location_name || 'Location') + '</td>' +
+            '<td>' + escapeHtml(address) + '</td>' +
+            '<td><span class="' + statusClass + '">' + status + '</span></td>' +
+          '</tr>'
         );
       }).join('');
     }

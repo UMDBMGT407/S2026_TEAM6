@@ -1,6 +1,8 @@
 .stat-filter-btn {
-  background: none;
-  border: 2px solid transparent;
+  /* Preserve stat-card background and border — only override what needs changing */
+  border-width: 2px;
+  border-style: solid;
+  border-color: transparent;
   text-align: left;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;

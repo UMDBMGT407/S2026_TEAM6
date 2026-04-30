@@ -41,7 +41,20 @@
 
 <div class="management-content-block">
   <p id="services-status-message" class="mb-3"></p>
-  <div class="row g-3" id="service-list"></div>
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Service Name</th>
+          <th>Description</th>
+          <th>Base Price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="service-list"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
@@ -140,30 +153,29 @@
       });
 
       if (!filtered.length) {
-        serviceList.innerHTML = '<div class="col-12"><p class="text-muted">No services found.</p></div>';
+        serviceList.innerHTML = '<tr><td colspan="5" class="planted-table-empty">No services found.</td></tr>';
         return;
       }
 
       serviceList.innerHTML = filtered.map(function (service) {
         var statusClass = service.is_active ? 'status-pill status-pill-active' : 'status-pill status-pill-inactive';
-        var toggleLabel = service.is_active ? 'Deactivate' : 'Reactivate';
+        var isActive = service.is_active;
+        var toggleHtml = isActive
+          ? '<button class="btn btn-sm text-danger border-0 ms-auto toggle-service-btn" data-service-id="' + service.service_id + '" data-service-active="true">Deactivate</button>'
+          : '<button class="btn btn-sm btn-outline-success ms-auto toggle-service-btn" data-service-id="' + service.service_id + '" data-service-active="false">Reactivate</button>';
         return (
-          '<div class="col-md-6">' +
-            '<div class="surface-card h-100 p-3">' +
-              '<div class="d-flex justify-content-between align-items-start mb-2">' +
-                '<div>' +
-                  '<h5 class="mb-1">' + escapeHtml(service.service_name) + '</h5>' +
-                  '<p class="mb-1 text-muted">' + escapeHtml(service.description || 'No description') + '</p>' +
-                  '<p class="mb-0 fw-semibold">' + formatPrice(service.base_price) + '</p>' +
-                '</div>' +
-                '<span class="' + statusClass + '">' + (service.is_active ? 'Active' : 'Inactive') + '</span>' +
+          '<tr>' +
+            '<td>' + escapeHtml(service.service_name) + '</td>' +
+            '<td class="text-muted">' + escapeHtml(service.description || '—') + '</td>' +
+            '<td>' + formatPrice(service.base_price) + '</td>' +
+            '<td><span class="' + statusClass + '">' + (isActive ? 'Active' : 'Inactive') + '</span></td>' +
+            '<td>' +
+              '<div class="d-flex align-items-center gap-2">' +
+                '<button class="btn btn-sm btn-outline-secondary edit-service-btn" data-bs-toggle="modal" data-bs-target="#serviceModal" data-service-id="' + service.service_id + '">Edit</button>' +
+                toggleHtml +
               '</div>' +
-              '<div class="d-flex gap-2 mt-3">' +
-                '<button class="btn btn-outline-success btn-sm flex-fill edit-service-btn" data-bs-toggle="modal" data-bs-target="#serviceModal" data-service-id="' + service.service_id + '">Edit</button>' +
-                '<button class="btn btn-outline-secondary btn-sm flex-fill toggle-service-btn" data-service-id="' + service.service_id + '" data-service-active="' + service.is_active + '">' + toggleLabel + '</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
+            '</td>' +
+          '</tr>'
         );
       }).join('');
     }

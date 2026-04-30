@@ -529,6 +529,17 @@ body {
   color: #d2771d;
 }
 
+.status-pill-warning {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.status-pill-neutral {
+  background: #e2e3e5;
+  color: #495057;
+}
+
 .icon-detail-row {
   display: flex;
   align-items: center;
@@ -1316,4 +1327,54 @@ body {
 .btn-success:focus {
   background-color: var(--color-primary-dark, #6f734d) !important;
   border-color: var(--color-primary-dark, #6f734d) !important;
+}
+
+/* ===== Reusable data table ===== */
+.planted-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: var(--surface-border);
+}
+
+.planted-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.planted-data-table thead tr {
+  background: var(--color-light-bg-tertiary);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+}
+
+.planted-data-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.planted-data-table td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  color: var(--color-dark);
+  border-bottom: var(--surface-border);
+}
+
+.planted-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.planted-data-table tbody tr:hover {
+  background: var(--color-light-bg-tertiary);
+}
+
+.planted-data-table .planted-table-empty {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 24px 14px;
 }

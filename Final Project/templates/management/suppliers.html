@@ -44,8 +44,8 @@
 </div>
 
 <div class="management-content-block">
-  <div class="table-responsive">
-    <table class="table table-striped">
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
       <thead>
         <tr>
           <th>Supplier Name</th>
@@ -54,11 +54,10 @@
           <th>Total Orders</th>
           <th>Last Order</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="supplier-table-body">
-        <!-- Suppliers will be loaded dynamically -->
       </tbody>
     </table>
   </div>
@@ -159,9 +158,6 @@
 
   function renderSupplierRow(supplier) {
     var row = document.createElement('tr');
-    if (!supplier.is_active) {
-      row.classList.add('table-secondary');
-    }
 
     var nameCell = document.createElement('td');
     nameCell.textContent = supplier.supplier_name;
@@ -184,15 +180,17 @@
     row.appendChild(lastOrderCell);
 
     var statusCell = document.createElement('td');
-    statusCell.innerHTML = supplier.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+    statusCell.innerHTML = supplier.is_active
+      ? '<span class="status-pill status-pill-active">Active</span>'
+      : '<span class="status-pill status-pill-inactive">Inactive</span>';
     row.appendChild(statusCell);
 
     var actionsCell = document.createElement('td');
-    var editBtn = '<button class="btn btn-sm btn-outline-secondary me-1" onclick="openEditSupplier(' + supplier.supplier_id + ',\'' + (supplier.supplier_name||'').replace(/'/g,"\\'") + '\',\'' + (supplier.email||'').replace(/'/g,"\\'") + '\',\'' + (supplier.phone||'').replace(/'/g,"\\'") + '\')">Edit</button>';
+    var editBtn = '<button class="btn btn-sm btn-outline-secondary" onclick="openEditSupplier(' + supplier.supplier_id + ',\'' + (supplier.supplier_name||'').replace(/'/g,"\\'") + '\',\'' + (supplier.email||'').replace(/'/g,"\\'") + '\',\'' + (supplier.phone||'').replace(/'/g,"\\'") + '\')">Edit</button>';
     if (supplier.is_active) {
-      actionsCell.innerHTML = editBtn + '<button class="btn btn-sm btn-outline-danger" onclick="removeSupplier(' + supplier.supplier_id + ')">Deactivate</button>';
+      actionsCell.innerHTML = '<div class="d-flex align-items-center gap-2">' + editBtn + '<button class="btn btn-sm text-danger border-0 ms-auto" onclick="removeSupplier(' + supplier.supplier_id + ')">Deactivate</button></div>';
     } else {
-      actionsCell.innerHTML = editBtn + '<button class="btn btn-sm btn-outline-primary" onclick="reactivateSupplier(' + supplier.supplier_id + ')">Reactivate</button>';
+      actionsCell.innerHTML = '<div class="d-flex align-items-center gap-2">' + editBtn + '<button class="btn btn-sm btn-outline-success ms-auto" onclick="reactivateSupplier(' + supplier.supplier_id + ')">Reactivate</button></div>';
     }
     row.appendChild(actionsCell);
 
@@ -213,7 +211,7 @@
       .then(data => {
         supplierTableBody.innerHTML = '';
         if (!data.length) {
-          supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No suppliers found.</td></tr>';
+          supplierTableBody.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No suppliers found.</td></tr>';
           return;
         }
         data.forEach(supplier => {
@@ -223,7 +221,7 @@
       })
       .catch(error => {
         console.error('Error loading suppliers:', error);
-        supplierTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading suppliers. Please check console.</td></tr>';
+        supplierTableBody.innerHTML = '<tr><td colspan="7" class="planted-table-empty text-danger">Error loading suppliers.</td></tr>';
       });
   }
 

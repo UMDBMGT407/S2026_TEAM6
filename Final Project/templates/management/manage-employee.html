@@ -84,9 +84,23 @@
             </div>
           </div>
 
-          <!-- 2x2 Cards Grid - Loaded Dynamically -->
-          <div class="row mt-4" id="employeeCardsGrid">
-            <!-- Employee cards will be loaded here dynamically -->
+          <div class="management-content-block mt-4">
+            <div class="planted-table-wrapper">
+              <table class="planted-data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="employeeCardsGrid"></tbody>
+              </table>
+            </div>
           </div>
 
           <!-- employee pop up -->
@@ -165,6 +179,7 @@
                 </div>
 
                 <div class="modal-body p-4">
+                  <p class="text-muted small mb-3">Employee ID is assigned automatically upon creation.</p>
                   <form id="addEmployeeForm">
                     <div class="row g-3 mb-3">
                       <div class="col-md-6">
@@ -929,64 +944,57 @@
     try {
       const response = await fetch(`/employees?${buildEmployeesQuery()}`);
       const employees = await response.json();
-      
+
       const cardsGrid = document.getElementById('employeeCardsGrid');
-      
+
       if (employees.length === 0) {
-        cardsGrid.innerHTML = '<div class="col-12"><p class="text-muted text-center">No employees to display</p></div>';
+        cardsGrid.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No employees to display.</td></tr>';
         return;
       }
-      
-      cardsGrid.innerHTML = employees.map(emp => `
-        <div class="col-md-6 mb-4">
-          <div class="card rounded-4">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <h5 class="fw-bold m-0">${emp.name}</h5>
-                <span class="${emp.is_active ? 'text-success border border-success' : 'text-danger border border-danger'} rounded px-2">
-                  ${emp.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div class="page-subtitle m-0">
-                <small class="employee-info-line">${emp.phone || 'No phone'}</small>
-                <small class="employee-info-line">${emp.email || 'No email'}</small>
-              </div>
 
-              <div class="d-grid gap-2 mt-3">
-                <button class="btn btn-sm btn-outline-dark view-availability-btn"
-                  data-employee-id="${emp.employee_id || emp.id}"
-                  data-employee-name="${emp.name}"
-                  data-bs-toggle="modal"
-                  data-bs-target="#availabilityModal">
-                  View Availability
-                </button>
-                ${
-                  emp.is_active && emp.role === 'Staff' && emp.employee_id
-                    ? `<button class="btn btn-sm btn-outline-success assign-task-btn"
-                        data-employee-id="${emp.employee_id}"
-                        data-employee-name="${encodeURIComponent(emp.name || '')}">
-                        Assign/Reassign Task
-                      </button>`
-                    : ''
-                }
-                <button class="btn btn-sm btn-outline-secondary edit-employee-btn"
-                  data-user-id="${emp.id}"
-                  data-name="${emp.name || ''}"
-                  data-phone="${emp.phone || ''}"
-                  data-job-title="${emp.job_title || ''}"
-                  data-pay-rate="${emp.pay_rate_hourly || ''}">
-                  Edit
-                </button>
-                ${
-                  emp.is_active
-                    ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deleteEmployee(${emp.id})">Remove</button>`
-                    : `<button class="btn btn-sm btn-outline-success rounded-pill" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`
-                }
-              </div>
+      cardsGrid.innerHTML = employees.map(emp => {
+        const statusClass = emp.is_active ? 'status-pill status-pill-active' : 'status-pill status-pill-inactive';
+        const statusLabel = emp.is_active ? 'Active' : 'Inactive';
+        const assignBtn = emp.is_active && emp.role === 'Staff' && emp.employee_id
+          ? `<button class="btn btn-sm btn-outline-success assign-task-btn"
+                data-employee-id="${emp.employee_id}"
+                data-employee-name="${encodeURIComponent(emp.name || '')}">
+                Assign Task
+              </button>`
+          : '';
+        const toggleBtn = emp.is_active
+          ? `<button class="btn btn-sm text-danger border-0 ms-auto" onclick="deleteEmployee(${emp.id})">Remove</button>`
+          : `<button class="btn btn-sm btn-outline-success ms-auto" onclick="reactivateEmployee(${emp.id})">Reactivate</button>`;
+        return `<tr>
+          <td class="text-muted" style="font-size:0.85rem;">${emp.employee_id || emp.id || '—'}</td>
+          <td>${emp.name || '—'}</td>
+          <td>${emp.phone || '—'}</td>
+          <td>${emp.email || '—'}</td>
+          <td>${emp.role || '—'}</td>
+          <td><span class="${statusClass}">${statusLabel}</span></td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-outline-secondary view-availability-btn"
+                data-employee-id="${emp.employee_id || emp.id}"
+                data-employee-name="${emp.name}"
+                data-bs-toggle="modal"
+                data-bs-target="#availabilityModal">
+                Availability
+              </button>
+              ${assignBtn}
+              <button class="btn btn-sm btn-outline-secondary edit-employee-btn"
+                data-user-id="${emp.id}"
+                data-name="${emp.name || ''}"
+                data-phone="${emp.phone || ''}"
+                data-job-title="${emp.job_title || ''}"
+                data-pay-rate="${emp.pay_rate_hourly || ''}">
+                Edit
+              </button>
+              ${toggleBtn}
             </div>
-          </div>
-        </div>
-      `).join('');
+          </td>
+        </tr>`;
+      }).join('');
       
       // Attach click handlers to View Availability buttons
       document.querySelectorAll('.view-availability-btn').forEach(btn => {

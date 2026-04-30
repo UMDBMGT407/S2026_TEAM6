@@ -69,7 +69,27 @@
     <button id="scheduling-next-btn" class="btn btn-outline-success btn-sm px-3" type="button">Next</button>
   </div>
 </div>
-<div id="scheduling-job-list"></div>
+<div class="management-content-block">
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Job Code</th>
+          <th>Service</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Priority</th>
+          <th>Location</th>
+          <th>Assigned To</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="scheduling-job-list"></tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
 
 {% block vendor_js %}
@@ -314,61 +334,64 @@
 
     function renderJobs(jobs, totalFiltered) {
       if (!jobs.length) {
-        if (!totalFiltered) {
-          jobListEl.innerHTML = '<p class="text-muted mt-4">No jobs found for the selected filter.</p>';
-        } else {
-          jobListEl.innerHTML = '<p class="text-muted mt-4">No jobs found on this page.</p>';
-        }
+        var msg = !totalFiltered ? 'No jobs found for the selected filter.' : 'No jobs found on this page.';
+        jobListEl.innerHTML = '<tr><td colspan="10" class="planted-table-empty">' + msg + '</td></tr>';
         return;
       }
 
       jobListEl.innerHTML = jobs.map(function (job) {
         var assigned = isJobAssigned(job);
-        var badgeClass = assigned ? 'status-scheduled' : 'status-unassigned';
-        var badgeText = assigned ? 'Scheduled' : 'Unassigned';
+        var statusPill = assigned
+          ? '<span class="status-pill status-pill-active">Scheduled</span>'
+          : '<span class="status-pill status-pill-warning">Unassigned</span>';
         var timeText = (job.start_time && job.end_time)
-          ? (to12Hour(job.start_time) + ' - ' + to12Hour(job.end_time))
-          : 'Not scheduled';
+          ? (to12Hour(job.start_time) + ' – ' + to12Hour(job.end_time))
+          : '—';
         var priorityText = job.priority || 'Normal';
         var assignButtonDisabled = hasSchedulingWindow(job) ? '' : 'disabled';
-        var availabilityHint = '';
+
         var availability = availabilityByJob[job.id] || {};
+        var availabilityHint = '';
         if (availability.error) {
-          availabilityHint = '<div class="small text-danger mt-2">' + escapeHtml(availability.error) + '</div>';
+          availabilityHint = '<div class="small text-danger mt-1">' + escapeHtml(availability.error) + '</div>';
         } else if (hasSchedulingWindow(job) && availability.available && !availability.available.length) {
-          availabilityHint = '<div class="small text-muted mt-2">No available staff for this exact window.</div>';
+          availabilityHint = '<div class="small text-warning mt-1">No staff available for this window</div>';
+        }
+
+        var priorityPill = '';
+        var pLower = String(priorityText).toLowerCase();
+        if (pLower === 'high' || pLower === 'urgent') {
+          priorityPill = '<span class="status-pill status-pill-warning">' + escapeHtml(priorityText) + '</span>';
+        } else if (pLower === 'low') {
+          priorityPill = '<span class="status-pill status-pill-neutral">' + escapeHtml(priorityText) + '</span>';
+        } else {
+          priorityPill = '<span class="status-pill status-pill-neutral">' + escapeHtml(priorityText) + '</span>';
         }
 
         return (
-          '<section class="job-card" data-job-card data-job-id="' + job.id + '">' +
-            '<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">' +
-              '<div>' +
-                '<h3 class="job-title">' + escapeHtml(job.title || ('Job #' + job.id)) + '</h3>' +
-                '<div class="job-company">' + escapeHtml(job.company || 'Client') + ' | ' + escapeHtml(job.job_order_code || '') + '</div>' +
-              '</div>' +
-              '<div class="status-badge ' + badgeClass + '" data-job-status>' + badgeText + '</div>' +
-            '</div>' +
-            '<div class="row align-items-start">' +
-              '<div class="col-lg-6 mb-4">' +
-                '<p class="mb-2"><span class="job-meta-label">Date:</span> ' + formatDate(job.scheduled_date) + '</p>' +
-                '<p class="mb-2"><span class="job-meta-label">Time:</span> ' + escapeHtml(timeText) + '</p>' +
-                '<p class="mb-2"><span class="job-meta-label">Priority:</span> ' + escapeHtml(priorityText) + '</p>' +
-                '<p class="mb-4"><span class="job-meta-label">Approved:</span> ' + formatDateTime(job.approved_at) + '</p>' +
-                '<div class="d-flex gap-3">' +
-                  '<div class="dropdown">' +
-                    '<button class="btn btn-secondary custom-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" ' + assignButtonDisabled + '>Reassign</button>' +
-                    '<ul class="dropdown-menu">' + buildAssignmentMenu(job) + '</ul>' +
-                  '</div>' +
-                  '<a href="{{ url_for("job_order_page") }}" class="btn btn-outline-success px-4">Details</a>' +
+          '<tr data-job-id="' + job.id + '">' +
+            '<td><small class="text-muted">' + escapeHtml(job.job_order_code || ('#' + job.id)) + '</small></td>' +
+            '<td><strong>' + escapeHtml(job.title || '—') + '</strong></td>' +
+            '<td>' + escapeHtml(job.company || '—') + '</td>' +
+            '<td>' + formatDate(job.scheduled_date) + '</td>' +
+            '<td>' + escapeHtml(timeText) + '</td>' +
+            '<td>' + priorityPill + '</td>' +
+            '<td>' + escapeHtml(job.location || '—') + '</td>' +
+            '<td>' +
+              '<span data-assigned-person>' + escapeHtml(job.assigned_name || 'Unassigned') + '</span>' +
+              availabilityHint +
+            '</td>' +
+            '<td>' + statusPill + '</td>' +
+            '<td>' +
+              '<div class="d-flex align-items-center gap-2">' +
+                '<div class="dropdown">' +
+                  '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" ' + assignButtonDisabled + '>Reassign</button>' +
+                  '<ul class="dropdown-menu">' + buildAssignmentMenu(job) + '</ul>' +
                 '</div>' +
-                availabilityHint +
+                '<a href="{{ url_for("job_order_page") }}" class="btn btn-sm btn-outline-secondary">Details</a>' +
               '</div>' +
-              '<div class="col-lg-6">' +
-                '<p class="mb-2"><span class="job-meta-label">Location:</span> ' + escapeHtml(job.location || 'N/A') + '</p>' +
-                '<p class="mb-0"><span class="job-meta-label">Assigned to:</span> <span data-assigned-person>' + escapeHtml(job.assigned_name || 'Unassigned') + '</span></p>' +
-              '</div>' +
-            '</div>' +
-          '</section>'
+            '</td>' +
+          '</tr>'
         );
       }).join('');
     }
@@ -424,7 +447,6 @@
       var endIdx = startIdx + pageSize;
       var pagedJobs = sortedJobs.slice(startIdx, endIdx);
 
-      jobListEl.classList.toggle('job-list-compact', sortedJobs.length > pageSize);
       renderJobs(pagedJobs, sortedJobs.length);
     }
 

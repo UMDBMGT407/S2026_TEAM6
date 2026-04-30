@@ -64,18 +64,35 @@
   </form>
 </div>
 
-<div class="d-flex gap-2 flex-wrap mb-3" id="request-filter-buttons">
-  <button type="button" class="btn btn-outline-success request-status-filter active" data-status="pending">Pending</button>
-  <button type="button" class="btn btn-outline-success request-status-filter" data-status="approved">Approved</button>
-  <button type="button" class="btn btn-outline-success request-status-filter" data-status="rejected">Rejected</button>
-  <button type="button" class="btn btn-outline-success request-status-filter" data-status="all">All</button>
-</div>
-
 <div id="job-order-status" class="mb-3"></div>
 
 <div class="management-content-block mb-4">
-  <h3 class="h5 mb-3">Service Requests</h3>
-  <div id="service-request-list" class="row g-3"></div>
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h3 class="h5 mb-0">Service Requests</h3>
+    <div class="d-flex gap-2 flex-wrap" id="request-filter-buttons">
+      <button type="button" class="btn btn-outline-success request-status-filter active" data-status="pending">Pending</button>
+      <button type="button" class="btn btn-outline-success request-status-filter" data-status="approved">Approved</button>
+      <button type="button" class="btn btn-outline-success request-status-filter" data-status="rejected">Rejected</button>
+      <button type="button" class="btn btn-outline-success request-status-filter" data-status="all">All</button>
+    </div>
+  </div>
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Request #</th>
+          <th>Service</th>
+          <th>Client</th>
+          <th>Location</th>
+          <th>Requested Date</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="service-request-list"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="management-content-block">
@@ -88,7 +105,25 @@
       <button type="button" class="btn btn-outline-success btn-sm job-status-filter" data-job-status="cancelled">Cancelled</button>
     </div>
   </div>
-  <div id="job-order-list" class="row g-3"></div>
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Job Code</th>
+          <th>Service</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Location</th>
+          <th>Assigned To</th>
+          <th>Status</th>
+          <th>Invoice</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="job-order-list"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="modal fade" id="approveRequestModal" tabindex="-1" aria-hidden="true">
@@ -285,58 +320,45 @@
       statJobOrders.textContent = String(jobs.length);
     }
 
+    function requestPillClass(status) {
+      var s = String(status || '').toLowerCase();
+      if (s === 'approved') return 'status-pill status-pill-active';
+      if (s === 'rejected') return 'status-pill status-pill-inactive';
+      return 'status-pill status-pill-warning';
+    }
+
     function renderRequestCards(requests) {
       if (!requests.length) {
-        requestList.innerHTML = '<div class="col-12"><p class="text-muted mb-0">No service requests found for this filter.</p></div>';
+        requestList.innerHTML = '<tr><td colspan="8" class="planted-table-empty">No service requests found for this filter.</td></tr>';
         return;
       }
 
       requestList.innerHTML = requests.map(function (item) {
         var statusLabel = formatStatus(item.status);
-        var badgeClass = getStatusBadgeClass(item.status);
-        var hasPendingActions = String(item.status || '').toLowerCase() === 'pending';
-        var notes = item.requested_notes ? escapeHtml(item.requested_notes) : '<span class="text-muted">No notes</span>';
+        var isPending = String(item.status || '').toLowerCase() === 'pending';
 
         var actionHtml = '';
-        if (hasPendingActions) {
+        if (isPending) {
           actionHtml =
-            '<div class="d-flex gap-2 mt-3">' +
-              '<button type="button" class="btn btn-success btn-sm approve-request-btn" data-request-id="' + item.service_request_id + '">Approve and Assign</button>' +
-              '<button type="button" class="btn btn-outline-danger btn-sm reject-request-btn" data-request-id="' + item.service_request_id + '">Reject</button>' +
+            '<div class="d-flex align-items-center gap-2">' +
+              '<button type="button" class="btn btn-sm btn-outline-success approve-request-btn" data-request-id="' + item.service_request_id + '">Approve</button>' +
+              '<button type="button" class="btn btn-sm text-danger border-0 ms-auto reject-request-btn" data-request-id="' + item.service_request_id + '">Reject</button>' +
             '</div>';
         } else if (item.approved_by_name) {
-          actionHtml =
-            '<div class="mt-3">' +
-              '<small class="text-muted">Updated by: ' + escapeHtml(item.approved_by_name) + '</small>' +
-            '</div>';
+          actionHtml = '<small class="text-muted">By: ' + escapeHtml(item.approved_by_name) + '</small>';
         }
 
         return (
-          '<div class="col-12">' +
-            '<div class="surface-card p-4">' +
-              '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
-                '<div>' +
-                  '<h4 class="mb-1">Request #' + item.service_request_id + ' - ' + escapeHtml(item.service_name) + '</h4>' +
-                  '<p class="mb-0 text-muted">' + escapeHtml(item.company_name) + ' | Contact: ' + escapeHtml(item.contact_name || 'N/A') + '</p>' +
-                '</div>' +
-                '<span class="badge ' + badgeClass + '">' + statusLabel + '</span>' +
-              '</div>' +
-              '<div class="row mt-3 g-3">' +
-                '<div class="col-md-6">' +
-                  '<p class="mb-1"><strong>Requested Date:</strong> ' + formatDate(item.requested_date) + '</p>' +
-                  '<p class="mb-1"><strong>Submitted:</strong> ' + formatDate(item.created_at) + '</p>' +
-                  '<p class="mb-0"><strong>Estimated Price:</strong> ' + formatMoney(item.base_price) + '</p>' +
-                '</div>' +
-                '<div class="col-md-6">' +
-                  '<p class="mb-1"><strong>Location:</strong> ' + escapeHtml(item.location_name || 'Location') + '</p>' +
-                  '<p class="mb-1"><strong>Address:</strong> ' + escapeHtml(item.location_address || 'N/A') + '</p>' +
-                  '<p class="mb-0"><strong>Email:</strong> ' + escapeHtml(item.contact_email || 'N/A') + '</p>' +
-                '</div>' +
-              '</div>' +
-              '<div class="mt-3"><strong>Notes:</strong> ' + notes + '</div>' +
-              actionHtml +
-            '</div>' +
-          '</div>'
+          '<tr>' +
+            '<td>#' + item.service_request_id + '</td>' +
+            '<td>' + escapeHtml(item.service_name) + '</td>' +
+            '<td>' + escapeHtml(item.company_name) + '<br><small class="text-muted">' + escapeHtml(item.contact_name || '') + '</small></td>' +
+            '<td>' + escapeHtml(item.location_name || '—') + '</td>' +
+            '<td>' + formatDate(item.requested_date) + '</td>' +
+            '<td>' + formatMoney(item.base_price) + '</td>' +
+            '<td><span class="' + requestPillClass(item.status) + '">' + statusLabel + '</span></td>' +
+            '<td>' + actionHtml + '</td>' +
+          '</tr>'
         );
       }).join('');
     }
@@ -363,9 +385,9 @@
       if (!cards.length || visible === 0) {
         var empty = jobList.querySelector('.job-empty-msg');
         if (!empty) {
-          empty = document.createElement('div');
-          empty.className = 'col-12 job-empty-msg';
-          empty.innerHTML = '<p class="text-muted mb-0">No job orders found for this filter.</p>';
+          empty = document.createElement('tr');
+          empty.className = 'job-empty-msg';
+          empty.innerHTML = '<td colspan="10" class="planted-table-empty">No job orders found for this filter.</td>';
           jobList.appendChild(empty);
         }
         empty.style.display = '';
@@ -378,51 +400,49 @@
       });
     }
 
+    function jobStatusPillClass(status) {
+      var s = String(status || '').toLowerCase();
+      if (s === 'completed') return 'status-pill status-pill-active';
+      if (s === 'cancelled') return 'status-pill status-pill-inactive';
+      if (s === 'unassigned') return 'status-pill status-pill-warning';
+      return 'status-pill status-pill-neutral';
+    }
+
     function renderJobCards(jobs) {
       if (!jobs.length) {
-        jobList.innerHTML = '<div class="col-12"><p class="text-muted mb-0">No job orders created yet.</p></div>';
+        jobList.innerHTML = '<tr><td colspan="10" class="planted-table-empty">No job orders created yet.</td></tr>';
         return;
       }
 
       jobList.innerHTML = jobs.map(function (job) {
         var s = String(job.status || '').toLowerCase();
         var statusLabel = formatStatus(job.status);
-        var badgeClass = getJobStatusBadgeClass(job.status);
         var assignedTo = job.assigned_name || 'Unassigned';
-        var timeLabel = (job.start_time && job.end_time) ? (job.start_time + ' - ' + job.end_time) : 'Not scheduled';
+        var timeLabel = (job.start_time && job.end_time) ? (job.start_time + ' — ' + job.end_time) : '—';
 
         var actions = '';
         if (s !== 'completed' && s !== 'cancelled') {
-          actions += '<button type="button" class="btn btn-success btn-sm complete-job-btn" data-job-id="' + job.id + '" data-job-code="' + escapeHtml(job.job_order_code || '') + '">Mark Complete</button>';
-          actions += '<button type="button" class="btn btn-outline-danger btn-sm cancel-job-btn" data-job-id="' + job.id + '">Cancel</button>';
+          actions =
+            '<button type="button" class="btn btn-sm btn-outline-success complete-job-btn" data-job-id="' + job.id + '" data-job-code="' + escapeHtml(job.job_order_code || '') + '">Complete</button>' +
+            '<button type="button" class="btn btn-sm text-danger border-0 ms-auto cancel-job-btn" data-job-id="' + job.id + '">Cancel</button>';
         }
-        if (job.invoice_number) {
-          actions += '<span class="badge bg-success-subtle text-success">Invoice: ' + escapeHtml(job.invoice_number) + '</span>';
-        }
+        var invoiceCell = job.invoice_number
+          ? '<span class="status-pill status-pill-neutral">' + escapeHtml(job.invoice_number) + '</span>'
+          : '<span class="text-muted">—</span>';
 
         return (
-          '<div class="col-12 job-card-wrapper" data-job-status="' + s + '">' +
-            '<div class="surface-card p-4">' +
-              '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
-                '<div>' +
-                  '<h4 class="mb-1">' + escapeHtml(job.job_order_code || ('Job #' + job.id)) + ' - ' + escapeHtml(job.title || 'Job Order') + '</h4>' +
-                  '<p class="mb-0 text-muted">' + escapeHtml(job.company || 'Client') + '</p>' +
-                '</div>' +
-                '<span class="badge ' + badgeClass + '">' + statusLabel + '</span>' +
-              '</div>' +
-              '<div class="row mt-3 g-3">' +
-                '<div class="col-md-6">' +
-                  '<p class="mb-1"><strong>Date:</strong> ' + formatDate(job.scheduled_date) + '</p>' +
-                  '<p class="mb-0"><strong>Time:</strong> ' + escapeHtml(timeLabel) + '</p>' +
-                '</div>' +
-                '<div class="col-md-6">' +
-                  '<p class="mb-1"><strong>Location:</strong> ' + escapeHtml(job.location || 'N/A') + '</p>' +
-                  '<p class="mb-0"><strong>Assigned to:</strong> ' + escapeHtml(assignedTo) + '</p>' +
-                '</div>' +
-              '</div>' +
-              (actions ? '<div class="mt-3 d-flex align-items-center gap-2 flex-wrap">' + actions + '</div>' : '') +
-            '</div>' +
-          '</div>'
+          '<tr class="job-card-wrapper" data-job-status="' + s + '">' +
+            '<td>' + escapeHtml(job.job_order_code || ('#' + job.id)) + '</td>' +
+            '<td>' + escapeHtml(job.title || '—') + '</td>' +
+            '<td>' + escapeHtml(job.company || '—') + '</td>' +
+            '<td>' + formatDate(job.scheduled_date) + '</td>' +
+            '<td>' + escapeHtml(timeLabel) + '</td>' +
+            '<td>' + escapeHtml(job.location || '—') + '</td>' +
+            '<td>' + escapeHtml(assignedTo) + '</td>' +
+            '<td><span class="' + jobStatusPillClass(job.status) + '">' + statusLabel + '</span></td>' +
+            '<td>' + invoiceCell + '</td>' +
+            '<td><div class="d-flex align-items-center gap-2">' + actions + '</div></td>' +
+          '</tr>'
         );
       }).join('');
 
