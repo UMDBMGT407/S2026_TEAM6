@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, abort, jso
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from datetime import datetime, timedelta
@@ -40,10 +41,12 @@ password_reset_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 # --- MySQL Config ---
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'UMD2025Smith$')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'password')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'user_management')
 
 mysql = MySQL(app)
+PLANT_PHOTO_UPLOAD_FOLDER = os.path.join(base_dir, 'static', 'uploads', 'plant_photos')
+os.makedirs(PLANT_PHOTO_UPLOAD_FOLDER, exist_ok=True)
 SCHEMA_PATH = os.path.join(base_dir, 'Planted_Database.sql')
 # ============================================================================
 # SECTION A: CONFIGURATION
@@ -267,6 +270,14 @@ def ensure_plant_master_schema():
                 )
             """)
 
+        try:
+            cur.execute("ALTER TABLE plant_master ADD COLUMN photo_url TEXT")
+        except:
+            pass
+        try:
+            cur.execute("ALTER TABLE plant_master ADD COLUMN notes TEXT")
+        except:
+            pass
         try:
             cur.execute("ALTER TABLE plant_master ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
         except:
@@ -2166,6 +2177,45 @@ def update_plant(plant_id):
         mysql.connection.commit()
         cur.close()
         return jsonify(message='Plant updated')
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/plant_master/<int:plant_id>/photo', methods=['POST'])
+@login_required
+@role_required('Management')
+def upload_plant_photo(plant_id):
+    if 'photo' not in request.files:
+        return jsonify(error='No photo uploaded'), 400
+    photo = request.files['photo']
+    if not photo or photo.filename == '':
+        return jsonify(error='No file selected'), 400
+
+    filename = secure_filename(photo.filename)
+    if '.' not in filename:
+        return jsonify(error='Invalid file name'), 400
+
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    extension = filename.rsplit('.', 1)[1].lower()
+    if extension not in allowed_extensions:
+        return jsonify(error='Unsupported file type'), 400
+
+    unique_name = f"plant_{plant_id}_{int(datetime.utcnow().timestamp())}.{extension}"
+    save_path = os.path.join(PLANT_PHOTO_UPLOAD_FOLDER, unique_name)
+    photo.save(save_path)
+
+    photo_url = url_for('static', filename=f'uploads/plant_photos/{unique_name}')
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE plant_master SET photo_url = %s WHERE plant_id = %s", (photo_url, plant_id))
+        mysql.connection.commit()
+        updated = cur.rowcount
+        cur.close()
+        if updated == 0:
+            return jsonify(error='Plant not found'), 404
+        return jsonify(photo_url=photo_url)
     except Exception as e:
         if 'cur' in locals():
             cur.close()
