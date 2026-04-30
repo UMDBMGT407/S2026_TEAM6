@@ -34,7 +34,24 @@
   </div>
 </div>
 
-<div id="appointments-list"></div>
+<div class="management-content-block">
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Technician</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="appointments-list"></tbody>
+    </table>
+  </div>
+</div>
 
 <div class="cta-banner d-flex align-items-center justify-content-between">
   <div>
@@ -60,8 +77,7 @@
         <p><strong>Status:</strong> <span class="inv-status status-scheduled modal-status-inline" id="appt-modal-status">&#x25CF; Scheduled</span></p>
       </div>
       <div class="modal-footer">
-        <a href="{{ url_for('service_request_page') }}" class="book-appt-btn btn-modal-secondary">Book Another</a>
-        <button type="button" class="btn-action" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -94,52 +110,56 @@
       return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function statusClass(statusText) {
-      var normalized = String(statusText || '').toLowerCase();
-      if (normalized === 'completed') {
-        return 'status-scheduled';
+    function statusPill(statusText) {
+      var s = String(statusText || '').toLowerCase();
+      if (s === 'completed') return 'status-pill status-pill-active';
+      if (s === 'approved' || s === 'scheduled') return 'status-pill status-pill-neutral';
+      if (s === 'cancelled' || s === 'rejected') return 'status-pill status-pill-inactive';
+      return 'status-pill status-pill-warning';
+    }
+
+    function isCancellable(item) {
+      var s = String(item.status || '').toLowerCase();
+      return s !== 'completed' && s !== 'cancelled' && s !== 'canceled' && s !== 'rejected';
+    }
+
+    function cancelUrl(item) {
+      if (item.kind === 'appointment') {
+        if (item.service_request_id) {
+          return '/api/client/service-requests/' + item.service_request_id + '/cancel';
+        }
+        return '/api/client/job-orders/' + item.appointment_id + '/cancel';
       }
-      if (normalized === 'approved' || normalized === 'scheduled') {
-        return 'status-scheduled';
-      }
-      return 'status-unassigned';
+      return '/api/client/service-requests/' + item.service_request_id + '/cancel';
     }
 
     function renderCard(item) {
       var statusText = item.status || 'Pending';
       var dateText = formatDate(item.appointment_date);
-      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' - ' + item.end_time) : '')) : 'Pending confirmation';
-      var technicianText = item.technician_name || 'Pending assignment';
-      var locationText = item.location_name || item.location_address || 'Pending confirmation';
-      var label = item.kind === 'appointment' ? 'Scheduled Service' : 'Requested Service';
+      var timeText = item.start_time
+        ? (item.start_time + (item.end_time ? (' – ' + item.end_time) : ''))
+        : '—';
+      var technicianText = item.technician_name || 'Pending';
+      var locationText = item.location_name || item.location_address || '—';
+      var cancelBtn = isCancellable(item)
+        ? '<button class="btn btn-sm text-danger border-0 ms-auto appointment-cancel-btn" type="button">Cancel</button>'
+        : '';
 
       return (
-        '<div class="job-card mb-3" data-appt-item="' + encodeURIComponent(JSON.stringify(item)) + '">' +
-          '<div class="row align-items-start">' +
-            '<div class="col-md-9">' +
-              '<p class="detail-label mb-1">' + label + '</p>' +
-              '<h2 class="job-title">' + (item.service_name || 'Service') + '</h2>' +
-              '<p class="job-client">With ' + technicianText + '</p>' +
-              '<div class="row mt-2">' +
-                '<div class="col-md-6">' +
-                  '<p class="job-detail"><span class="detail-label">Date:</span> ' + dateText + '</p>' +
-                  '<p class="job-detail"><span class="detail-label">Time:</span> ' + timeText + '</p>' +
-                '</div>' +
-                '<div class="col-md-6">' +
-                  '<p class="job-detail"><span class="detail-label">Location:</span> ' + locationText + '</p>' +
-                  '<p class="job-detail"><span class="detail-label">Reference:</span> ' + (item.reference_code || '-') + '</p>' +
-                '</div>' +
-              '</div>' +
-              '<div class="d-flex gap-2 mt-3">' +
-                '<button class="btn-action appointment-reassign-btn" type="button">Request Another</button>' +
-                '<button class="btn-action appointment-details-btn" type="button">Details</button>' +
-              '</div>' +
+        '<tr data-appt-item="' + encodeURIComponent(JSON.stringify(item)) + '" data-cancel-url="' + cancelUrl(item) + '">' +
+          '<td><strong>' + (item.service_name || 'Service') + '</strong></td>' +
+          '<td>' + technicianText + '</td>' +
+          '<td>' + dateText + '</td>' +
+          '<td>' + timeText + '</td>' +
+          '<td>' + locationText + '</td>' +
+          '<td><span class="' + statusPill(statusText) + '">' + statusText + '</span></td>' +
+          '<td>' +
+            '<div class="d-flex align-items-center gap-2">' +
+              '<button class="btn btn-sm btn-outline-secondary appointment-details-btn" type="button">Details</button>' +
+              cancelBtn +
             '</div>' +
-            '<div class="col-md-3 text-end">' +
-              '<span class="status-badge ' + statusClass(statusText) + '">' + statusText + '</span>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
+          '</td>' +
+        '</tr>'
       );
     }
 
@@ -167,7 +187,7 @@
 
     function openDetails(item) {
       var dateText = formatDate(item.appointment_date);
-      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' - ' + item.end_time) : '')) : 'Pending confirmation';
+      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' – ' + item.end_time) : '')) : 'Pending confirmation';
       var locationText = item.location_name || item.location_address || 'Pending confirmation';
       var statusText = item.status || 'Pending';
 
@@ -178,29 +198,37 @@
       document.getElementById('appt-modal-location').textContent = locationText;
 
       var modalStatus = document.getElementById('appt-modal-status');
-      modalStatus.innerHTML = '&#x25CF; ' + statusText;
-      modalStatus.className = 'inv-status modal-status-inline ' + statusClass(statusText);
+      modalStatus.textContent = statusText;
+      modalStatus.className = statusPill(statusText);
       apptModal.show();
+    }
+
+    async function cancelAppointment(url) {
+      if (!confirm('Cancel this appointment? This cannot be undone.')) return;
+      try {
+        var res = await fetch(url, { method: 'POST' });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to cancel');
+        await loadAppointments();
+      } catch (err) {
+        alert(err.message);
+      }
     }
 
     listEl.addEventListener('click', function (event) {
       var detailsBtn = event.target.closest('.appointment-details-btn');
-      var reassignBtn = event.target.closest('.appointment-reassign-btn');
-      if (!detailsBtn && !reassignBtn) {
-        return;
-      }
+      var cancelBtn = event.target.closest('.appointment-cancel-btn');
+      if (!detailsBtn && !cancelBtn) return;
 
-      var card = event.target.closest('[data-appt-item]');
-      if (!card) {
-        return;
-      }
-      var item = JSON.parse(decodeURIComponent(card.getAttribute('data-appt-item')));
+      var row = event.target.closest('[data-appt-item]');
+      if (!row) return;
 
       if (detailsBtn) {
+        var item = JSON.parse(decodeURIComponent(row.getAttribute('data-appt-item')));
         openDetails(item);
       }
-      if (reassignBtn) {
-        window.location.href = '{{ url_for("service_request_page") }}';
+      if (cancelBtn) {
+        cancelAppointment(row.getAttribute('data-cancel-url'));
       }
     });
 
@@ -216,13 +244,13 @@
         setStats(items);
 
         if (!items.length) {
-          listEl.innerHTML = '<div class="job-card"><p class="mb-0">No appointments or requests yet. Start by requesting a service.</p></div>';
+          listEl.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No appointments or requests yet. Start by requesting a service.</td></tr>';
           return;
         }
 
         listEl.innerHTML = items.map(renderCard).join('');
       } catch (error) {
-        listEl.innerHTML = '<div class="job-card"><p class="mb-0 text-danger">' + (error.message || 'Unable to load appointments.') + '</p></div>';
+        listEl.innerHTML = '<tr><td colspan="7" class="planted-table-empty text-danger">' + (error.message || 'Unable to load appointments.') + '</td></tr>';
       }
     }
 

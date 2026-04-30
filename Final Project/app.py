@@ -4235,6 +4235,79 @@ def create_client_service_request_api():
         return jsonify(error=f'Failed to submit service request: {str(e)}'), 500
 
 
+@app.route('/api/client/job-orders/<int:job_order_id>/cancel', methods=['POST'])
+@login_required
+@role_required('Client')
+def cancel_client_job_order(job_order_id):
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+        cur.execute("""
+            SELECT jo.job_order_id, jo.status
+            FROM job_orders jo
+            WHERE jo.job_order_id = %s AND jo.client_id = %s
+        """, (job_order_id, client_id))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Appointment not found'), 404
+        terminal = {'completed', 'cancelled', 'canceled'}
+        if str(row[1] or '').lower() in terminal:
+            cur.close()
+            return jsonify(error='This appointment cannot be cancelled'), 400
+        cur.execute(
+            "UPDATE job_orders SET status = 'Cancelled', assigned_employee_id = NULL WHERE job_order_id = %s",
+            (job_order_id,)
+        )
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Appointment cancelled successfully')
+    except Exception as e:
+        print(f'Error cancelling job order: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/api/client/service-requests/<int:request_id>/cancel', methods=['POST'])
+@login_required
+@role_required('Client')
+def cancel_client_service_request(request_id):
+    try:
+        cur = mysql.connection.cursor()
+        client_id = ensure_client_record(cur, current_user.id)
+        cur.execute("""
+            SELECT sr.service_request_id, sr.status
+            FROM service_requests sr
+            WHERE sr.service_request_id = %s AND sr.client_id = %s
+        """, (request_id, client_id))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify(error='Request not found'), 404
+        terminal = {'completed', 'cancelled', 'canceled', 'rejected'}
+        if str(row[1] or '').lower() in terminal:
+            cur.close()
+            return jsonify(error='This appointment cannot be cancelled'), 400
+        cur.execute(
+            "UPDATE service_requests SET status = 'Rejected' WHERE service_request_id = %s",
+            (request_id,)
+        )
+        cur.execute("""
+            UPDATE job_orders SET status = 'Cancelled', assigned_employee_id = NULL
+            WHERE service_request_id = %s
+            AND LOWER(COALESCE(status, '')) NOT IN ('completed', 'cancelled', 'canceled')
+        """, (request_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify(message='Appointment cancelled successfully')
+    except Exception as e:
+        print(f'Error cancelling appointment: {e}')
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
+
 @app.route('/api/client/service-requests', methods=['GET'])
 @login_required
 @role_required('Client')

@@ -34,7 +34,23 @@
   <button class="inv-tab" data-filter="paid" id="tab-paid">Paid (0)</button>
 </div>
 
-<div id="invoice-rows"></div>
+<div class="management-content-block">
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Issued</th>
+          <th>Due</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="invoice-rows"></tbody>
+    </table>
+  </div>
+</div>
 
 <!-- Invoice Detail Modal -->
 <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
@@ -193,33 +209,33 @@
       });
   }
   function applyFilter(filterName) {
-    document.querySelectorAll('.invoice-row').forEach(function (row) {
+    document.querySelectorAll('#invoice-rows tr').forEach(function (row) {
       row.style.display = (filterName === 'all' || row.dataset.status === filterName) ? '' : 'none';
     });
   }
 
+  function invoicePillClass(filterValue) {
+    if (filterValue === 'paid') return 'status-pill status-pill-active';
+    if (filterValue === 'overdue') return 'status-pill status-pill-inactive';
+    return 'status-pill status-pill-warning';
+  }
+
   function renderInvoiceRow(invoice, filterValue) {
-    var row = document.createElement('div');
-    row.className = 'invoice-row mb-3';
-    row.dataset.status = filterValue;
+    var tr = document.createElement('tr');
+    tr.dataset.status = filterValue;
+    tr.innerHTML =
+      '<td><strong>' + (invoice.invoice_number || ('Invoice #' + invoice.invoice_id)) + '</strong></td>' +
+      '<td>' + toDateLabel(invoice.issue_date) + '</td>' +
+      '<td>' + toDateLabel(invoice.due_date) + '</td>' +
+      '<td>' + toCurrency(invoice.total_amount) + '</td>' +
+      '<td><span class="' + invoicePillClass(filterValue) + '">' + statusText(filterValue) + '</span></td>' +
+      '<td><button class="btn btn-sm btn-outline-secondary view-invoice-btn" type="button">View</button></td>';
 
-    row.innerHTML =
-      '<div class="row align-items-center">' +
-        '<div class="col-md-7">' +
-          '<div class="inv-number">' + (invoice.invoice_number || ('Invoice #' + String(invoice.invoice_id))) + '</div>' +
-          '<div class="inv-service">' + (invoice.company_name || 'Planted Service') + '</div>' +
-          '<div class="inv-dates">Due ' + toDateLabel(invoice.due_date) + ' &middot; Issued ' + toDateLabel(invoice.issue_date) + '</div>' +
-        '</div>' +
-        '<div class="col-md-2 text-center"><span class="inv-status ' + statusClass(filterValue) + '">&#x25CF; ' + statusText(filterValue) + '</span></div>' +
-        '<div class="col-md-2 text-center"><div class="inv-amount">' + toCurrency(invoice.total_amount) + '</div><div class="inv-currency">AUD incl. GST</div></div>' +
-        '<div class="col-md-1 d-flex align-items-center justify-content-end"><button class="inv-pay-btn" type="button">View</button></div>' +
-      '</div>';
-
-    row.querySelector('.inv-pay-btn').addEventListener('click', function () {
+    tr.querySelector('.view-invoice-btn').addEventListener('click', function () {
       viewInvoiceDetails(invoice.invoice_id);
     });
 
-    return row;
+    return tr;
   }
 
   async function loadInvoices() {
@@ -247,7 +263,7 @@
       });
 
       if (!invoices.length) {
-        invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">No invoices found.</div></div></div>';
+        invoiceRows.innerHTML = '<tr><td colspan="6" class="planted-table-empty">No invoices found.</td></tr>';
       }
 
       document.getElementById('inv-balance').textContent = toCurrency(totals.outstanding);
@@ -272,7 +288,7 @@
 
       applyFilter('all');
     } catch (error) {
-      invoiceRows.innerHTML = '<div class="invoice-row mb-3"><div class="row align-items-center"><div class="col-12">' + (error.message || 'Unable to load invoices.') + '</div></div></div>';
+      invoiceRows.innerHTML = '<tr><td colspan="6" class="planted-table-empty text-danger">' + (error.message || 'Unable to load invoices.') + '</td></tr>';
     }
   }
 

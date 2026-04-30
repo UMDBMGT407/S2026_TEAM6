@@ -13,51 +13,35 @@
   <p class="page-subtitle">Schedule a service for your location</p>
 </div>
 
-<div class="date-picker-bar mb-4">
-  <h2 class="date-picker-title mb-3">Select a Date</h2>
+<div class="surface-card p-4 mb-4">
   <div class="row g-3">
-    <div class="col-md-4">
-      <label for="selectMonth" class="form-label picker-label">Month</label>
-      <select id="selectMonth" class="form-select picker-select">
-        <option value="">-- Month --</option>
-        <option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option>
-      </select>
+    <div class="col-md-6">
+      <label for="selectDate" class="form-label fw-semibold">Requested Date</label>
+      <input id="selectDate" type="date" class="form-control" />
     </div>
-    <div class="col-md-4">
-      <label for="selectDay" class="form-label picker-label">Day</label>
-      <select id="selectDay" class="form-select picker-select">
-        <option value="">-- Day --</option>
-        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option>
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label for="selectYear" class="form-label picker-label">Year</label>
-      <select id="selectYear" class="form-select picker-select">
-        <option value="">-- Year --</option>
-        <option>2026</option><option>2027</option><option>2028</option>
+    <div class="col-md-6">
+      <label for="requestLocation" class="form-label fw-semibold">Location</label>
+      <select id="requestLocation" class="form-select">
+        <option value="">— Choose a location —</option>
       </select>
     </div>
   </div>
 </div>
 
-<div class="mb-4">
-  <label for="requestLocation" class="form-label picker-label">Select a Location</label>
-  <select id="requestLocation" class="form-select picker-select">
-    <option value="">-- Choose a location --</option>
-  </select>
+<div class="surface-card p-4 mb-4">
+  <h2 class="h5 mb-1 fw-semibold">Available Services</h2>
+  <p class="text-muted mb-3" style="font-size:0.9rem;">Select one service to include in your request.</p>
+  <p id="service-load-message" class="mb-2"></p>
+  <div class="row g-3" id="service-grid"></div>
 </div>
 
-<h2 class="services-heading mb-3">Available Services</h2>
-<p id="service-load-message" class="mb-2"></p>
-<div class="row g-3" id="service-grid"></div>
-
-<div class="mt-4">
-  <label for="requestNotes" class="form-label picker-label">Notes (optional)</label>
+<div class="surface-card p-4 mb-4">
+  <label for="requestNotes" class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
   <textarea id="requestNotes" class="form-control" rows="3" placeholder="Add access details, preferred time window, or special instructions"></textarea>
 </div>
 
-<div class="mt-4 text-end">
-  <button id="submit-request" class="book-appt-btn">Request Service</button>
+<div class="text-end">
+  <button id="submit-request" class="btn btn-success px-5">Request Service</button>
 </div>
 
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
@@ -100,10 +84,9 @@
     var locationSelect = document.getElementById('requestLocation');
     var notesInput = document.getElementById('requestNotes');
 
-    var monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+    var dateInput = document.getElementById('selectDate');
+    // Set minimum date to today
+    dateInput.min = new Date().toISOString().split('T')[0];
 
     function setMessage(text, isError) {
       serviceMessage.textContent = text || '';
@@ -193,48 +176,33 @@
       });
     }
 
-    function buildIsoDate(month, day, year) {
-      var monthIndex = monthNames.indexOf(month);
-      if (monthIndex < 0) return null;
-      var monthNumber = String(monthIndex + 1).padStart(2, '0');
-      var dayNumber = String(day).padStart(2, '0');
-      return year + '-' + monthNumber + '-' + dayNumber;
-    }
-
     submitButton.addEventListener('click', function() {
-      var month = document.getElementById('selectMonth').value;
-      var day = document.getElementById('selectDay').value;
-      var year = document.getElementById('selectYear').value;
+      var requestedDate = dateInput.value;
       var selectedLocationId = Number(locationSelect.value || 0);
 
-      if (!month || !day || !year) {
-        alert('Please select a full date (Month, Day, and Year).');
+      if (!requestedDate) {
+        alert('Please select a date.');
         return;
       }
       if (!selectedLocationId) {
-        alert('Please choose a client location.');
+        alert('Please choose a location.');
         return;
       }
       if (!selectedServiceId) {
-        alert('Please select a service from the list.');
+        alert('Please select a service.');
         return;
       }
 
       var selectedService = services.find(function (service) {
         return Number(service.service_id) === Number(selectedServiceId);
       });
-
       if (!selectedService) {
         alert('Selected service could not be found. Please refresh and try again.');
         return;
       }
 
-      var dateLabel = month + ' ' + day + ', ' + year;
-      var requestedDate = buildIsoDate(month, day, year);
-      if (!requestedDate) {
-        alert('Invalid month selected. Please try again.');
-        return;
-      }
+      var dateParts = requestedDate.split('-');
+      var dateLabel = new Date(requestedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
       var selectedLocation = locations.find(function (loc) {
         return Number(loc.location_id) === Number(selectedLocationId);
