@@ -1,0 +1,200 @@
+﻿/* ===== Contact Client Styles ===== */
+/* Section Guide: page shell/layers, content blocks, form/action controls, nav states */
+.contact-client-modal,
+.contact-client-modal * {
+  box-sizing: border-box;
+}
+.contact-client-modal {
+  background: #ffffff;
+  height: 305px;
+  position: relative;
+  overflow: hidden;
+}
+.contact-modal-title {
+  color: #000000;
+  text-align: left;
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 26px;
+  top: 32px;
+}
+.modal-helper-text {
+  color: #000000;
+  text-align: left;
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 400;
+  position: absolute;
+  left: 372px;
+  top: 76px;
+}
+.client-info-layer {
+  position: absolute;
+  inset: 0;
+}
+/* Main Content Panel */
+.client-info-card {
+  background: var(--color-main-bg);
+  border-radius: 20px;
+  width: 375px;
+  height: 195px;
+  position: absolute;
+  left: 27px;
+  top: 68px;
+}
+.location-icon {
+  width: 16.48px;
+  height: 22.05px;
+  position: absolute;
+  left: 47.06px;
+  top: 224.97px;
+  object-fit: cover;
+  aspect-ratio: 16.48/22.05;
+}
+.phone-icon {
+  width: 16.48px;
+  height: 19.38px;
+  position: absolute;
+  left: 47.06px;
+  top: 154.98px;
+  object-fit: cover;
+  aspect-ratio: 16.48/19.38;
+}
+.company-name-value {
+  color: #000000;
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 500;
+  position: absolute;
+  left: 42.04px;
+  top: 86px;
+  width: 195.52px;
+  height: 40px;
+}
+.contact-name-value {
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  font-weight: 500;
+  position: absolute;
+  left: 42.04px;
+  top: 106px;
+  width: 159.43px;
+  height: 27px;
+}
+.phone-label {
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 46.05px;
+  top: 156.99px;
+  width: 85.23px;
+  height: 27px;
+}
+.location-label {
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 66.1px;
+  top: 226.99px;
+  width: 62.17px;
+  height: 27px;
+}
+.email-label {
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 59.09px;
+  top: 191.99px;
+  width: 50.13px;
+  height: 27px;
+}
+.email-value {
+  color: #000000;
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 97.19px;
+  top: 191.99px;
+  width: 183.49px;
+  height: 27px;
+}
+.location-value {
+  color: #000000;
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 115.24px;
+  top: 227.99px;
+  width: 145.39px;
+  height: 27px;
+}
+.phone-value {
+  color: #000000;
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  position: absolute;
+  left: 103.2px;
+  top: 156.99px;
+  width: 115.31px;
+  height: 27px;
+}
+.email-icon {
+  width: 21.01px;
+  height: 16.77px;
+  position: absolute;
+  left: 45.06px;
+  top: 189.98px;
+  object-fit: cover;
+  aspect-ratio: 21.01/16.77;
+}
+.close-action-layer {
+  position: absolute;
+  inset: 0;
+}
+/* Action Controls */
+.close-action-button {
+  background: var(--color-primary);
+  border-radius: 7px;
+  width: 83px;
+  height: 25.68px;
+  position: absolute;
+  left: 319px;
+  top: 272px;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+.close-action-text {
+  pointer-events: none;
+  color: #ffffff;
+  text-align: center;
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  font-weight: 400;
+  position: absolute;
+  left: 323px;
+  top: 275.68px;
+  width: 75.03px;
+  height: 12.49px;
+}
+
+
+

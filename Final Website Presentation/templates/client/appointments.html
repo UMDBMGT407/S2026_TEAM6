@@ -1,0 +1,264 @@
+{% extends "base_client.html" %}
+{% set active_page = 'appointments' %}
+
+{% block title %}Planted - Appointments{% endblock %}
+
+{% block vendor_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="mb-4">
+  <h1 class="page-title" id="appt-greeting">Appointments</h1>
+  <p class="page-subtitle">Here's a look at all your appointments</p>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="stat-card text-center p-4">
+      <div class="stat-label">Total Appointments</div>
+      <div class="stat-number" id="appt-total">0</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card text-center p-4">
+      <div class="stat-label">Upcoming</div>
+      <div class="stat-number stat-unassigned" id="appt-upcoming">0</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card text-center p-4">
+      <div class="stat-label">Completed</div>
+      <div class="stat-number stat-scheduled" id="appt-completed">0</div>
+    </div>
+  </div>
+</div>
+
+<div class="surface-card mt-3">
+  <div class="planted-table-wrapper">
+    <table class="planted-data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Technician</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="appointments-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="cta-banner d-flex align-items-center justify-content-between">
+  <div>
+    <div class="cta-title">Need another appointment?</div>
+    <div class="cta-subtitle">Schedule a new service with our specialists</div>
+  </div>
+  <a href="{{ url_for('service_request_page') }}" class="book-appt-btn">Book appointment</a>
+</div>
+
+<div class="modal fade" id="apptDetailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Appointment Details</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Service:</strong> <span id="appt-modal-service"></span></p>
+        <p><strong>Technician:</strong> <span id="appt-modal-technician"></span></p>
+        <p><strong>Date:</strong> <span id="appt-modal-date"></span></p>
+        <p><strong>Time:</strong> <span id="appt-modal-time"></span></p>
+        <p><strong>Location:</strong> <span id="appt-modal-location"></span></p>
+        <p><strong>Status:</strong> <span class="inv-status status-scheduled modal-status-inline" id="appt-modal-status">&#x25CF; Scheduled</span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    var hour = new Date().getHours();
+    var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('appt-greeting').textContent = greeting + ',';
+
+    var apptModal = new bootstrap.Modal(document.getElementById('apptDetailsModal'));
+    var listEl = document.getElementById('appointments-list');
+
+    function parseDateOnly(dateText) {
+      if (!dateText) {
+        return null;
+      }
+      var dateValue = new Date(dateText + 'T00:00:00');
+      return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+    }
+
+    function formatDate(dateText) {
+      var dt = parseDateOnly(dateText);
+      if (!dt) {
+        return 'Date pending';
+      }
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function statusPill(statusText) {
+      var s = String(statusText || '').toLowerCase();
+      if (s === 'completed') return 'status-pill status-pill-active';
+      if (s === 'approved' || s === 'scheduled') return 'status-pill status-pill-neutral';
+      if (s === 'cancelled' || s === 'rejected') return 'status-pill status-pill-inactive';
+      return 'status-pill status-pill-warning';
+    }
+
+    function isCancellable(item) {
+      var s = String(item.status || '').toLowerCase();
+      return s !== 'completed' && s !== 'cancelled' && s !== 'canceled' && s !== 'rejected';
+    }
+
+    function cancelUrl(item) {
+      if (item.kind === 'appointment') {
+        if (item.service_request_id) {
+          return '/api/client/service-requests/' + item.service_request_id + '/cancel';
+        }
+        return '/api/client/job-orders/' + item.appointment_id + '/cancel';
+      }
+      return '/api/client/service-requests/' + item.service_request_id + '/cancel';
+    }
+
+    function renderCard(item) {
+      var statusText = item.status || 'Pending';
+      var dateText = formatDate(item.appointment_date);
+      var timeText = item.start_time
+        ? (item.start_time + (item.end_time ? (' – ' + item.end_time) : ''))
+        : '—';
+      var technicianText = item.technician_name || 'Pending';
+      var locationText = item.location_name || item.location_address || '—';
+      var cancelBtn = isCancellable(item)
+        ? '<button class="btn btn-sm text-danger border-0 ms-auto appointment-cancel-btn" type="button">Cancel</button>'
+        : '';
+
+      return (
+        '<tr data-appt-item="' + encodeURIComponent(JSON.stringify(item)) + '" data-cancel-url="' + cancelUrl(item) + '">' +
+          '<td><strong>' + (item.service_name || 'Service') + '</strong></td>' +
+          '<td>' + technicianText + '</td>' +
+          '<td>' + dateText + '</td>' +
+          '<td>' + timeText + '</td>' +
+          '<td>' + locationText + '</td>' +
+          '<td><span class="' + statusPill(statusText) + '">' + statusText + '</span></td>' +
+          '<td>' +
+            '<div class="d-flex align-items-center gap-2">' +
+              '<button class="btn btn-sm btn-outline-secondary appointment-details-btn" type="button">Details</button>' +
+              cancelBtn +
+            '</div>' +
+          '</td>' +
+        '</tr>'
+      );
+    }
+
+    function setStats(items) {
+      var today = new Date(new Date().toDateString());
+      var completed = 0;
+      var upcoming = 0;
+
+      items.forEach(function (item) {
+        var status = String(item.status || '').toLowerCase();
+        var when = parseDateOnly(item.appointment_date);
+        if (status === 'completed') {
+          completed += 1;
+          return;
+        }
+        if (when && when >= today && status !== 'cancelled' && status !== 'canceled' && status !== 'rejected') {
+          upcoming += 1;
+        }
+      });
+
+      document.getElementById('appt-total').textContent = String(items.length);
+      document.getElementById('appt-upcoming').textContent = String(upcoming);
+      document.getElementById('appt-completed').textContent = String(completed);
+    }
+
+    function openDetails(item) {
+      var dateText = formatDate(item.appointment_date);
+      var timeText = item.start_time ? (item.start_time + (item.end_time ? (' – ' + item.end_time) : '')) : 'Pending confirmation';
+      var locationText = item.location_name || item.location_address || 'Pending confirmation';
+      var statusText = item.status || 'Pending';
+
+      document.getElementById('appt-modal-service').textContent = item.service_name || 'Service';
+      document.getElementById('appt-modal-technician').textContent = item.technician_name || 'Pending assignment';
+      document.getElementById('appt-modal-date').textContent = dateText;
+      document.getElementById('appt-modal-time').textContent = timeText;
+      document.getElementById('appt-modal-location').textContent = locationText;
+
+      var modalStatus = document.getElementById('appt-modal-status');
+      modalStatus.textContent = statusText;
+      modalStatus.className = statusPill(statusText);
+      apptModal.show();
+    }
+
+    async function cancelAppointment(url) {
+      if (!confirm('Cancel this appointment? This cannot be undone.')) return;
+      try {
+        var res = await fetch(url, { method: 'POST' });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to cancel');
+        await loadAppointments();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    listEl.addEventListener('click', function (event) {
+      var detailsBtn = event.target.closest('.appointment-details-btn');
+      var cancelBtn = event.target.closest('.appointment-cancel-btn');
+      if (!detailsBtn && !cancelBtn) return;
+
+      var row = event.target.closest('[data-appt-item]');
+      if (!row) return;
+
+      if (detailsBtn) {
+        var item = JSON.parse(decodeURIComponent(row.getAttribute('data-appt-item')));
+        openDetails(item);
+      }
+      if (cancelBtn) {
+        cancelAppointment(row.getAttribute('data-cancel-url'));
+      }
+    });
+
+    async function loadAppointments() {
+      try {
+        var response = await fetch('/api/client/appointments');
+        var payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to load appointments');
+        }
+
+        var items = Array.isArray(payload) ? payload : [];
+        setStats(items);
+
+        if (!items.length) {
+          listEl.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No appointments or requests yet. Start by requesting a service.</td></tr>';
+          return;
+        }
+
+        listEl.innerHTML = items.map(renderCard).join('');
+      } catch (error) {
+        listEl.innerHTML = '<tr><td colspan="7" class="planted-table-empty text-danger">' + (error.message || 'Unable to load appointments.') + '</td></tr>';
+      }
+    }
+
+    loadAppointments();
+  })();
+</script>
+{% endblock %}

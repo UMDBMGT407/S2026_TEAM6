@@ -1,0 +1,40 @@
+.job-card {
+  background: var(--color-light-bg-tertiary);
+  border-radius: 14px;
+}
+
+.job-id {
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-family: var(--font-family-primary);
+}
+
+.job-type {
+  color: var(--color-text-secondary);
+}
+
+.job-desc {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.badge {
+  font-weight: 500;
+  padding: 6px 10px;
+}
+
+.btn-warning {
+  background: #f4b46a;
+  border: none;
+}
+
+.btn-success {
+  background: var(--color-primary);
+  border: none;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #74774f;
+  color: white;
+}

@@ -1,0 +1,1033 @@
+{% extends "base_staff.html" %}
+{% set active_page = 'scheduling' %}
+
+{% block title %}Planted Staff Scheduling{% endblock %}
+
+{% block page_css %}
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/staff-scheduling-dashboard.css') }}"
+  />
+{% endblock %}
+
+{% block page_content %}
+  <div class="staff-scheduling-dashboard">
+    <div class="staff-page-header">
+      <h1 class="page-title">Scheduling</h1>
+      <p class="page-subtitle">View upcoming orders and shifts while managing your weekly availability.</p>
+    </div>
+
+    <section class="staff-schedule-card staff-section-card">
+      <div class="staff-schedule-card-header">
+        <div class="staff-schedule-title-group">
+          <h2 class="staff-schedule-title">My Weekly Schedule</h2>
+          <p class="staff-schedule-range" id="staff-schedule-range">This Week</p>
+        </div>
+
+        <button
+          type="button"
+          class="btn management-action-btn btn-olive"
+          data-bs-toggle="modal"
+          data-bs-target="#availabilityEntryModal"
+        >
+          Enter Availability
+        </button>
+      </div>
+
+      <div class="staff-calendar-shell">
+        <div class="staff-calendar-meta">
+          <h3 class="staff-calendar-title">My Orders and Shifts</h3>
+          <p id="staff-calendar-status" class="staff-calendar-status" aria-live="polite">
+            Loading schedule...
+          </p>
+        </div>
+
+        <div class="staff-calendar-legend" aria-hidden="true">
+          <span class="calendar-legend-chip is-shift">Shift</span>
+          <span class="calendar-legend-chip is-order">Job Order</span>
+        </div>
+
+        <div id="staff-calendar"></div>
+
+        <section class="staff-upcoming-strip" aria-live="polite">
+          <h4 class="staff-upcoming-title">Upcoming Orders and Shifts</h4>
+          <ul id="staff-upcoming-list" class="staff-upcoming-list">
+            <li class="staff-upcoming-empty">Loading upcoming schedule...</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
+    <section class="staff-scheduling-summary is-single">
+      <article class="staff-section-card">
+        <p class="staff-section-kicker">Skills</p>
+        <h2 class="staff-section-title">Assigned Specialties</h2>
+        <p class="staff-skills-help">Add and edit your specialties so scheduling reflects your strengths.</p>
+        <div class="staff-skills-editor">
+          <label class="staff-field-label" for="staff-skill-input">Add Skill</label>
+          <div class="staff-skills-input-row">
+            <input
+              id="staff-skill-input"
+              type="text"
+              class="staff-input"
+              placeholder="e.g. Plant Installation"
+            />
+            <button
+              type="button"
+              id="staff-skill-add-button"
+              class="btn management-action-btn btn-soft-neutral"
+            >
+              Add
+            </button>
+          </div>
+
+          <ul id="staff-skills-list" class="staff-skills-list">
+            <li class="staff-skills-empty">Loading specialties...</li>
+          </ul>
+
+          <p id="staff-skills-status" class="staff-modal-message" aria-live="polite"></p>
+
+          <button
+            type="button"
+            id="staff-skills-save-button"
+            class="btn management-action-btn btn-olive"
+          >
+            Save Specialties
+          </button>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <div
+    class="modal fade staff-modal staff-modal-wide"
+    id="availabilityEntryModal"
+    tabindex="-1"
+    aria-labelledby="availabilityEntryModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="availabilityEntryModalLabel">Weekly Availability</h2>
+            <p class="staff-modal-subtitle">
+              Update your hours without leaving the scheduling dashboard.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="staff-modal-stack">
+            <section class="staff-modal-panel availability-entry-shell">
+              <div class="staff-card-header">
+                <p class="staff-eyebrow">Week Of</p>
+                <h3 class="availability-card-title" id="availability-week-label">This Week</h3>
+                <p class="availability-card-subtitle">
+                  Choose a start and end time for each day, or mark the entire day unavailable.
+                </p>
+              </div>
+
+              <form class="availability-entry-form" action="#">
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Monday</h4>
+                    <p class="availability-day-date" id="avail-date-monday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="monday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="monday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Tuesday</h4>
+                    <p class="availability-day-date" id="avail-date-tuesday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="tuesday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="tuesday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Wednesday</h4>
+                    <p class="availability-day-date" id="avail-date-wednesday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="wednesday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="wednesday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Thursday</h4>
+                    <p class="availability-day-date" id="avail-date-thursday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="thursday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="thursday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Friday</h4>
+                    <p class="availability-day-date" id="avail-date-friday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="friday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="friday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Saturday</h4>
+                    <p class="availability-day-date" id="avail-date-saturday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="saturday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="saturday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="availability-day-row">
+                  <div class="availability-day-meta">
+                    <h4 class="availability-day-name">Sunday</h4>
+                    <p class="availability-day-date" id="avail-date-sunday"></p>
+                  </div>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">From</span>
+                    <select class="availability-time-select staff-select" name="sunday-from">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                  <label class="availability-time-field">
+                    <span class="availability-time-label">To</span>
+                    <select class="availability-time-select staff-select" name="sunday-to">
+                      <option value="" selected>Select Time</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+            </section>
+
+            <p id="availability-validation-message" class="staff-modal-message" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn management-action-btn btn-soft-neutral"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="availability-confirm-button"
+            class="btn management-action-btn btn-olive"
+          >
+            Save Availability
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_js %}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script>
+    (function () {
+      var availabilityModalElement = document.getElementById("availabilityEntryModal");
+      if (!availabilityModalElement || typeof bootstrap === "undefined") {
+        return;
+      }
+
+      var availabilityModal = bootstrap.Modal.getOrCreateInstance(availabilityModalElement);
+      var confirmButton = document.getElementById("availability-confirm-button");
+      var messageElement = document.getElementById("availability-validation-message");
+      var scheduleRangeElement = document.getElementById("staff-schedule-range");
+      var calendarElement = document.getElementById("staff-calendar");
+      var calendarStatusElement = document.getElementById("staff-calendar-status");
+      var upcomingListElement = document.getElementById("staff-upcoming-list");
+      var skillsListElement = document.getElementById("staff-skills-list");
+      var skillInputElement = document.getElementById("staff-skill-input");
+      var skillAddButton = document.getElementById("staff-skill-add-button");
+      var skillsSaveButton = document.getElementById("staff-skills-save-button");
+      var skillsStatusElement = document.getElementById("staff-skills-status");
+      var scheduleCalendar = null;
+      var staffSkills = [];
+      var modalParam = new URLSearchParams(window.location.search).get("modal");
+      var timeSlots = [];
+      var dayConfigs = [
+        { key: "monday", index: 1, label: "Monday" },
+        { key: "tuesday", index: 2, label: "Tuesday" },
+        { key: "wednesday", index: 3, label: "Wednesday" },
+        { key: "thursday", index: 4, label: "Thursday" },
+        { key: "friday", index: 5, label: "Friday" },
+        { key: "saturday", index: 6, label: "Saturday" },
+        { key: "sunday", index: 0, label: "Sunday" }
+      ];
+
+      function formatDateOnly(dateObject) {
+        var year = dateObject.getFullYear();
+        var month = String(dateObject.getMonth() + 1).padStart(2, "0");
+        var day = String(dateObject.getDate()).padStart(2, "0");
+        return year + "-" + month + "-" + day;
+      }
+
+      function setCalendarStatus(text, isError) {
+        if (!calendarStatusElement) {
+          return;
+        }
+        calendarStatusElement.textContent = text || "";
+        calendarStatusElement.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function getReadableDateLabel(dateValue) {
+        return dateValue.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      function updateScheduleRangeLabel(weekStartDateText) {
+        if (!scheduleRangeElement) {
+          return;
+        }
+
+        var startDate = new Date(weekStartDateText + "T00:00:00");
+        if (isNaN(startDate.getTime())) {
+          scheduleRangeElement.textContent = "This Week";
+          return;
+        }
+
+        var endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        scheduleRangeElement.textContent = getReadableDateLabel(startDate) + " - " + getReadableDateLabel(endDate);
+      }
+
+      function parseEventDate(dateValue) {
+        if (!dateValue) {
+          return null;
+        }
+        var parsedDate = new Date(dateValue);
+        return isNaN(parsedDate.getTime()) ? null : parsedDate;
+      }
+
+      function getEventEndDate(eventItem, startDate) {
+        var endDate = parseEventDate(eventItem.end);
+        if (endDate) {
+          return endDate;
+        }
+
+        if (!startDate) {
+          return null;
+        }
+
+        var fallbackEnd = new Date(startDate);
+        if (eventItem.allDay) {
+          fallbackEnd.setHours(23, 59, 59, 999);
+        } else {
+          fallbackEnd.setHours(fallbackEnd.getHours() + 1);
+        }
+        return fallbackEnd;
+      }
+
+      function getEventTypeLabel(eventItem) {
+        var eventType = eventItem && eventItem.extendedProps ? eventItem.extendedProps.type : "";
+        return eventType === "order" ? "Job Order" : "Shift";
+      }
+
+      function formatEventWindow(eventItem) {
+        var startDate = parseEventDate(eventItem.start);
+        if (!startDate) {
+          return "Date unavailable";
+        }
+
+        var dateLabel = startDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric"
+        });
+
+        if (eventItem.allDay) {
+          return dateLabel + " (All day)";
+        }
+
+        var endDate = getEventEndDate(eventItem, startDate);
+        var timeFormat = {
+          hour: "numeric",
+          minute: "2-digit"
+        };
+
+        var startTime = startDate.toLocaleTimeString("en-US", timeFormat);
+        var endTime = endDate ? endDate.toLocaleTimeString("en-US", timeFormat) : "";
+        return endTime ? dateLabel + " | " + startTime + " - " + endTime : dateLabel + " | " + startTime;
+      }
+
+      function renderUpcomingEvents(events) {
+        if (!upcomingListElement) {
+          return;
+        }
+
+        upcomingListElement.innerHTML = "";
+        var now = new Date();
+        var upcoming = (events || [])
+          .map(function(eventItem) {
+            var startDate = parseEventDate(eventItem.start);
+            var endDate = getEventEndDate(eventItem, startDate);
+            return {
+              eventItem: eventItem,
+              startDate: startDate,
+              endDate: endDate
+            };
+          })
+          .filter(function(item) {
+            return item.startDate && item.endDate && item.endDate.getTime() >= now.getTime();
+          })
+          .sort(function(first, second) {
+            return first.startDate.getTime() - second.startDate.getTime();
+          })
+          .slice(0, 6);
+
+        if (!upcoming.length) {
+          var emptyItem = document.createElement("li");
+          emptyItem.className = "staff-upcoming-empty";
+          emptyItem.textContent = "No upcoming shifts or orders in this range.";
+          upcomingListElement.appendChild(emptyItem);
+          return;
+        }
+
+        upcoming.forEach(function(item) {
+          var eventItem = item.eventItem;
+          var eventTypeLabel = getEventTypeLabel(eventItem);
+          var statusLabel = eventItem.extendedProps && eventItem.extendedProps.status
+            ? eventItem.extendedProps.status
+            : "Scheduled";
+
+          var listItem = document.createElement("li");
+          listItem.className = "staff-upcoming-item";
+
+          var badge = document.createElement("span");
+          badge.className = "staff-upcoming-type " + (eventTypeLabel === "Job Order" ? "is-order" : "is-shift");
+          badge.textContent = eventTypeLabel;
+
+          var textWrap = document.createElement("div");
+          textWrap.className = "staff-upcoming-text";
+
+          var title = document.createElement("p");
+          title.className = "staff-upcoming-item-title";
+          title.textContent = eventItem.title || eventTypeLabel;
+
+          var meta = document.createElement("p");
+          meta.className = "staff-upcoming-item-meta";
+          meta.textContent = formatEventWindow(eventItem) + " | " + statusLabel;
+
+          textWrap.appendChild(title);
+          textWrap.appendChild(meta);
+          listItem.appendChild(badge);
+          listItem.appendChild(textWrap);
+          upcomingListElement.appendChild(listItem);
+        });
+      }
+
+      function initializeScheduleCalendar() {
+        if (!calendarElement) {
+          return;
+        }
+        if (typeof FullCalendar === "undefined") {
+          setCalendarStatus("Calendar library failed to load.", true);
+          return;
+        }
+
+        scheduleCalendar = new FullCalendar.Calendar(calendarElement, {
+          initialView: "timeGridWeek",
+          firstDay: 1,
+          nowIndicator: true,
+          height: "auto",
+          slotMinTime: "06:00:00",
+          slotMaxTime: "22:00:00",
+          headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay"
+          },
+          events: function(fetchInfo, successCallback, failureCallback) {
+            var startDate = formatDateOnly(fetchInfo.start);
+            var endDate = formatDateOnly(new Date(fetchInfo.end.getTime() - 1));
+
+            fetch('/staff/schedule/events?start_date=' + startDate + '&end_date=' + endDate)
+              .then(function(response) {
+                if (!response.ok) {
+                  return response.json().then(function(err) {
+                    throw new Error(err.error || "Unable to load schedule events.");
+                  });
+                }
+                return response.json();
+              })
+              .then(function(payload) {
+                var events = payload.events || [];
+                setCalendarStatus(events.length ? "Showing " + events.length + " scheduled item(s)." : "No shifts or orders in this range.", false);
+                renderUpcomingEvents(events);
+                successCallback(events);
+              })
+              .catch(function(error) {
+                setCalendarStatus(error.message || "Unable to load schedule events.", true);
+                renderUpcomingEvents([]);
+                failureCallback(error);
+              });
+          },
+          eventClick: function(clickInfo) {
+            var jobOrderId = clickInfo.event.extendedProps && clickInfo.event.extendedProps.job_order_id;
+            if (jobOrderId) {
+              window.location.href = '/task-management-dashboard.html?job_order_id=' + encodeURIComponent(jobOrderId);
+              return;
+            }
+
+            var eventTypeLabel = getEventTypeLabel(clickInfo.event);
+            setCalendarStatus(eventTypeLabel + ": " + formatEventWindow(clickInfo.event), false);
+          },
+          eventTimeFormat: {
+            hour: "numeric",
+            minute: "2-digit",
+            meridiem: "short"
+          }
+        });
+
+        scheduleCalendar.render();
+      }
+
+      // Get current week's Monday date
+      function getWeekStartDate() {
+        var today = new Date();
+        var day = today.getDay();
+        var diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        var monday = new Date(today.setDate(diff));
+        var year = monday.getFullYear();
+        var month = String(monday.getMonth() + 1).padStart(2, '0');
+        var date = String(monday.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + date;
+      }
+
+      // Load availability from database and update UI
+      async function loadAvailability() {
+        try {
+          var weekStart = getWeekStartDate();
+          var response = await fetch('/availability/my?week_start_date=' + weekStart);
+          var availabilityResponse = await response.json();
+          var displayWeekStart = availabilityResponse.week_start_date || weekStart;
+
+          updateScheduleRangeLabel(displayWeekStart);
+        } catch (error) {
+          console.error('Error loading availability:', error);
+        }
+      }
+
+      function setSkillsStatus(type, text) {
+        if (!skillsStatusElement) {
+          return;
+        }
+
+        skillsStatusElement.textContent = text || "";
+        skillsStatusElement.classList.remove("is-error", "is-success");
+        if (type) {
+          skillsStatusElement.classList.add(type === "error" ? "is-error" : "is-success");
+        }
+      }
+
+      function normalizeSkillName(skillName) {
+        return (skillName || "").replace(/\s+/g, " ").trim();
+      }
+
+      function renderSkillsList() {
+        if (!skillsListElement) {
+          return;
+        }
+
+        skillsListElement.innerHTML = "";
+        if (!staffSkills.length) {
+          var emptySkill = document.createElement("li");
+          emptySkill.className = "staff-skills-empty";
+          emptySkill.textContent = "No specialties added yet.";
+          skillsListElement.appendChild(emptySkill);
+          return;
+        }
+
+        staffSkills.forEach(function(skillName, index) {
+          var skillItem = document.createElement("li");
+          skillItem.className = "staff-skill-item";
+
+          var skillLabel = document.createElement("span");
+          skillLabel.className = "staff-skill-name";
+          skillLabel.textContent = skillName;
+
+          var removeButton = document.createElement("button");
+          removeButton.type = "button";
+          removeButton.className = "staff-skill-remove";
+          removeButton.textContent = "Remove";
+          removeButton.setAttribute("aria-label", "Remove " + skillName);
+          removeButton.addEventListener("click", function() {
+            staffSkills.splice(index, 1);
+            renderSkillsList();
+          });
+
+          skillItem.appendChild(skillLabel);
+          skillItem.appendChild(removeButton);
+          skillsListElement.appendChild(skillItem);
+        });
+      }
+
+      function addSkillFromInput() {
+        if (!skillInputElement) {
+          return;
+        }
+
+        var candidateSkill = normalizeSkillName(skillInputElement.value);
+        if (!candidateSkill) {
+          setSkillsStatus("error", "Enter a skill before adding.");
+          return;
+        }
+
+        var duplicateSkill = staffSkills.some(function(existingSkill) {
+          return existingSkill.toLowerCase() === candidateSkill.toLowerCase();
+        });
+
+        if (duplicateSkill) {
+          setSkillsStatus("error", "That skill is already listed.");
+          return;
+        }
+
+        staffSkills.push(candidateSkill);
+        skillInputElement.value = "";
+        setSkillsStatus("", "");
+        renderSkillsList();
+      }
+
+      async function loadMySkills() {
+        if (!skillsListElement) {
+          return;
+        }
+
+        try {
+          var response = await fetch('/staff/skills/my');
+          var payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Unable to load specialties.");
+          }
+
+          staffSkills = (payload.skills || [])
+            .map(function(skillItem) {
+              if (typeof skillItem === "string") {
+                return normalizeSkillName(skillItem);
+              }
+              return normalizeSkillName(skillItem.name);
+            })
+            .filter(Boolean);
+
+          renderSkillsList();
+          setSkillsStatus("", "");
+        } catch (error) {
+          staffSkills = [];
+          renderSkillsList();
+          setSkillsStatus("error", error.message || "Unable to load specialties.");
+        }
+      }
+
+      async function saveMySkills() {
+        try {
+          var response = await fetch('/staff/skills/my', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              skills: staffSkills
+            })
+          });
+
+          var payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Unable to save specialties.");
+          }
+
+          staffSkills = (payload.skills || staffSkills)
+            .map(function(skillName) {
+              return normalizeSkillName(skillName);
+            })
+            .filter(Boolean);
+
+          renderSkillsList();
+          setSkillsStatus("success", "Specialties saved successfully.");
+        } catch (error) {
+          setSkillsStatus("error", error.message || "Unable to save specialties.");
+        }
+      }
+
+      function buildTimeOptionLabel(hourValue) {
+        var periodLabel = hourValue >= 12 ? "PM" : "AM";
+        var displayHour = hourValue % 12;
+        if (displayHour === 0) {
+          displayHour = 12;
+        }
+        return displayHour + ":00 " + periodLabel;
+      }
+
+      function normalize24HourFormat(timeLabel) {
+        if (!timeLabel || timeLabel === "Unavailable") {
+          return null;
+        }
+        var match = timeLabel.match(/(\d+):00\s(AM|PM)/);
+        if (!match) return null;
+        var hour = parseInt(match[1]);
+        var period = match[2];
+        if (period === "PM" && hour !== 12) hour += 12;
+        if (period === "AM" && hour === 12) hour = 0;
+        return (hour < 10 ? "0" : "") + hour + ":00";
+      }
+
+      function setMessage(type, text) {
+        if (!messageElement) {
+          return;
+        }
+
+        messageElement.textContent = text || "";
+        messageElement.classList.remove("is-error", "is-success");
+        if (type) {
+          messageElement.classList.add(type === "error" ? "is-error" : "is-success");
+        }
+      }
+
+      function clearModalQuery() {
+        var currentUrl = new URL(window.location.href);
+        if (!currentUrl.searchParams.has("modal")) {
+          return;
+        }
+
+        currentUrl.searchParams.delete("modal");
+        var nextUrl = currentUrl.pathname;
+        if (currentUrl.searchParams.toString()) {
+          nextUrl += "?" + currentUrl.searchParams.toString();
+        }
+        if (currentUrl.hash) {
+          nextUrl += currentUrl.hash;
+        }
+        window.history.replaceState({}, "", nextUrl);
+      }
+
+      function populateTimeDropdown(timeSelect) {
+        var previousValue = timeSelect.value;
+        timeSelect.innerHTML = "";
+
+        var defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select Time";
+        timeSelect.appendChild(defaultOption);
+
+        for (var hourValue = 8; hourValue <= 22; hourValue += 1) {
+          var timeLabel = buildTimeOptionLabel(hourValue);
+          var hourOption = document.createElement("option");
+          hourOption.value = timeLabel;
+          hourOption.textContent = timeLabel;
+          timeSelect.appendChild(hourOption);
+          if (timeSlots.indexOf(timeLabel) === -1) {
+            timeSlots.push(timeLabel);
+          }
+        }
+
+        var unavailableOption = document.createElement("option");
+        unavailableOption.value = "Unavailable";
+        unavailableOption.textContent = "Unavailable";
+        timeSelect.appendChild(unavailableOption);
+
+        timeSelect.value = previousValue;
+      }
+
+      function syncDayAvailability(dayRow, changedSelect) {
+        if (!dayRow || !changedSelect) {
+          return;
+        }
+
+        var daySelects = dayRow.querySelectorAll(".availability-time-select");
+        if (daySelects.length < 2) {
+          return;
+        }
+
+        var pairedSelect = daySelects[0] === changedSelect ? daySelects[1] : daySelects[0];
+
+        if (changedSelect.value === "Unavailable") {
+          pairedSelect.value = "Unavailable";
+          return;
+        }
+
+        if (pairedSelect.value === "Unavailable" && changedSelect.value !== "") {
+          pairedSelect.value = changedSelect.value;
+        }
+      }
+
+      function getTimeIndex(value) {
+        return timeSlots.indexOf(value);
+      }
+
+      // Populate dropdowns and load existing availability into form
+      async function setupAvailabilityForm() {
+        document.querySelectorAll(".availability-day-row").forEach(function (dayRow) {
+          dayRow.querySelectorAll(".availability-time-select").forEach(function (timeSelect) {
+            populateTimeDropdown(timeSelect);
+            timeSelect.onchange = function () {
+              setMessage("", "");
+              syncDayAvailability(dayRow, timeSelect);
+            };
+          });
+        });
+
+        // Load existing availability into form fields
+        try {
+          var weekStart = getWeekStartDate();
+          var response = await fetch('/availability/my?week_start_date=' + weekStart);
+          var availabilityResponse = await response.json();
+          var availability = availabilityResponse.availability || availabilityResponse;
+          
+          dayConfigs.forEach(function(dayConfig) {
+            var dayData = availability[String(dayConfig.index)] || availability[dayConfig.index];
+            var fromSelect = document.querySelector('[name="' + dayConfig.key + '-from"]');
+            var toSelect = document.querySelector('[name="' + dayConfig.key + '-to"]');
+            
+            if (fromSelect && toSelect && dayData) {
+              if (dayData.available && dayData.from && dayData.to) {
+                // Find matching option in dropdown that represents this time
+                var fromTime = parseInt(dayData.from.split(':')[0]);
+                var toTime = parseInt(dayData.to.split(':')[0]);
+                fromSelect.value = buildTimeOptionLabel(fromTime);
+                toSelect.value = buildTimeOptionLabel(toTime);
+              } else {
+                fromSelect.value = "Unavailable";
+                toSelect.value = "Unavailable";
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error loading existing availability:', error);
+        }
+      }
+
+      if (confirmButton) {
+        confirmButton.addEventListener("click", function () {
+          var firstError = "";
+          var availability = {};
+
+          dayConfigs.forEach(function (dayConfig) {
+            if (firstError) {
+              return;
+            }
+
+            var fromSelect = document.querySelector('[name="' + dayConfig.key + '-from"]');
+            var toSelect = document.querySelector('[name="' + dayConfig.key + '-to"]');
+            var fromValue = fromSelect ? fromSelect.value : "";
+            var toValue = toSelect ? toSelect.value : "";
+
+            if (!fromValue || !toValue) {
+              firstError = dayConfig.label + ": select both a start and end time.";
+              return;
+            }
+
+            if (fromValue === "Unavailable" || toValue === "Unavailable") {
+              if (!(fromValue === "Unavailable" && toValue === "Unavailable")) {
+                firstError = dayConfig.label + ': use "Unavailable" for both fields on a day off.';
+              }
+              availability[dayConfig.index] = {
+                from: null,
+                to: null,
+                available: false
+              };
+              return;
+            }
+
+            if (getTimeIndex(fromValue) >= getTimeIndex(toValue)) {
+              firstError = dayConfig.label + ": end time must be later than start time.";
+              return;
+            }
+
+            // Store normalized times
+            availability[dayConfig.index] = {
+              from: normalize24HourFormat(fromValue),
+              to: normalize24HourFormat(toValue),
+              available: true
+            };
+          });
+
+          if (firstError) {
+            setMessage("error", firstError);
+            return;
+          }
+
+          // Send to backend
+          fetch('/availability', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              week_start_date: getWeekStartDate(),
+              availability: availability
+            })
+          })
+          .then(function(response) {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+              return response.json().then(function(err) {
+                console.log('Error response:', err);
+                throw new Error(err.error || 'HTTP ' + response.status + ': ' + response.statusText);
+              });
+            }
+            return response.json();
+          })
+          .then(function(data) {
+            console.log('Success:', data);
+            setMessage("success", "Availability saved successfully!");
+            // Reload availability display
+            setTimeout(function() {
+              loadAvailability();
+              availabilityModal.hide();
+            }, 1000);
+          })
+          .catch(function(error) {
+            console.error('Full error object:', error);
+            setMessage("error", "Error saving availability: " + (error.message || error.toString()));
+          });
+        });
+      }
+
+      if (skillAddButton) {
+        skillAddButton.addEventListener("click", function() {
+          addSkillFromInput();
+        });
+      }
+
+      if (skillInputElement) {
+        skillInputElement.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addSkillFromInput();
+          }
+        });
+      }
+
+      if (skillsSaveButton) {
+        skillsSaveButton.addEventListener("click", function() {
+          saveMySkills();
+        });
+      }
+
+      // Set up auto-refresh when modal opens
+      availabilityModalElement.addEventListener("show.bs.modal", function () {
+        setMessage("", "");
+        setupAvailabilityForm();
+        // Update week label and day dates
+        var weekLabel = document.getElementById("availability-week-label");
+        var ws = getWeekStartDate();
+        var monday = new Date(ws + "T00:00:00");
+        var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+        if (weekLabel) {
+          weekLabel.textContent = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+            " - " + sunday.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        }
+        var dayKeys = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+        dayKeys.forEach(function(key, i) {
+          var el = document.getElementById("avail-date-" + key);
+          if (el) {
+            var d = new Date(monday); d.setDate(monday.getDate() + i);
+            el.textContent = (d.getMonth()+1) + "/" + d.getDate();
+          }
+        });
+      });
+
+      availabilityModalElement.addEventListener("hidden.bs.modal", function () {
+        setMessage("", "");
+        clearModalQuery();
+      });
+
+      if (modalParam === "availability") {
+        availabilityModal.show();
+      }
+
+      // Load availability on page load and set up auto-refresh
+      initializeScheduleCalendar();
+      loadAvailability();
+      loadMySkills();
+      updateScheduleRangeLabel(getWeekStartDate());
+      // Refresh availability and schedule periodically to catch updates from other sources.
+      setInterval(function () {
+        loadAvailability();
+        if (scheduleCalendar) {
+          scheduleCalendar.refetchEvents();
+        }
+      }, 30000);
+    })();
+  </script>
+{% endblock %}
