@@ -39,6 +39,14 @@
 </div>
 
 <div class="surface-card p-4">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h3 class="h5 mb-0">Clients</h3>
+    <div class="d-flex gap-2 flex-wrap" id="client-filter-buttons">
+      <button type="button" class="btn btn-outline-success client-status-filter active" data-status="active">Active</button>
+      <button type="button" class="btn btn-outline-success client-status-filter" data-status="inactive">Inactive</button>
+      <button type="button" class="btn btn-outline-success client-status-filter" data-status="all">All</button>
+    </div>
+  </div>
   <div id="clients-status" class="mb-3"></div>
   <div class="planted-table-wrapper">
     <table class="planted-data-table">
@@ -198,6 +206,7 @@
     var statusEl = document.getElementById('clients-status');
     var searchForm = document.getElementById('client-search-form');
     var searchInput = document.getElementById('client-search-input');
+    var filterButtons = Array.from(document.querySelectorAll('.client-status-filter'));
 
     var totalClientsEl = document.getElementById('stat-total-clients');
     var activeClientsEl = document.getElementById('stat-active-clients');
@@ -210,6 +219,10 @@
     var addClientModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addClientModal'));
     var editClientModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editClientModal'));
 
+
+    var currentStatusFilter = 'active';
+    var allClients = [];
+    
     function setStatus(text, isError) {
       statusEl.textContent = text || '';
       statusEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
@@ -245,6 +258,22 @@
       totalLocationsEl.textContent = String(totalLocations);
     }
 
+    function updateFilterButtons() {
+      filterButtons.forEach(function (button) {
+        var isActive = button.getAttribute('data-status') === currentStatusFilter;
+        button.classList.toggle('active', isActive);
+      });
+    }
+
+    function applyFilter() {
+      var filtered = allClients;
+      if (currentStatusFilter === 'active') {
+        filtered = allClients.filter(function (c) { return String(c.account_status || '').toLowerCase() !== 'inactive'; });
+      } else if (currentStatusFilter === 'inactive') {
+        filtered = allClients.filter(function (c) { return String(c.account_status || '').toLowerCase() === 'inactive'; });
+      }
+      renderClients(filtered);
+    }
     function renderClients(clients) {
       if (!clients.length) {
         clientList.innerHTML = '<tr><td colspan="7" class="planted-table-empty">No clients found.</td></tr>';
@@ -285,9 +314,9 @@
 
     async function loadClients(searchTerm) {
       var query = searchTerm ? ('?search=' + encodeURIComponent(searchTerm)) : '';
-      var clients = await fetchJson('/api/clients' + query);
-      updateStats(clients);
-      renderClients(clients);
+      allClients = await fetchJson('/api/clients' + query);
+      updateStats(allClients);
+      applyFilter();
     }
 
     async function loadClientLocations(clientId, companyName) {
@@ -422,6 +451,15 @@
       }
     });
 
+
+    filterButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        currentStatusFilter = button.getAttribute('data-status');
+        updateFilterButtons();
+        applyFilter();
+      });
+    });
+    
     (async function init() {
       try {
         await loadClients('');
