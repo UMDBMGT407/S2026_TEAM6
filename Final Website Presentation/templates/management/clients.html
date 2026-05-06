@@ -88,7 +88,7 @@
           </div>
           <div class="mb-3">
             <label for="new-client-phone" class="form-label">Phone</label>
-            <input id="new-client-phone" type="tel" class="form-control">
+            <input id="new-client-phone" type="tel" class="form-control" pattern="[0-9\s\-()\.+]*" title="Please enter a valid phone number (digits, dashes, spaces, and parentheses only)">
           </div>
           <div id="add-client-message"></div>
         </div>
@@ -128,7 +128,7 @@
           </div>
           <div class="mb-3">
             <label for="edit-client-phone" class="form-label">Phone</label>
-            <input id="edit-client-phone" type="tel" class="form-control">
+            <input id="edit-client-phone" type="tel" class="form-control" pattern="[0-9\s\-()\.+]*" title="Please enter a valid phone number (digits, dashes, spaces, and parentheses only)">
           </div>
           <div id="edit-client-message"></div>
         </div>
@@ -183,6 +183,16 @@
     });
   });
 
+  document.querySelectorAll('#new-client-phone, #edit-client-phone').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\s\-()\.+]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\s\-()\.+]/.test(pasted)) e.preventDefault();
+    });
+  });
+  
   (function () {
     var clientList = document.getElementById('client-list');
     var statusEl = document.getElementById('clients-status');
