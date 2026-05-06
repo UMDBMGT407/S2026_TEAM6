@@ -143,7 +143,7 @@
         <div class="modal-body">
           <p class="mb-3">Item: <strong id="adjust-item-name"></strong></p>
           <label for="adjust-quantity" class="form-label">New Quantity</label>
-          <input id="adjust-quantity" type="number" min="0" step="1" class="form-control" required>
+          <input id="adjust-quantity" type="number" min="0" step="1" inputmode="numeric" pattern="\d*" class="form-control" required>
           <div id="adjust-message" class="mt-2"></div>
         </div>
         <div class="modal-footer">
@@ -192,7 +192,7 @@
           </div>
           <div class="mb-3">
             <label for="edit-item-reorder" class="form-label">Reorder Level</label>
-            <input id="edit-item-reorder" type="number" min="0" step="1" class="form-control">
+            <input id="edit-item-reorder" type="number" min="0" step="1" inputmode="numeric" pattern="\d*" class="form-control">
           </div>
           <div class="mb-3">
             <label for="edit-item-supplier" class="form-label">Supplier</label>
@@ -320,6 +320,10 @@
       .replace(/'/g, '&#39;');
   }
 
+  function isWholeNumber(value) {
+    return /^\d+$/.test(String(value || '').trim());
+  }
+  
   function formatNumber(value) {
     if (value === null || value === undefined || value === '') {
       return '0';
@@ -466,14 +470,19 @@
   document.getElementById('adjust-stock-form').addEventListener('submit', async function (event) {
     event.preventDefault();
     var itemId = document.getElementById('adjust-item-id').value;
-    var qty = document.getElementById('adjust-quantity').value;
+    var qtyValue = document.getElementById('adjust-quantity').value.trim();
     var msgEl = document.getElementById('adjust-message');
 
+    if (!isWholeNumber(qtyValue)) {
+      msgEl.innerHTML = '<span class="text-danger">Please enter a whole number greater than or equal to 0.</span>';
+      return;
+    }
+    
     try {
       await requestJson('/api/inventory/' + itemId + '/stock', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity_on_hand: Number(qty) })
+        body: JSON.stringify({ quantity_on_hand: Number(qtyValue) })
       });
       adjustModal.hide();
       await Promise.all([loadInventory(), loadManagementUsageLogs()]);
@@ -773,13 +782,20 @@
     var itemId = document.getElementById('edit-item-id').value;
     var msgEl = document.getElementById('edit-item-message');
     var priceVal = document.getElementById('edit-item-price').value;
+    var reorderValue = document.getElementById('edit-item-reorder').value.trim() || '0';
+
+    if (!isWholeNumber(reorderValue)) {
+      msgEl.innerHTML = '<span class="text-danger">Please enter a whole number greater than or equal to 0 for reorder level.</span>';
+      return;
+    }
+
     var payload = {
       item_name: document.getElementById('edit-item-name').value.trim(),
       item_type: document.getElementById('edit-item-type').value.trim(),
       sku: document.getElementById('edit-item-sku').value.trim(),
       unit_label: document.getElementById('edit-item-unit').value.trim(),
       unit_price: priceVal === '' ? null : Number(priceVal),
-      reorder_level: Number(document.getElementById('edit-item-reorder').value) || 0,
+      reorder_level: Number(reorderValue),
       supplier_id: document.getElementById('edit-item-supplier').value || null,
     };
     try {
