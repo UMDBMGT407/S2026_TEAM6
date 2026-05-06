@@ -57,7 +57,8 @@
       <form id="profile-form">
         <div class="mb-3">
           <label for="profile-phone" class="form-label fw-semibold">Phone</label>
-          <input id="profile-phone" class="form-control" type="tel" value="{{ profile.phone or '' }}" placeholder="e.g. 555-111-0000">
+          <input id="profile-phone" class="form-control" type="tel" inputmode="tel" pattern="[0-9\s\-()\+.]*" value="{{ profile.phone or '' }}" placeholder="e.g. 555-111-0000">
+          <div class="form-text">Numbers, spaces, dashes, parentheses, and + are allowed.</div>
         </div>
         <div id="profile-message" class="mb-2"></div>
         <button type="submit" class="btn btn-outline-success w-100">Save Changes</button>
@@ -110,6 +111,27 @@
     el.className = isError ? 'mb-2 text-danger' : 'mb-2 text-success';
   }
 
+  function isValidPhone(value) {
+    if (!value || !value.trim()) return true;
+    return /^[0-9\s\-()\+.]+$/.test(value.trim());
+  }
+
+  function attachPhoneInputFilters() {
+    var phoneInput = document.getElementById('profile-phone');
+    if (!phoneInput) return;
+    phoneInput.addEventListener('keypress', function (e) {
+      if (!/[0-9\s\-()\+.]/.test(e.key)) {
+        e.preventDefault();
+      }
+    });
+    phoneInput.addEventListener('paste', function (e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (!/^[0-9\s\-()\+.]*$/.test(pasted)) {
+        e.preventDefault();
+      }
+    });
+  }
+  
   function renderTags() {
     if (!skills.length) {
       skillTags.innerHTML = '<span class="text-muted" style="font-size:0.9rem;">No specialties added yet.</span>';
@@ -172,11 +194,16 @@
 
   document.getElementById('profile-form').addEventListener('submit', async function (e) {
     e.preventDefault();
+    var phoneValue = document.getElementById('profile-phone').value.trim();
+    if (!isValidPhone(phoneValue)) {
+      setMsg(profileMsg, 'Please enter a valid phone number. Only digits, spaces, dashes, parentheses, and + are allowed.', true);
+      return;
+    }
     try {
       var res = await fetch('/api/staff/profile/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: document.getElementById('profile-phone').value.trim() })
+        body: JSON.stringify({ phone: phoneValue })
       });
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
@@ -185,6 +212,8 @@
       setMsg(profileMsg, err.message, true);
     }
   });
+
+  attachPhoneInputFilters();
 
   renderTags();
 })();
