@@ -356,8 +356,8 @@
     var rejectBtn = e.target.closest('.reject-btn');
 
     if (approveBtn) {
-      /* Full approval needs staff assignment — send to Job Orders page */
-      window.location.href = '{{ url_for("job_order_page") }}';
+      /* Full approval needs staff assignment — send to Job Orders page with request ID pre-selected */
+      window.location.href = '{{ url_for("job_order_page") }}?approve=' + approveBtn.dataset.id;
       return;
     }
 

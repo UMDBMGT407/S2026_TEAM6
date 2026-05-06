@@ -43,8 +43,7 @@
     </div>
     <div class="col-md-3">
       <label for="phone-input" class="profile-field-label">PHONE</label>
-      <input id="phone-input" type="tel" class="form-control" pattern="^[0-9\s\-()+.]*$" title="Use digits, spaces, dashes, parentheses, +, and . only" />
-      <div class="form-text">Enter a valid phone number with 10 to 15 digits.</div>
+      <input id="phone-input" type="tel" class="form-control" />
     </div>
     <div class="col-md-6">
       <label for="company-name-input" class="profile-field-label">COMPANY NAME</label>
@@ -106,6 +105,16 @@
     });
   });
 
+  document.querySelectorAll('#phone-input').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\-\(\)\+\s]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\-\(\)\+\s]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   (function () {
     var profileForm = document.getElementById('profile-form');
     var locationForm = document.getElementById('add-location-form');
@@ -117,31 +126,6 @@
       statusEl.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
     }
 
-    function normalizePhone(value) {
-      return String(value || '').replace(/\D/g, '');
-    }
-
-    function isValidPhone(value) {
-      var normalized = normalizePhone(value);
-      return !value || (normalized.length >= 10 && normalized.length <= 15);
-    }
-
-    function attachPhoneHandlers() {
-      var phoneInput = document.getElementById('phone-input');
-      if (!phoneInput) return;
-      phoneInput.addEventListener('keypress', function (e) {
-        if (!/[0-9\s\-()+.]/.test(e.key)) {
-          e.preventDefault();
-        }
-      });
-      phoneInput.addEventListener('paste', function (e) {
-        var pasted = (e.clipboardData || window.clipboardData).getData('text');
-        if (/[^0-9\s\-()+.]/.test(pasted)) {
-          e.preventDefault();
-        }
-      });
-    }
-    
     function escapeHtml(value) {
       return String(value || '')
         .replace(/&/g, '&amp;')
@@ -206,12 +190,7 @@
     profileForm.addEventListener('submit', async function (event) {
       event.preventDefault();
       setStatus('', false);
-      var phoneValue = document.getElementById('phone-input').value.trim();
-      if (!isValidPhone(phoneValue)) {
-        setStatus('Please enter a valid phone number with 10 to 15 digits.', true);
-        return;
-      }
-      
+
       try {
         await fetchJson('/api/client/profile', {
           method: 'PUT',
@@ -219,7 +198,7 @@
           body: JSON.stringify({
             first_name: document.getElementById('first-name-input').value.trim(),
             last_name: document.getElementById('last-name-input').value.trim(),
-            phone: phoneValue,
+            phone: document.getElementById('phone-input').value.trim(),
             company_name: document.getElementById('company-name-input').value.trim()
           })
         });
@@ -272,7 +251,6 @@
     });
 
     (async function init() {
-      attachPhoneHandlers();
       try {
         await loadProfile();
         await loadLocations();

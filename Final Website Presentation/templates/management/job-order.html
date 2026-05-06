@@ -135,6 +135,10 @@
       </div>
       <div class="modal-body">
         <p class="mb-2" id="approve-request-summary"></p>
+        <div id="approve-plants-section" style="display:none;" class="mb-3 p-2 bg-light rounded">
+          <strong>Plants requested for installation:</strong>
+          <ul id="approve-plants-list" class="mb-0 mt-1 ps-3"></ul>
+        </div>
         <input type="hidden" id="approve-request-id" />
 
         <div class="mb-3">
@@ -553,6 +557,25 @@
       approveEndInput.value = '10:00';
       approvePriority.value = 'Normal';
       setApproveModalMessage('', false);
+
+      var plantsSection = document.getElementById('approve-plants-section');
+      var plantsList = document.getElementById('approve-plants-list');
+      plantsSection.style.display = 'none';
+      plantsList.innerHTML = '';
+      try {
+        var plantsData = await fetchJson('/api/management/service-requests/' + serviceRequestId + '/plants');
+        if (plantsData.plants && plantsData.plants.length) {
+          plantsData.plants.forEach(function(p) {
+            var li = document.createElement('li');
+            li.textContent = p.common_name + (p.scientific_name ? ' (' + p.scientific_name + ')' : '');
+            plantsList.appendChild(li);
+          });
+          plantsSection.style.display = '';
+        }
+      } catch (e) {
+        // Non-critical; silently skip if plants can't be fetched
+      }
+
       await applySuggestedWindowIfNeeded();
       await loadAvailableEmployeesForApproval();
       approveModal.show();
@@ -736,7 +759,14 @@
     });
 
     updateFilterButtons();
-    loadDashboard();
+    loadDashboard().then(function () {
+      var params = new URLSearchParams(window.location.search);
+      var pendingApproveId = params.get('approve');
+      if (pendingApproveId) {
+        openApproveModal(pendingApproveId);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    });
   })();
 </script>
 {% endblock %}

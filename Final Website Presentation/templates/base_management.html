@@ -54,7 +54,13 @@
                 <a class="nav-link sidebar-link{% if active_page == 'suppliers' %} active-link{% endif %}" href="{{ url_for('suppliers_page') }}">Suppliers</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link sidebar-link{% if active_page in ['inventory', 'plant-master'] %} active-link{% endif %}" href="{{ url_for('inventory_page') }}">Inventory</a>
+                <a class="nav-link sidebar-link{% if active_page in ['inventory', 'plant-master', 'plant-chat'] %} active-link{% endif %}" href="{{ url_for('inventory_page') }}">Inventory</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link sidebar-link{% if active_page == 'plant-master' %} active-link{% endif %}" href="{{ url_for('plant_master_page') }}">&nbsp;&nbsp;↳ Plant Master</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link sidebar-link{% if active_page == 'plant-chat' %} active-link{% endif %}" href="{{ url_for('plant_chat_page') }}">&nbsp;&nbsp;↳ PlantBot</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link sidebar-link{% if active_page == 'clients' %} active-link{% endif %}" href="{{ url_for('clients_page') }}">Clients</a>

@@ -35,6 +35,14 @@
   <div class="row g-3" id="service-grid"></div>
 </div>
 
+<div class="surface-card p-4 mb-4" id="plant-selection-section" style="display:none;">
+  <h2 class="h5 mb-1 fw-semibold">Select Plants for Installation</h2>
+  <p class="text-muted mb-3" style="font-size:0.9rem;">Choose one or more plants to be installed at your location.</p>
+  <p id="plant-load-message" class="mb-2"></p>
+  <div class="row g-2" id="plant-grid"></div>
+  <p class="text-muted mt-2" style="font-size:0.85rem;" id="plant-selection-count"></p>
+</div>
+
 <div class="surface-card p-4 mb-4">
   <label for="requestNotes" class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
   <textarea id="requestNotes" class="form-control" rows="3" placeholder="Add access details, preferred time window, or special instructions"></textarea>
@@ -58,6 +66,7 @@
         <p><strong>Date:</strong> <span id="confirm-date"></span></p>
         <p><strong>Location:</strong> <span id="confirm-location"></span></p>
         <p><strong>Request #:</strong> <span id="confirm-request-id"></span></p>
+        <p id="confirm-plants-row" style="display:none;"><strong>Plants:</strong> <span id="confirm-plants"></span></p>
       </div>
       <div class="modal-footer">
         <a href="{{ url_for('appointments_page') }}" class="book-appt-btn btn-modal-secondary">View Appointments</a>
@@ -77,15 +86,20 @@
   (function () {
     var services = [];
     var locations = [];
+    var plants = [];
     var selectedServiceId = null;
+    var selectedPlantIds = [];
     var serviceGrid = document.getElementById('service-grid');
     var serviceMessage = document.getElementById('service-load-message');
     var submitButton = document.getElementById('submit-request');
     var locationSelect = document.getElementById('requestLocation');
     var notesInput = document.getElementById('requestNotes');
+    var plantSection = document.getElementById('plant-selection-section');
+    var plantGrid = document.getElementById('plant-grid');
+    var plantMessage = document.getElementById('plant-load-message');
+    var plantCount = document.getElementById('plant-selection-count');
 
     var dateInput = document.getElementById('selectDate');
-    // Set minimum date to today
     dateInput.min = new Date().toISOString().split('T')[0];
 
     function setMessage(text, isError) {
@@ -104,6 +118,69 @@
         throw new Error(data.error || ('HTTP ' + response.status));
       }
       return data;
+    }
+
+    async function fetchPlants() {
+      var response = await fetch('/api/client/plants');
+      var data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
+      return data.plants || [];
+    }
+
+    function isInstallationService(service) {
+      return service && String(service.service_name || '').toLowerCase().indexOf('install') !== -1;
+    }
+
+    function renderPlantGrid() {
+      if (!plants.length) {
+        plantGrid.innerHTML = '<div class="col-12"><p class="text-muted">No plants available in the catalog yet.</p></div>';
+        return;
+      }
+      plantGrid.innerHTML = plants.map(function(plant) {
+        var sciName = plant.scientific_name ? '<div class="small text-muted fst-italic">' + plant.scientific_name + '</div>' : '';
+        return (
+          '<div class="col-md-4 col-sm-6">' +
+            '<label class="plant-option w-100 d-flex align-items-start gap-2 p-2 border rounded" style="cursor:pointer;">' +
+              '<input type="checkbox" class="plant-checkbox mt-1" value="' + plant.plant_id + '" />' +
+              '<div>' +
+                '<div class="fw-semibold">' + plant.common_name + '</div>' +
+                sciName +
+              '</div>' +
+            '</label>' +
+          '</div>'
+        );
+      }).join('');
+
+      plantGrid.addEventListener('change', function(e) {
+        if (!e.target.classList.contains('plant-checkbox')) return;
+        selectedPlantIds = Array.from(plantGrid.querySelectorAll('.plant-checkbox:checked')).map(function(cb) {
+          return Number(cb.value);
+        });
+        plantCount.textContent = selectedPlantIds.length
+          ? selectedPlantIds.length + ' plant(s) selected'
+          : '';
+      });
+    }
+
+    function updatePlantSection(service) {
+      if (isInstallationService(service)) {
+        plantSection.style.display = '';
+        if (!plants.length && plantGrid.innerHTML === '') {
+          fetchPlants().then(function(list) {
+            plants = list;
+            renderPlantGrid();
+          }).catch(function(err) {
+            plantMessage.textContent = 'Could not load plants: ' + err.message;
+            plantMessage.className = 'text-danger mb-2';
+          });
+        }
+      } else {
+        plantSection.style.display = 'none';
+        selectedPlantIds = [];
+        plantCount.textContent = '';
+      }
     }
 
     async function fetchLocations() {
@@ -173,6 +250,9 @@
           b.classList.remove('selected-service');
         });
         button.classList.add('selected-service');
+
+        var selectedService = services.find(function(s) { return Number(s.service_id) === selectedServiceId; });
+        updatePlantSection(selectedService || null);
       });
     }
 
@@ -201,6 +281,11 @@
         return;
       }
 
+      if (isInstallationService(selectedService) && !selectedPlantIds.length) {
+        alert('Please select at least one plant for the installation.');
+        return;
+      }
+
       var dateLabel = new Date(requestedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
       var selectedLocation = locations.find(function (loc) {
@@ -215,7 +300,8 @@
         service_id: selectedService.service_id,
         location_id: selectedLocationId,
         requested_date: requestedDate,
-        requested_notes: notesInput.value.trim()
+        requested_notes: notesInput.value.trim(),
+        plant_ids: selectedPlantIds.length ? selectedPlantIds : undefined
       };
 
       submitButton.disabled = true;
@@ -227,6 +313,17 @@
         document.getElementById('confirm-date').textContent = dateLabel;
         document.getElementById('confirm-location').textContent = selectedLocation.location_name || selectedLocation.street_1 || 'Location';
         document.getElementById('confirm-request-id').textContent = String(result.service_request_id || 'N/A');
+
+        if (selectedPlantIds.length) {
+          var plantNames = selectedPlantIds.map(function(pid) {
+            var p = plants.find(function(pl) { return Number(pl.plant_id) === pid; });
+            return p ? p.common_name : 'Plant #' + pid;
+          });
+          document.getElementById('confirm-plants').textContent = plantNames.join(', ');
+          document.getElementById('confirm-plants-row').style.display = '';
+        } else {
+          document.getElementById('confirm-plants-row').style.display = 'none';
+        }
 
         // Keep this for compatibility with the current appointments page while backend views are expanded.
         var appointments = JSON.parse(localStorage.getItem('plantedAppointments') || '[]');
