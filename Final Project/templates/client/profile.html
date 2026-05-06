@@ -105,6 +105,16 @@
     });
   });
 
+  document.querySelectorAll('#phone-input').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\-\(\)\+\s]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\-\(\)\+\s]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   (function () {
     var profileForm = document.getElementById('profile-form');
     var locationForm = document.getElementById('add-location-form');

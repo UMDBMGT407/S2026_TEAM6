@@ -39,10 +39,10 @@ PASSWORD_RESET_MAX_AGE_SECONDS = 3600
 password_reset_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # --- MySQL Config ---
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'password')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'user_management')
+app.config['MYSQL_HOST'] = ('localhost')
+app.config['MYSQL_USER'] = ('bmgts101t06')
+app.config['MYSQL_PASSWORD'] = ('BQ_But7431434')
+app.config['MYSQL_DB'] = ('bmgts101t06_user_management')
 
 mysql = MySQL(app)
 PLANT_PHOTO_UPLOAD_FOLDER = os.path.join(base_dir, 'static', 'uploads', 'plant_photos')
@@ -291,6 +291,30 @@ def ensure_plant_master_schema():
 
 
 ensure_plant_master_schema()
+
+
+def ensure_service_request_plants_schema():
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        try:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS service_request_plants (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    service_request_id INT NOT NULL,
+                    plant_id INT NOT NULL,
+                    quantity INT NOT NULL DEFAULT 1,
+                    FOREIGN KEY (service_request_id) REFERENCES service_requests(service_request_id) ON DELETE CASCADE,
+                    FOREIGN KEY (plant_id) REFERENCES plant_master(plant_id)
+                )
+            """)
+            mysql.connection.commit()
+        except:
+            pass
+        finally:
+            cur.close()
+
+
+ensure_service_request_plants_schema()
 
 
 def ensure_material_request_schema():
@@ -860,20 +884,17 @@ def create_account():
     if request.method == 'GET':
         return render_template('auth/CreateAccount.html')
 
-    full_name = request.form.get('name', '').strip()
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
     email = request.form.get('email', '').strip()
     password = request.form.get('password', '')
     confirm_password = request.form.get('confirm-password', '')
 
-    if not full_name or not email or not password:
+    if not first_name or not last_name or not email or not password:
         return render_template('auth/CreateAccount.html', error="All fields are required")
 
     if password != confirm_password:
         return render_template('auth/CreateAccount.html', error="Passwords do not match")
-
-    name_parts = full_name.split(None, 1)
-    first_name = name_parts[0]
-    last_name = name_parts[1] if len(name_parts) > 1 else 'User'
 
     cur = mysql.connection.cursor()
     cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
@@ -1246,6 +1267,28 @@ def client_appointments_alias():
         if 'cur' in locals():
             cur.close()
         return jsonify(error=f'Failed to load appointments: {str(e)}'), 500
+
+@app.route('/api/client/plants', methods=['GET'])
+@login_required
+@role_required('Client')
+def get_client_plants():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            "SELECT plant_id, common_name, scientific_name, photo_url FROM plant_master WHERE COALESCE(is_active, TRUE) = TRUE ORDER BY common_name"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        plants = [
+            {'plant_id': r[0], 'common_name': r[1], 'scientific_name': r[2] or '', 'photo_url': r[3] or ''}
+            for r in rows
+        ]
+        return jsonify(plants=plants)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
+
 
 # --- Logout ---
 @app.route('/logout')
@@ -4146,6 +4189,7 @@ def create_client_service_request_api():
     location_id_raw = data.get('location_id')
     requested_date_raw = (data.get('requested_date') or '').strip()
     requested_notes = (data.get('requested_notes') or '').strip()
+    plant_ids_raw = data.get('plant_ids') or []
 
     if service_id_raw in (None, ''):
         return jsonify(error='service_id is required'), 400
@@ -4214,6 +4258,13 @@ def create_client_service_request_api():
             (client_id, location_id, service_id, requested_date, requested_notes, 'Pending')
         )
         service_request_id = cur.lastrowid
+
+        plant_ids = [int(pid) for pid in plant_ids_raw if str(pid).isdigit() or (isinstance(pid, int))]
+        if plant_ids:
+            cur.executemany(
+                "INSERT INTO service_request_plants (service_request_id, plant_id) VALUES (%s, %s)",
+                [(service_request_id, pid) for pid in plant_ids]
+            )
 
         mysql.connection.commit()
         cur.close()
@@ -4513,6 +4564,35 @@ def get_management_service_requests_api():
         if 'cur' in locals():
             cur.close()
         return jsonify(error=f'Failed to load management service requests: {str(e)}'), 500
+
+
+@app.route('/api/management/service-requests/<int:service_request_id>/plants', methods=['GET'])
+@login_required
+@role_required('Management')
+def get_service_request_plants(service_request_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute(
+            """
+            SELECT pm.plant_id, pm.common_name, pm.scientific_name, srp.quantity
+            FROM service_request_plants srp
+            JOIN plant_master pm ON pm.plant_id = srp.plant_id
+            WHERE srp.service_request_id = %s
+            ORDER BY pm.common_name
+            """,
+            (service_request_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+        plants = [
+            {'plant_id': r[0], 'common_name': r[1], 'scientific_name': r[2] or '', 'quantity': r[3]}
+            for r in rows
+        ]
+        return jsonify(plants=plants)
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        return jsonify(error=str(e)), 500
 
 
 @app.route('/api/management/service-requests/<int:service_request_id>/approve', methods=['POST'])

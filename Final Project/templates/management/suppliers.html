@@ -123,6 +123,16 @@
 
 {% block page_js %}
 <script>
+  document.querySelectorAll('#supplier-phone-input, #edit-supplier-phone').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\-\(\)\+\s]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\-\(\)\+\s]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   var supplierSearchForm = document.getElementById('supplier-search-form');
   var supplierSearchInput = document.getElementById('supplier-search-input');
   var supplierTableBody = document.getElementById('supplier-table-body');

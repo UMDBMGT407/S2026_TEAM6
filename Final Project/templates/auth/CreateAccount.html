@@ -11,22 +11,33 @@
 <body>
     <div class="landing-page">
         <div class="login-container">
-            <img class="logo-img" src="{{ url_for('static', filename='images/planted-logo-10.png') }}" alt="Planted Logo">
-            <h1 class="planted">Planted</h1>
-            <p class="plant-management-solutions">Plant Management Solutions</p>
+            <img class="logo-img" src="{{ url_for('static', filename='images/LP_Image.png') }}" alt="Planted Logo">
             <div class="rectangle-1 login-card">
                 <h2 class="welcome-back">Create Account</h2>
                                 <p class="login-to-your-account">Set up your client dashboard in under a minute.</p>
                 <form class="frame-1" action="{{ url_for('create_account') }}" method="post">
-                    <label for="name">Full Name</label>
+                    <label for="first_name">First Name</label>
                                         <input
                                             class="email-box"
                                             type="text"
-                                            id="name"
-                                            name="name"
-                                            value="{{ request.form.get('name', '') }}"
-                                            autocomplete="name"
-                                            pattern="[A-Za-z\s'\-]+"
+                                            id="first_name"
+                                            name="first_name"
+                                            value="{{ request.form.get('first_name', '') }}"
+                                            autocomplete="given-name"
+                                            pattern="[A-Za-z'\-]+"
+                                            title="Please enter letters only"
+                                            required
+                                        >
+
+                    <label for="last_name">Last Name</label>
+                                        <input
+                                            class="email-box"
+                                            type="text"
+                                            id="last_name"
+                                            name="last_name"
+                                            value="{{ request.form.get('last_name', '') }}"
+                                            autocomplete="family-name"
+                                            pattern="[A-Za-z'\-]+"
                                             title="Please enter letters only"
                                             required
                                         >
@@ -77,13 +88,13 @@
         </div>
     </div>
 <script>
-  document.querySelectorAll('#name').forEach(function(input) {
+  document.querySelectorAll('#first_name, #last_name').forEach(function(input) {
     input.addEventListener('keypress', function(e) {
-      if (!/[A-Za-z\s'\-]/.test(e.key)) e.preventDefault();
+      if (!/[A-Za-z'\-]/.test(e.key)) e.preventDefault();
     });
     input.addEventListener('paste', function(e) {
       var pasted = (e.clipboardData || window.clipboardData).getData('text');
-      if (/[^A-Za-z\s'\-]/.test(pasted)) e.preventDefault();
+      if (/[^A-Za-z'\-]/.test(pasted)) e.preventDefault();
     });
   });
 </script>

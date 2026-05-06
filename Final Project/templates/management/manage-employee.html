@@ -743,6 +743,16 @@
     });
   });
 
+  document.querySelectorAll('#phone, #edit-emp-phone').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\-\(\)\+\s]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\-\(\)\+\s]/.test(pasted)) e.preventDefault();
+    });
+  });
+
   let currentEmployeeStatusFilter = 'all';
   let currentEmployeeSearch = '';
   let selectedEmployeeId = null;

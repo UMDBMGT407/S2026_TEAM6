@@ -97,6 +97,18 @@
 {% block page_js %}
 <script>
 (function () {
+  document.querySelectorAll('#profile-phone').forEach(function(input) {
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9\-\(\)\+\s]/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[^0-9\-\(\)\+\s]/.test(pasted)) e.preventDefault();
+    });
+  });
+})();
+
+(function () {
   var skills = {{ (profile.skills or []) | tojson }};
   var skillInput = document.getElementById('skill-input');
   var addSkillBtn = document.getElementById('add-skill-btn');
