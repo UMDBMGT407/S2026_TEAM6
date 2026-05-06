@@ -40,6 +40,14 @@
 </div>
 
 <div class="surface-card p-4">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h3 class="h5 mb-0">Services</h3>
+    <div class="d-flex gap-2 flex-wrap" id="service-filter-buttons">
+      <button type="button" class="btn btn-outline-success service-status-filter active" data-status="active">Active</button>
+      <button type="button" class="btn btn-outline-success service-status-filter" data-status="inactive">Inactive</button>
+      <button type="button" class="btn btn-outline-success service-status-filter" data-status="all">All</button>
+    </div>
+  </div>
   <p id="services-status-message" class="mb-3"></p>
   <div class="planted-table-wrapper">
     <table class="planted-data-table">
@@ -96,6 +104,7 @@
     var statusMessage = document.getElementById('services-status-message');
     var serviceSearchForm = document.getElementById('service-search-form');
     var serviceSearchInput = document.getElementById('service-search-input');
+    var filterButtons = Array.from(document.querySelectorAll('.service-status-filter'));
 
     var totalCount = document.getElementById('service-total-count');
     var activeCount = document.getElementById('service-active-count');
@@ -110,6 +119,8 @@
     var serviceDescriptionInput = document.getElementById('service-description-input');
     var servicePriceInput = document.getElementById('service-price-input');
 
+    var currentStatusFilter = 'active';
+    
     function setStatus(text, isError) {
       statusMessage.textContent = text || '';
       statusMessage.className = isError ? 'text-danger mb-3' : 'text-success mb-3';
@@ -144,6 +155,13 @@
       inactiveCount.textContent = String(services.length - active);
     }
 
+    function updateFilterButtons() {
+      filterButtons.forEach(function (button) {
+        var isActive = button.getAttribute('data-status') === currentStatusFilter;
+        button.classList.toggle('active', isActive);
+      });
+    }
+    
     function renderList(searchQuery) {
       var query = (searchQuery || '').toLowerCase();
       var filtered = services.filter(function (s) {
@@ -152,6 +170,13 @@
         return haystack.indexOf(query) !== -1;
       });
 
+      // Apply status filter
+      if (currentStatusFilter === 'active') {
+        filtered = filtered.filter(function (s) { return s.is_active; });
+      } else if (currentStatusFilter === 'inactive') {
+        filtered = filtered.filter(function (s) { return !s.is_active; });
+      }
+      
       if (!filtered.length) {
         serviceList.innerHTML = '<tr><td colspan="5" class="planted-table-empty">No services found.</td></tr>';
         return;
@@ -289,6 +314,14 @@
       renderList(serviceSearchInput.value.trim());
     });
 
+    filterButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        currentStatusFilter = button.getAttribute('data-status');
+        updateFilterButtons();
+        renderList(serviceSearchInput.value.trim());
+      });
+    });
+    
     loadServices().catch(function (error) {
       setStatus(error.message, true);
     });
