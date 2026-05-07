@@ -9,8 +9,6 @@ DROP TABLE IF EXISTS material_request_items;
 DROP TABLE IF EXISTS material_requests;
 DROP TABLE IF EXISTS task_materials;
 DROP TABLE IF EXISTS tasks;
-DROP TABLE IF EXISTS payroll_records;
-DROP TABLE IF EXISTS payroll_periods;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS invoice_items;
 DROP TABLE IF EXISTS invoices;
@@ -292,32 +290,6 @@ CREATE TABLE payments (
     reference_number VARCHAR(100),
     notes TEXT,
     FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id)
-);
-
--- PAYROLL
-
-CREATE TABLE payroll_periods (
-    payroll_period_id INT PRIMARY KEY AUTO_INCREMENT,
-    period_start DATE NOT NULL,
-    period_end DATE NOT NULL,
-    payment_date DATE NOT NULL
-);
-
-CREATE TABLE payroll_records (
-    payroll_record_id INT PRIMARY KEY AUTO_INCREMENT,
-    payroll_period_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    regular_hours DECIMAL(10,2),
-    overtime_hours DECIMAL(10,2),
-    billable_hours DECIMAL(10,2),
-    pay_rate DECIMAL(10,2),
-    bonus_amount DECIMAL(10,2),
-    deduction_amount DECIMAL(10,2),
-    gross_pay DECIMAL(10,2),
-    net_pay DECIMAL(10,2),
-    payment_method VARCHAR(50),
-    FOREIGN KEY (payroll_period_id) REFERENCES payroll_periods(payroll_period_id),
-    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
 -- MATERIAL REQUESTS
